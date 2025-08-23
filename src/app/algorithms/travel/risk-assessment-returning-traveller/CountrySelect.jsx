@@ -12,12 +12,23 @@ const today = new Date().toISOString().slice(0, 10);
 // - Count as overlap only if ranges truly intersect: (aEnd > bStart && bEnd > aStart)
 function rangesOverlap(aStart, aEnd, bStart, bEnd) {
   if (!aStart || !aEnd || !bStart || !bEnd) return false;
-  // non-overlap if aEnd <= bStart or bEnd <= aStart
   return !(aEnd <= bStart || bEnd <= aStart);
 }
 
 // easy unique id for list items
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+// helper: days since (integer)
+function daysSince(iso) {
+  try {
+    const d = new Date(iso + "T00:00:00");
+    const t = new Date(today + "T00:00:00");
+    const ms = t - d;
+    return Math.floor(ms / (1000 * 60 * 60 * 24));
+  } catch {
+    return null;
+  }
+}
 
 export default function CountrySelect() {
   const [query, setQuery] = useState("");
@@ -28,6 +39,9 @@ export default function CountrySelect() {
   // Selected countries with dates
   // { id: string, name: string, arrival: "YYYY-MM-DD"|"", leaving: "YYYY-MM-DD"|"" }
   const [selected, setSelected] = useState([]);
+
+  // Symptom onset date
+  const [onset, setOnset] = useState("");
 
   // Filtered suggestions
   const suggestions = useMemo(() => {
@@ -133,13 +147,17 @@ export default function CountrySelect() {
     return copy;
   }, [selected]);
 
+  // Onset validity: required and not in the future
+  const onsetValid = onset && onset <= today;
+
   const allValidNonOverlapping =
     sortedSelected.length > 0 &&
     sortedSelected.every((c) => countryValidity(c) === "ok") &&
-    conflictIds.size === 0;
+    conflictIds.size === 0 &&
+    onsetValid;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Selected countries: chip row (sorted) */}
       {sortedSelected.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -256,8 +274,6 @@ export default function CountrySelect() {
             }
 
             // Max/min attributes to prevent future dates:
-            // - Arrival: max is the earlier of (leaving if set) and today
-            // - Leaving: max is today; min is arrival (if set)
             const arrivalMax = c.leaving ? (c.leaving < today ? c.leaving : today) : today;
             const leavingMin = c.arrival || undefined;
 
@@ -320,7 +336,35 @@ export default function CountrySelect() {
         </div>
       )}
 
-      {/* Continue button enabled only when all ranges valid AND no overlaps */}
+      {/* Symptom onset date */}
+      <div className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
+        <div className="mb-2 text-sm font-medium text-slate-900 dark:text-slate-100">
+          Date of symptom onset
+        </div>
+        <div className="grid sm:grid-cols-[240px_1fr] gap-3 items-center">
+          <input
+            type="date"
+            value={onset}
+            onChange={(e) => setOnset(e.target.value)}
+            className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-400"
+            max={today} // no future onset
+          />
+          {onset && (
+            <div className="text-xs text-slate-600 dark:text-slate-300">
+              {onset > today
+                ? "Onset cannot be in the future."
+                : `Days since onset: ${daysSince(onset)}`}
+            </div>
+          )}
+        </div>
+        {onset && onset > today && (
+          <p className="mt-2 text-xs text-rose-700 dark:text-rose-400">
+            Onset date cannot be in the future.
+          </p>
+        )}
+      </div>
+
+      {/* Continue button enabled only when all ranges valid, no overlaps, and onset set & not future */}
       <div className="pt-2">
         <button
           type="button"
@@ -333,7 +377,7 @@ export default function CountrySelect() {
           title={
             allValidNonOverlapping
               ? "Ready for next step"
-              : "Ensure each country has valid dates, not in the future, and no overlaps"
+              : "Ensure countries have valid, non-overlapping dates and symptom onset is set (not in the future)"
           }
         >
           Continue
