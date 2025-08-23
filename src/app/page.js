@@ -1,103 +1,129 @@
-import Image from "next/image";
+// src/app/page.js
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <main className="min-h-[calc(100vh-64px)]">
+      {/* Hero */}
+      <section className="relative isolate overflow-hidden py-20 sm:py-28">
+        <div className="absolute inset-0 -z-10 opacity-10 dark:opacity-20 bg-[radial-gradient(60%_60%_at_50%_0%,theme(colors.blue.300/40%),transparent_60%)] dark:bg-[radial-gradient(60%_60%_at_50%_0%,theme(colors.blue.300/15%),transparent_60%)]" />
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+              Infectious Diseases — fast, clear, trustworthy.
+            </h1>
+            <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300">
+              Practical algorithms, local guidelines, calculators, and teaching
+              resources for ID clinicians in the Northwest.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="#sections"
+                className="rounded-xl px-5 py-3 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                Explore the site
+              </Link>
+              <Link
+                href="/algorithms"
+                className="rounded-xl px-5 py-3 text-sm font-medium border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-900"
+              >
+                Go to Algorithms
+              </Link>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </section>
+
+      {/* Sections overview */}
+      <section id="sections" className="py-12 sm:py-16 border-t border-slate-200 dark:border-slate-800">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-4">
+            {/* Algorithms */}
+            <Link
+              href="/algorithms"
+              className="group rounded-2xl border border-slate-200 dark:border-slate-800 p-5 hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h10v2H4z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Algorithms</h3>
+              </div>
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                Step‑by‑step pathways for common ID scenarios (sepsis, SAB, CNS infection, etc.).
+              </p>
+              <span className="mt-4 inline-block text-sm font-medium text-blue-700 dark:text-blue-400 group-hover:underline">
+                View algorithms →
+              </span>
+            </Link>
+
+            {/* Guidelines */}
+            <Link
+              href="/guidelines"
+              className="group rounded-2xl border border-slate-200 dark:border-slate-800 p-5 hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 2h9l3 3v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Guidelines</h3>
+              </div>
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                Curated local & national guidance, antibiotic policies, and useful references.
+              </p>
+              <span className="mt-4 inline-block text-sm font-medium text-blue-700 dark:text-blue-400 group-hover:underline">
+                Browse guidelines →
+              </span>
+            </Link>
+
+            {/* Calculators */}
+            <Link
+              href="/calculators"
+              className="group rounded-2xl border border-slate-200 dark:border-slate-800 p-5 hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm3 4h8v2H8V7zm0 4h8v2H8v-2zm0 4h8v2H8v-2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Calculators</h3>
+              </div>
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                Interactive dosing aids and risk scores with clear outputs and caveats.
+              </p>
+              <span className="mt-4 inline-block text-sm font-medium text-blue-700 dark:text-blue-400 group-hover:underline">
+                Open calculators →
+              </span>
+            </Link>
+
+            {/* Teaching */}
+            <Link
+              href="/teaching"
+              className="group rounded-2xl border border-slate-200 dark:border-slate-800 p-5 hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800 transition"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 3l9 5-9 5-9-5 9-5zm0 7l6.16-3.42L12 3.99 5.84 6.58 12 10zM4 12l8 4 8-4v5l-8 4-8-4v-5z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Teaching</h3>
+              </div>
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                Slide decks, cases, and micro teaching bite‑sizes for teams and trainees.
+              </p>
+              <span className="mt-4 inline-block text-sm font-medium text-blue-700 dark:text-blue-400 group-hover:underline">
+                See teaching →
+              </span>
+            </Link>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }
