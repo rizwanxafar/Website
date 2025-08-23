@@ -6,8 +6,7 @@ import { useState } from "react";
 
 export const metadata = {
   title: "Algorithms · ID Northwest",
-  description:
-    "Quick access to infectious diseases algorithms grouped by Travel-related, Viral Hepatitis, and HIV.",
+  description: "Quick access to infectious diseases algorithms grouped by Travel-related, Viral Hepatitis, and HIV.",
 };
 
 // Simple data you can expand later (same structure works for other categories/pages)
