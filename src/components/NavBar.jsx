@@ -23,7 +23,7 @@ export default function NavBar() {
           href="/"
           className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-semibold"
         >
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white">ID</span>
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-white">ID</span>
           <span>ID Northwest</span>
         </Link>
 
@@ -36,7 +36,7 @@ export default function NavBar() {
                 href={item.href}
                 className={`px-3 py-2 rounded-lg text-sm font-medium ${
                   active
-                    ? "text-blue-700 dark:text-blue-400"
+                    ? "text-violet-700 dark:text-violet-400"
                     : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
