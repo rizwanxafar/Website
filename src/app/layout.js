@@ -4,7 +4,8 @@ import NavBar from "../components/NavBar";
 
 export const metadata = {
   title: "ID Northwest",
-  description: "Infectious Diseases algorithms, guidelines, calculators, and teaching resources.",
+  description:
+    "Infectious Diseases algorithms, guidelines, calculators, and teaching resources.",
 };
 
 export default function RootLayout({ children }) {
@@ -34,11 +35,7 @@ export default function RootLayout({ children }) {
       <body className="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
         <NavBar />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">{children}</div>
-        <footer className="mt-16 border-t border-slate-200 dark:border-slate-800 py-8 text-sm text-slate-500 dark:text-slate-400">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            © {new Date().getFullYear()} ID Northwest
-          </div>
-        </footer>
+        {/* Footer removed as requested */}
       </body>
     </html>
   );
