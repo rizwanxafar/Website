@@ -11,9 +11,8 @@ const categories = [
     key: "travel",
     title: "Travel-related",
     items: [
-      { label: "Fever in the returned traveller", href: "/algorithms/travel/fever-returned-traveller" },
-      { label: "Malaria assessment & admission thresholds", href: "/algorithms/travel/malaria" },
-      { label: "Dengue: triage and warning signs", href: "/algorithms/travel/dengue" },
+      { label: "Risk assessment in returning traveller", href: "/algorithms/travel/risk-assessment-returning-traveller" },
+      { label: "Travel history generator", href: "/algorithms/travel/travel-history-generator" },
     ],
   },
   {
