@@ -4,14 +4,20 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { vhfCountryNames } from "../../../../data/vhfCountries";
 
+// simple ISO date overlap check (YYYY-MM-DD strings compare lexicographically)
+function rangesOverlap(aStart, aEnd, bStart, bEnd) {
+  if (!aStart || !aEnd || !bStart || !bEnd) return false;
+  return !(aEnd < bStart || bEnd < aStart); // overlap if not strictly apart
+}
+
 export default function CountrySelect() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [showInput, setShowInput] = useState(true); // hide input after first add
   const inputRef = useRef(null);
 
-  // Selected countries now include dates
-  // { name: string, arrival: string (YYYY-MM-DD), leaving: string (YYYY-MM-DD) }
+  // Selected countries with dates
+  // { name: string, arrival: "YYYY-MM-DD"|"", leaving: "YYYY-MM-DD"|"" }
   const [selected, setSelected] = useState([]);
 
   // Filtered suggestions
@@ -24,7 +30,7 @@ export default function CountrySelect() {
     );
   }, [query]);
 
-  // Add typed or clicked suggestion (restricted to UKHSA list)
+  // Add from typed or clicked suggestion (restricted to UKHSA list)
   const addCountry = (nameRaw) => {
     const name = (nameRaw ?? query).trim();
     if (!name) return;
@@ -44,9 +50,7 @@ export default function CountrySelect() {
 
   const updateDate = (name, field, value) => {
     setSelected((prev) =>
-      prev.map((c) =>
-        c.name === name ? { ...c, [field]: value } : c
-      )
+      prev.map((c) => (c.name === name ? { ...c, [field]: value } : c))
     );
   };
 
@@ -69,16 +73,35 @@ export default function CountrySelect() {
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
-  // Simple validation per country (both dates present and arrival <= leaving)
+  // Per-country range validity
   const countryValidity = (c) => {
     if (!c.arrival || !c.leaving) return "incomplete";
     if (c.arrival > c.leaving) return "invalid-range";
     return "ok";
   };
 
-  const allValid =
+  // Detect overlaps across all selected countries
+  const conflictNames = useMemo(() => {
+    const conflicts = new Set();
+    for (let i = 0; i < selected.length; i++) {
+      const a = selected[i];
+      if (countryValidity(a) !== "ok") continue;
+      for (let j = i + 1; j < selected.length; j++) {
+        const b = selected[j];
+        if (countryValidity(b) !== "ok") continue;
+        if (rangesOverlap(a.arrival, a.leaving, b.arrival, b.leaving)) {
+          conflicts.add(a.name);
+          conflicts.add(b.name);
+        }
+      }
+    }
+    return conflicts;
+  }, [selected]);
+
+  const allValidNonOverlapping =
     selected.length > 0 &&
-    selected.every((c) => countryValidity(c) === "ok");
+    selected.every((c) => countryValidity(c) === "ok") &&
+    conflictNames.size === 0;
 
   return (
     <div className="space-y-5">
@@ -183,16 +206,24 @@ export default function CountrySelect() {
         <div className="space-y-4">
           {selected.map((c) => {
             const validity = countryValidity(c);
-            const showWarn = validity !== "ok";
+            const showWarn = validity !== "ok" || conflictNames.has(c.name);
             const warnText =
               validity === "invalid-range"
                 ? "Leaving date must be the same as or after the arrival date."
-                : "Please choose both arrival and leaving dates.";
+                : validity === "incomplete"
+                ? "Please choose both arrival and leaving dates."
+                : "These dates overlap with another country. Adjust to avoid overlap.";
+
+            const hasConflict = conflictNames.has(c.name);
 
             return (
               <div
                 key={`${c.name}-dates`}
-                className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4"
+                className={`rounded-xl border-2 p-4 ${
+                  hasConflict
+                    ? "border-rose-500 dark:border-rose-500 bg-rose-50/40 dark:bg-rose-900/20"
+                    : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950"
+                }`}
               >
                 <div className="mb-2 text-sm font-medium text-slate-900 dark:text-slate-100">
                   {c.name} — travel dates
@@ -206,7 +237,11 @@ export default function CountrySelect() {
                       type="date"
                       value={c.arrival}
                       onChange={(e) => updateDate(c.name, "arrival", e.target.value)}
-                      className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                      className={`w-full rounded-lg border-2 px-3 py-2 focus:outline-none focus:ring-2 ${
+                        hasConflict
+                          ? "border-rose-400 dark:border-rose-500 focus:ring-rose-300"
+                          : "border-slate-300 dark:border-slate-700 focus:ring-violet-400 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100"
+                      }`}
                       max={c.leaving || undefined}
                     />
                   </div>
@@ -218,14 +253,18 @@ export default function CountrySelect() {
                       type="date"
                       value={c.leaving}
                       onChange={(e) => updateDate(c.name, "leaving", e.target.value)}
-                      className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                      className={`w-full rounded-lg border-2 px-3 py-2 focus:outline-none focus:ring-2 ${
+                        hasConflict
+                          ? "border-rose-400 dark:border-rose-500 focus:ring-rose-300"
+                          : "border-slate-300 dark:border-slate-700 focus:ring-violet-400 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100"
+                      }`}
                       min={c.arrival || undefined}
                     />
                   </div>
                 </div>
 
                 {showWarn && (
-                  <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+                  <p className="mt-2 text-xs text-rose-700 dark:text-rose-400">
                     {warnText}
                   </p>
                 )}
@@ -235,17 +274,21 @@ export default function CountrySelect() {
         </div>
       )}
 
-      {/* Continue button still disabled until we define next step; will enable when ready */}
+      {/* Continue button enabled only when all ranges valid AND no overlaps */}
       <div className="pt-2">
         <button
           type="button"
-          disabled={!allValid}
+          disabled={!allValidNonOverlapping}
           className={`rounded-lg px-4 py-2 ${
-            allValid
+            allValidNonOverlapping
               ? "bg-violet-600 text-white hover:bg-violet-700"
               : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
           }`}
-          title={allValid ? "Ready for next step" : "Select countries and valid dates to continue"}
+          title={
+            allValidNonOverlapping
+              ? "Ready for next step"
+              : "Ensure each country has valid dates and no overlaps"
+          }
         >
           Continue
         </button>
