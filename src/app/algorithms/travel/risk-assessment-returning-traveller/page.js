@@ -4,7 +4,7 @@ import CountrySelect from "./CountrySelect";
 export const metadata = {
   title: "Risk assessment (returning traveller) · Algorithms",
   description:
-    "Step 1: Choose country/countries of travel. Uses UKHSA HCID country-specific risk list.",
+    "Choose country/countries of travel. Uses UKHSA HCID country-specific risk list.",
 };
 
 export default function RiskAssessment() {
@@ -15,7 +15,7 @@ export default function RiskAssessment() {
           Risk assessment — returning traveller
         </h1>
         <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl">
-          Step 1 of 3 — Country / countries of travel
+          Country / countries of travel
         </p>
       </header>
 
