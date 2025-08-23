@@ -7,8 +7,11 @@ import { vhfCountryNames } from "../../../../data/vhfCountries";
 // simple ISO date overlap check (YYYY-MM-DD strings compare lexicographically)
 function rangesOverlap(aStart, aEnd, bStart, bEnd) {
   if (!aStart || !aEnd || !bStart || !bEnd) return false;
-  return !(aEnd < bStart || bEnd < aStart); // overlap if not strictly apart
+  return !(aEnd < bStart || bEnd < aStart); // treat same-day touch as overlap
 }
+
+// easy unique id for list items
+const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 export default function CountrySelect() {
   const [query, setQuery] = useState("");
@@ -17,7 +20,7 @@ export default function CountrySelect() {
   const inputRef = useRef(null);
 
   // Selected countries with dates
-  // { name: string, arrival: "YYYY-MM-DD"|"", leaving: "YYYY-MM-DD"|"" }
+  // { id: string, name: string, arrival: "YYYY-MM-DD"|"", leaving: "YYYY-MM-DD"|"" }
   const [selected, setSelected] = useState([]);
 
   // Filtered suggestions
@@ -35,22 +38,29 @@ export default function CountrySelect() {
     const name = (nameRaw ?? query).trim();
     if (!name) return;
     if (!vhfCountryNames.includes(name)) return;
-    const already = selected.some((c) => c.name.toLowerCase() === name.toLowerCase());
-    if (already) return;
 
-    setSelected((prev) => [...prev, { name, arrival: "", leaving: "" }]);
+    // If the same country already exists, ask whether to add again (layover, multi-leg)
+    const exists = selected.some((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (exists) {
+      const ok = window.confirm(
+        `${name} is already in the list. Add it again (e.g., for a second visit or layover)?`
+      );
+      if (!ok) return;
+    }
+
+    setSelected((prev) => [...prev, { id: uid(), name, arrival: "", leaving: "" }]);
     setQuery("");
     setOpen(false);
     setShowInput(false); // hide after first successful add
   };
 
-  const removeCountry = (name) => {
-    setSelected((prev) => prev.filter((c) => c.name !== name));
+  const removeCountry = (id) => {
+    setSelected((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const updateDate = (name, field, value) => {
+  const updateDate = (id, field, value) => {
     setSelected((prev) =>
-      prev.map((c) => (c.name === name ? { ...c, [field]: value } : c))
+      prev.map((c) => (c.id === id ? { ...c, [field]: value } : c))
     );
   };
 
@@ -80,8 +90,8 @@ export default function CountrySelect() {
     return "ok";
   };
 
-  // Detect overlaps across all selected countries
-  const conflictNames = useMemo(() => {
+  // Detect overlaps across all selected countries (by id)
+  const conflictIds = useMemo(() => {
     const conflicts = new Set();
     for (let i = 0; i < selected.length; i++) {
       const a = selected[i];
@@ -90,27 +100,47 @@ export default function CountrySelect() {
         const b = selected[j];
         if (countryValidity(b) !== "ok") continue;
         if (rangesOverlap(a.arrival, a.leaving, b.arrival, b.leaving)) {
-          conflicts.add(a.name);
-          conflicts.add(b.name);
+          conflicts.add(a.id);
+          conflicts.add(b.id);
         }
       }
     }
     return conflicts;
   }, [selected]);
 
+  // Sort for display: earliest arrival first; incomplete/undated at the end
+  const sortedSelected = useMemo(() => {
+    const copy = [...selected];
+    copy.sort((a, b) => {
+      const aHas = a.arrival && a.leaving;
+      const bHas = b.arrival && b.leaving;
+      if (aHas && bHas) {
+        // primary sort by arrival asc, tie-break by leaving asc, then name
+        if (a.arrival !== b.arrival) return a.arrival < b.arrival ? -1 : 1;
+        if (a.leaving !== b.leaving) return a.leaving < b.leaving ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      }
+      if (aHas && !bHas) return -1; // completed ranges above incomplete ones
+      if (!aHas && bHas) return 1;
+      // neither has dates — keep insertion order by name
+      return a.name.localeCompare(b.name);
+    });
+    return copy;
+  }, [selected]);
+
   const allValidNonOverlapping =
-    selected.length > 0 &&
-    selected.every((c) => countryValidity(c) === "ok") &&
-    conflictNames.size === 0;
+    sortedSelected.length > 0 &&
+    sortedSelected.every((c) => countryValidity(c) === "ok") &&
+    conflictIds.size === 0;
 
   return (
     <div className="space-y-5">
-      {/* Selected countries: chip row */}
-      {selected.length > 0 && (
+      {/* Selected countries: chip row (sorted) */}
+      {sortedSelected.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {selected.map((c) => (
+          {sortedSelected.map((c) => (
             <span
-              key={c.name}
+              key={`chip-${c.id}`}
               className="inline-flex items-center gap-2 rounded-full border-2 border-slate-300 dark:border-slate-700 px-3 py-1 text-sm text-slate-900 dark:text-slate-100"
             >
               {c.name}
@@ -118,7 +148,7 @@ export default function CountrySelect() {
                 type="button"
                 className="rounded-md px-1.5 py-0.5 text-slate-600 dark:text-slate-300 hover:text-violet-700 dark:hover:text-violet-400"
                 aria-label={`Remove ${c.name}`}
-                onClick={() => removeCountry(c.name)}
+                onClick={() => removeCountry(c.id)}
               >
                 ×
               </button>
@@ -201,12 +231,13 @@ export default function CountrySelect() {
         </div>
       )}
 
-      {/* Per-country date pickers */}
-      {selected.length > 0 && (
+      {/* Per-country date pickers (sorted by date) */}
+      {sortedSelected.length > 0 && (
         <div className="space-y-4">
-          {selected.map((c) => {
+          {sortedSelected.map((c) => {
             const validity = countryValidity(c);
-            const showWarn = validity !== "ok" || conflictNames.has(c.name);
+            const hasConflict = conflictIds.has(c.id);
+            const showWarn = validity !== "ok" || hasConflict;
             const warnText =
               validity === "invalid-range"
                 ? "Leaving date must be the same as or after the arrival date."
@@ -214,11 +245,9 @@ export default function CountrySelect() {
                 ? "Please choose both arrival and leaving dates."
                 : "These dates overlap with another country. Adjust to avoid overlap.";
 
-            const hasConflict = conflictNames.has(c.name);
-
             return (
               <div
-                key={`${c.name}-dates`}
+                key={`card-${c.id}`}
                 className={`rounded-xl border-2 p-4 ${
                   hasConflict
                     ? "border-rose-500 dark:border-rose-500 bg-rose-50/40 dark:bg-rose-900/20"
@@ -236,7 +265,7 @@ export default function CountrySelect() {
                     <input
                       type="date"
                       value={c.arrival}
-                      onChange={(e) => updateDate(c.name, "arrival", e.target.value)}
+                      onChange={(e) => updateDate(c.id, "arrival", e.target.value)}
                       className={`w-full rounded-lg border-2 px-3 py-2 focus:outline-none focus:ring-2 ${
                         hasConflict
                           ? "border-rose-400 dark:border-rose-500 focus:ring-rose-300"
@@ -252,7 +281,7 @@ export default function CountrySelect() {
                     <input
                       type="date"
                       value={c.leaving}
-                      onChange={(e) => updateDate(c.name, "leaving", e.target.value)}
+                      onChange={(e) => updateDate(c.id, "leaving", e.target.value)}
                       className={`w-full rounded-lg border-2 px-3 py-2 focus:outline-none focus:ring-2 ${
                         hasConflict
                           ? "border-rose-400 dark:border-rose-500 focus:ring-rose-300"
@@ -274,7 +303,7 @@ export default function CountrySelect() {
         </div>
       )}
 
-      {/* Continue button enabled only when all ranges valid AND no overlaps */}
+      {/* Continue button enabled only when all ranges valid, sorted, AND no overlaps */}
       <div className="pt-2">
         <button
           type="button"
