@@ -10,7 +10,7 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-              Infectious Diseases — fast, clear, trustworthy.
+              Welcome to Infectious Diseases portal.
             </h1>
             <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300">
               Practical algorithms, local guidelines, calculators, and teaching
