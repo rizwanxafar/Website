@@ -4,8 +4,7 @@ import NavBar from "../components/NavBar";
 
 export const metadata = {
   title: "ID Northwest",
-  description:
-    "Infectious Diseases algorithms, guidelines, calculators, and teaching resources.",
+  description: "Infectious Diseases algorithms, guidelines, calculators, and teaching resources.",
 };
 
 export default function RootLayout({ children }) {
