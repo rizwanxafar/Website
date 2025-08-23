@@ -4,10 +4,16 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { vhfCountryNames } from "../../../../data/vhfCountries";
 
-// simple ISO date overlap check (YYYY-MM-DD strings compare lexicographically)
+// today's date in YYYY-MM-DD (used to prevent future selections)
+const today = new Date().toISOString().slice(0, 10);
+
+// Overlap rule:
+// - ALLOW same-day handover (A ends on X, B starts on X) -> NOT overlap
+// - Count as overlap only if ranges truly intersect: (aEnd > bStart && bEnd > aStart)
 function rangesOverlap(aStart, aEnd, bStart, bEnd) {
   if (!aStart || !aEnd || !bStart || !bEnd) return false;
-  return !(aEnd < bStart || bEnd < aStart); // treat same-day touch as overlap
+  // non-overlap if aEnd <= bStart or bEnd <= aStart
+  return !(aEnd <= bStart || bEnd <= aStart);
 }
 
 // easy unique id for list items
@@ -83,10 +89,11 @@ export default function CountrySelect() {
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
-  // Per-country range validity
+  // Per-country range validity (includes "no future" rule)
   const countryValidity = (c) => {
     if (!c.arrival || !c.leaving) return "incomplete";
     if (c.arrival > c.leaving) return "invalid-range";
+    if (c.arrival > today || c.leaving > today) return "future-date";
     return "ok";
   };
 
@@ -115,14 +122,12 @@ export default function CountrySelect() {
       const aHas = a.arrival && a.leaving;
       const bHas = b.arrival && b.leaving;
       if (aHas && bHas) {
-        // primary sort by arrival asc, tie-break by leaving asc, then name
         if (a.arrival !== b.arrival) return a.arrival < b.arrival ? -1 : 1;
         if (a.leaving !== b.leaving) return a.leaving < b.leaving ? -1 : 1;
         return a.name.localeCompare(b.name);
       }
-      if (aHas && !bHas) return -1; // completed ranges above incomplete ones
+      if (aHas && !bHas) return -1;
       if (!aHas && bHas) return 1;
-      // neither has dates — keep insertion order by name
       return a.name.localeCompare(b.name);
     });
     return copy;
@@ -238,12 +243,23 @@ export default function CountrySelect() {
             const validity = countryValidity(c);
             const hasConflict = conflictIds.has(c.id);
             const showWarn = validity !== "ok" || hasConflict;
-            const warnText =
-              validity === "invalid-range"
-                ? "Leaving date must be the same as or after the arrival date."
-                : validity === "incomplete"
-                ? "Please choose both arrival and leaving dates."
-                : "These dates overlap with another country. Adjust to avoid overlap.";
+
+            let warnText = "";
+            if (validity === "invalid-range") {
+              warnText = "Leaving date must be the same as or after the arrival date.";
+            } else if (validity === "incomplete") {
+              warnText = "Please choose both arrival and leaving dates.";
+            } else if (validity === "future-date") {
+              warnText = "Dates cannot be in the future.";
+            } else if (hasConflict) {
+              warnText = "These dates overlap with another country. Adjust to avoid overlap.";
+            }
+
+            // Max/min attributes to prevent future dates:
+            // - Arrival: max is the earlier of (leaving if set) and today
+            // - Leaving: max is today; min is arrival (if set)
+            const arrivalMax = c.leaving ? (c.leaving < today ? c.leaving : today) : today;
+            const leavingMin = c.arrival || undefined;
 
             return (
               <div
@@ -271,7 +287,7 @@ export default function CountrySelect() {
                           ? "border-rose-400 dark:border-rose-500 focus:ring-rose-300"
                           : "border-slate-300 dark:border-slate-700 focus:ring-violet-400 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100"
                       }`}
-                      max={c.leaving || undefined}
+                      max={arrivalMax}
                     />
                   </div>
                   <div>
@@ -287,7 +303,8 @@ export default function CountrySelect() {
                           ? "border-rose-400 dark:border-rose-500 focus:ring-rose-300"
                           : "border-slate-300 dark:border-slate-700 focus:ring-violet-400 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100"
                       }`}
-                      min={c.arrival || undefined}
+                      min={leavingMin}
+                      max={today}
                     />
                   </div>
                 </div>
@@ -303,7 +320,7 @@ export default function CountrySelect() {
         </div>
       )}
 
-      {/* Continue button enabled only when all ranges valid, sorted, AND no overlaps */}
+      {/* Continue button enabled only when all ranges valid AND no overlaps */}
       <div className="pt-2">
         <button
           type="button"
@@ -316,7 +333,7 @@ export default function CountrySelect() {
           title={
             allValidNonOverlapping
               ? "Ready for next step"
-              : "Ensure each country has valid dates and no overlaps"
+              : "Ensure each country has valid dates, not in the future, and no overlaps"
           }
         >
           Continue
