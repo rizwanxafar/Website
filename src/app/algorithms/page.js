@@ -1,9 +1,9 @@
 // src/app/algorithms/page.js
-import CategoryPanel from "../../components/CategoryPanel";
 
 export const metadata = {
   title: "Algorithms · ID Northwest",
-  description: "Quick access to infectious diseases algorithms grouped by Travel-related, Viral Hepatitis, and HIV.",
+  description:
+    "Quick access to infectious diseases algorithms grouped by Travel-related, Viral Hepatitis, and HIV.",
 };
 
 const categories = [
@@ -38,6 +38,7 @@ const categories = [
 export default function AlgorithmsIndex() {
   return (
     <main className="py-10 sm:py-14">
+      {/* Header */}
       <header className="mb-8 sm:mb-10">
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
           Algorithms
@@ -47,10 +48,40 @@ export default function AlgorithmsIndex() {
         </p>
       </header>
 
+      {/* Categories as native disclosure panels (no client JS needed) */}
       <section aria-label="Algorithm categories">
         <div className="grid gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
           {categories.map((cat) => (
-            <CategoryPanel key={cat.key} title={cat.title} items={cat.items} />
+            <details
+              key={cat.key}
+              className="group rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 transition hover:shadow-lg open:shadow-lg"
+            >
+              <summary className="cursor-pointer list-none p-6 flex items-center justify-between gap-4">
+                <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {cat.title}
+                </span>
+                <span
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 group-open:bg-violet-600 group-open:text-white group-open:border-violet-600 transition"
+                  aria-hidden="true"
+                >
+                  <span className="group-open:hidden">+</span>
+                  <span className="hidden group-open:inline">–</span>
+                </span>
+              </summary>
+
+              <ul className="px-6 pb-6 space-y-2">
+                {cat.items.map((item) => (
+                  <li key={item.href}>
+                    <a
+                      href={item.href}
+                      className="block rounded-lg px-4 py-3 text-sm font-medium border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 hover:border-violet-500 dark:hover:border-violet-400 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition"
+                    >
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </details>
           ))}
         </div>
       </section>
