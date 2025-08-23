@@ -29,7 +29,6 @@ export default function AlgorithmsIndex() {
         </div>
       </section>
 
-      {/* Note about upcoming detail pages */}
       <p className="mt-10 text-sm text-slate-500 dark:text-slate-400">
         Category pages will be added next. Links above may temporarily show a 404 until we create them.
       </p>
@@ -37,12 +36,12 @@ export default function AlgorithmsIndex() {
   );
 }
 
-/** Simple card with just a label */
+/** Improved card style */
 function CategoryCard({ href, title }) {
   return (
     <Link
       href={href}
-      className="group rounded-2xl border border-slate-200 dark:border-slate-800 p-8 flex items-center justify-center text-lg font-semibold text-slate-900 dark:text-slate-100 hover:shadow-md hover:border-violet-200 dark:hover:border-violet-800 transition"
+      className="group rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-10 flex items-center justify-center text-lg font-semibold text-slate-900 dark:text-slate-100 transition hover:border-violet-500 dark:hover:border-violet-400 hover:shadow-lg hover:text-violet-700 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20"
     >
       {title}
     </Link>
