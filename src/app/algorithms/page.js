@@ -3,8 +3,7 @@ import CategoryPanel from "../../components/CategoryPanel";
 
 export const metadata = {
   title: "Algorithms · ID Northwest",
-  description:
-    "Quick access to infectious diseases algorithms grouped by Travel-related, Viral Hepatitis, and HIV.",
+  description: "Quick access to infectious diseases algorithms grouped by Travel-related, Viral Hepatitis, and HIV.",
 };
 
 const categories = [
