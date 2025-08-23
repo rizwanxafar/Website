@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState, useRef, useEffect } from "react";
-import { vhfCountryNames } from "../../../data/vhfCountries";
+import { vhfCountryNames } from "../../../../data/vhfCountries";
 
 export default function CountrySelect() {
   const [query, setQuery] = useState("");
