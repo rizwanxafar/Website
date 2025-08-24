@@ -584,10 +584,19 @@ export default function CountrySelect() {
   )}
   {riskMeta.source === "snapshot-fallback" && (
   <span className="ml-1 text-amber-700 dark:text-amber-400">
-    (Using local snapshot{riskMeta.snapshotDate ? ` from ${riskMeta.snapshotDate}` : ""}.
-    Please verify latest guidance on GOV.UK)
+    ⚠️ This page is using a cached copy of country risk data
+    {riskMeta.snapshotDate ? ` (last updated ${riskMeta.snapshotDate})` : ""}.
+    For patient care decisions, always verify with the current information on{" "}
+    <a
+      href="https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline"
+    >
+      GOV.UK
+    </a>.
   </span>
-)}
+    )}
 </p>
 
       <div className="grid gap-4">
