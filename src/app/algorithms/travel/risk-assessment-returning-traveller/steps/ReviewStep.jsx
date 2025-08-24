@@ -55,23 +55,57 @@ export default function ReviewStep({
         };
       }
 
-      if (Array.isArray(entries) && entries.length === 0) {
+      // Classify entries:
+      // - Ignore markers like "No known HCIDs" / "No other known HCIDs" / "travel associated cases as below"
+      // - Treat "(c) Imported cases only" as travel-associated (green note)
+      // - Everything else counts as HCID presence (red)
+      const NON_HCID_MARKERS = new Set([
+        "no known hcid",
+        "no known hcids",
+        "no other known hcid",
+        "no other known hcids",
+        "travel associated cases as below",
+      ]);
+
+      const realEntries = [];
+      const importedOnly = [];
+
+      for (const e of entries) {
+        const label = (e?.disease || "").toLowerCase().trim();
+        if (NON_HCID_MARKERS.has(label)) continue;
+
+        const ev = (e?.evidence || "").toLowerCase();
+        if (ev.includes("imported cases only")) {
+          importedOnly.push(e);
+          continue;
+        }
+
+        // Any other evidence (community/zoonotic, limited local, serology, unknown)
+        realEntries.push(e);
+      }
+
+      if (realEntries.length === 0) {
+        // No HCID presence indicated for this country; show green.
+        const hasImported = importedOnly.length > 0;
         return {
           ...c,
           level: "green",
-          header: "No UKHSA‑listed HCIDs",
-          message: "GOV.UK indicates no specific HCID risk listed for this country.",
-          entries: [],
+          header: hasImported ? "No UKHSA‑listed HCIDs; imported cases reported" : "No UKHSA‑listed HCIDs",
+          message: hasImported
+            ? "GOV.UK notes travel‑associated (imported) cases have been reported:"
+            : "GOV.UK indicates no specific HCID risk listed for this country.",
+          entries: importedOnly, // show imported diseases as an informational list
         };
       }
 
+      // Otherwise, there is HCID presence for this country
       return {
         ...c,
         level: "red",
         header: "Consider the following HCIDs",
         message:
           "Within 21 days of travel from a country with UKHSA‑listed HCID occurrence.",
-        entries,
+        entries: realEntries,
       };
     });
   }, [selected, onset, normalizedMap]);
