@@ -55,10 +55,36 @@ export default function ReviewStep({
         };
       }
 
-      // Classify entries:
-      // - Ignore markers like "No known HCIDs" / "No other known HCIDs" / "travel associated cases as below"
-      // - Treat "(c) Imported cases only" as travel-associated (green note)
-      // - Everything else counts as HCID presence (red)
+      // --- NEW RULE: explicit travel marker makes the country GREEN ---
+      // Match variants like: "No known HCIDs; travel associated cases as below"
+      // We normalise and check both parts appear in the 'disease' label.
+      const hasTravelMarker = entries.some((e) => {
+        const d = (e?.disease || "").toLowerCase();
+        return d.includes("no known hcid") && d.includes("travel associated cases as below");
+      });
+
+      if (hasTravelMarker) {
+        // Show all *non-marker* rows as informational (imported / limited-local-linked-to-import etc.)
+        const infoRows = entries.filter((e) => {
+          const d = (e?.disease || "").toLowerCase();
+          return !(d.includes("no known hcid") && d.includes("travel associated cases as below"));
+        });
+
+        return {
+          ...c,
+          level: "green",
+          header: "No UKHSA‑listed HCIDs; imported cases reported",
+          message:
+            "GOV.UK indicates no known HCIDs for this country; travel‑associated (and related limited‑local) cases have been reported:",
+          entries: infoRows,
+        };
+      }
+      // --- END NEW RULE ---
+
+      // Otherwise, classify using evidence:
+      // - Ignore marker rows such as "No known HCIDs" or "travel associated cases as below"
+      // - Treat "(c) Imported cases only" AND "(b) Limited local transmission (associated with a case import)" as travel‑associated (green note)
+      // - Everything else (community/zoonotic, serology, unknown) counts as presence (red)
       const NON_HCID_MARKERS = new Set([
         "no known hcid",
         "no known hcids",
@@ -75,26 +101,32 @@ export default function ReviewStep({
         if (NON_HCID_MARKERS.has(label)) continue;
 
         const ev = (e?.evidence || "").toLowerCase();
-        if (ev.includes("imported cases only")) {
+
+        // Travel-associated buckets
+        if (
+          ev.includes("imported cases only") ||
+          ev.includes("limited local transmission")
+        ) {
           importedOnly.push(e);
           continue;
         }
 
-        // Any other evidence (community/zoonotic, limited local, serology, unknown)
+        // Community/zoonotic, serology, unknown -> presence
         realEntries.push(e);
       }
 
       if (realEntries.length === 0) {
-        // No HCID presence indicated for this country; show green.
         const hasImported = importedOnly.length > 0;
         return {
           ...c,
           level: "green",
-          header: hasImported ? "No UKHSA‑listed HCIDs; imported cases reported" : "No UKHSA‑listed HCIDs",
+          header: hasImported
+            ? "No UKHSA‑listed HCIDs; imported cases reported"
+            : "No UKHSA‑listed HCIDs",
           message: hasImported
-            ? "GOV.UK notes travel‑associated (imported) cases have been reported:"
+            ? "GOV.UK notes travel‑associated (imported) or limited‑local‑linked‑to‑import cases:"
             : "GOV.UK indicates no specific HCID risk listed for this country.",
-          entries: importedOnly, // show imported diseases as an informational list
+          entries: importedOnly,
         };
       }
 
