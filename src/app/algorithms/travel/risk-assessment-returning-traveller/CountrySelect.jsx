@@ -14,6 +14,81 @@ import {
 const STORAGE_KEY = "riskFormV1";
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+// ---- country name normalisation & aliasing ----
+function normalizeName(s = "") {
+  return s
+    .toLowerCase()
+    .normalize("NFD") // split accents
+    .replace(/[\u0300-\u036f]/g, "") // remove accents
+    .replace(/[\s'’`-]+/g, " ") // normalise separators
+    .replace(/[()]/g, " ")
+    .replace(/,+/g, " ")
+    .replace(/\bthe\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Common aliases that crop up between lists/APIs
+const ALIASES = {
+  // turkey
+  [normalizeName("Türkiye")]: "turkey",
+  // DRC variants
+  [normalizeName("Democratic Republic of the Congo")]: "congo democratic republic",
+  [normalizeName("Congo (Democratic Republic)")]: "congo democratic republic",
+  [normalizeName("DR Congo")]: "congo democratic republic",
+  [normalizeName("Congo, Democratic Republic of the")]: "congo democratic republic",
+  // Republic of the Congo
+  [normalizeName("Republic of the Congo")]: "congo republic",
+  [normalizeName("Congo (Republic)")]: "congo republic",
+  // Ivory Coast
+  [normalizeName("Côte d’Ivoire")]: "cote divoire",
+  [normalizeName("Cote d'Ivoire")]: "cote divoire",
+  // Eswatini / Swaziland
+  [normalizeName("Eswatini")]: "eswatini",
+  [normalizeName("Swaziland")]: "eswatini",
+};
+
+// Build a normalised lookup map once risk map is fetched
+function buildNormalizedMap(riskMap) {
+  const out = new Map();
+  if (!riskMap) return out;
+  for (const [rawName, diseases] of Object.entries(riskMap)) {
+    const norm = normalizeName(rawName);
+    out.set(norm, diseases);
+  }
+  return out;
+}
+
+// Given a display name, try to find diseases using normalised map and fallbacks
+function getDiseasesForCountry(displayName, normMap) {
+  if (!normMap) return null;
+  let norm = normalizeName(displayName);
+  // alias redirect
+  if (ALIASES[norm]) norm = ALIASES[norm];
+  // 1) exact normalised match
+  if (normMap.has(norm)) return normMap.get(norm);
+
+  // 2) substring contains (either direction) to be forgiving about wording order
+  //    e.g., "democratic republic congo" vs "congo democratic republic"
+  for (const [key, diseases] of normMap.entries()) {
+    if (key.includes(norm) || norm.includes(key)) {
+      return diseases;
+    }
+  }
+
+  // 3) last‑resort: split into tokens and require most tokens to appear
+  const tokens = norm.split(" ").filter(Boolean);
+  for (const [key, diseases] of normMap.entries()) {
+    let hits = 0;
+    for (const t of tokens) if (key.includes(t)) hits++;
+    if (tokens.length && hits / tokens.length >= 0.66) {
+      return diseases;
+    }
+  }
+
+  return null; // unknown
+}
+
 export default function CountrySelect() {
   const [step, setStep] = useState("select"); // "select" | "review"
 
@@ -71,7 +146,6 @@ export default function CountrySelect() {
       sessionStorage.removeItem(STORAGE_KEY);
     } catch {}
     setStep("select");
-    // focus input after a tick
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
@@ -170,6 +244,9 @@ export default function CountrySelect() {
       cancelled = true;
     };
   }, [step]);
+
+  // Build a normalised risk map for resilient lookups
+  const normalizedRiskMap = useMemo(() => buildNormalizedMap(riskMap || {}), [riskMap]);
 
   // -------------------- STEP 1: SELECT --------------------
   if (step === "select") {
@@ -294,8 +371,8 @@ export default function CountrySelect() {
               else if (status === "future-date") warnText = "Dates cannot be in the future.";
               else if (hasConflict) warnText = "These dates overlap with another country. Adjust to avoid overlap.";
 
-              const arrivalMax = arrivalMaxFor(c);
-              const leavingMin = leavingMinFor(c);
+              const arrivalMax = c.leaving ? (c.leaving < todayISO ? c.leaving : todayISO) : todayISO;
+              const leavingMin = c.arrival || undefined;
 
               return (
                 <div
@@ -422,11 +499,12 @@ export default function CountrySelect() {
     }
   };
 
-  const effectiveMap = riskMap || {}; // if API hasn’t returned yet, treat as empty
+  const normalizedMap = normalizedRiskMap; // alias for readability
+
   const reviewList = sortSelected(selected).map((c) => {
     const diff = daysFromLeavingToOnset(c.leaving);
 
-    // three states: GREEN (outside 21d or explicit no-HCID), RED (within 21d & HCID present), AMBER (unknown, verify)
+    // GREEN: outside 21 days regardless of country risk
     if (diff !== null && diff > 21) {
       return {
         ...c,
@@ -437,11 +515,23 @@ export default function CountrySelect() {
       };
     }
 
-    const entry = Object.prototype.hasOwnProperty.call(effectiveMap, c.name)
-      ? effectiveMap[c.name]
-      : null;
+    // Lookup diseases from risk map using robust matching
+    const diseases = getDiseasesForCountry(c.name, normalizedMap);
 
-    if (entry && Array.isArray(entry) && entry.length === 0) {
+    // diseases === null => parser didn't find this country -> AMBER (verify)
+    if (diseases === null) {
+      return {
+        ...c,
+        level: "amber",
+        header: "Verify current risk on GOV.UK",
+        message:
+          "We could not confirm HCID data programmatically for this country. Please verify the country‑specific risk page.",
+        diseases: [],
+      };
+    }
+
+    // Empty array explicitly means "no HCIDs listed" (GREEN)
+    if (Array.isArray(diseases) && diseases.length === 0) {
       return {
         ...c,
         level: "green",
@@ -451,24 +541,14 @@ export default function CountrySelect() {
       };
     }
 
-    if (entry && Array.isArray(entry) && entry.length > 0) {
-      return {
-        ...c,
-        level: "red",
-        header: "Consider the following HCIDs",
-        message: "Within 21 days of travel from a country with UKHSA‑listed HCID occurrence.",
-        diseases: entry,
-      };
-    }
-
-    // Unknown / parser couldn't find this country — be cautious
+    // Non-empty array -> RED
     return {
       ...c,
-      level: "amber",
-      header: "Verify current risk on GOV.UK",
+      level: "red",
+      header: "Consider the following HCIDs",
       message:
-        "We could not confirm HCID data for this country programmatically. Please verify the country‑specific risk page.",
-      diseases: [],
+        "Within 21 days of travel from a country with UKHSA‑listed HCID occurrence.",
+      diseases,
     };
   });
 
