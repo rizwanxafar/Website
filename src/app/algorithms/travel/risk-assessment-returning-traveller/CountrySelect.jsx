@@ -226,6 +226,7 @@ export default function CountrySelect() {
           setRiskMeta({
             source: data?.source || "fallback",
             lastUpdatedText: data?.lastUpdatedText || null,
+            snapshotDate: data?.snapshotDate || null,   // <-- add this
           });
         }
       } catch {
@@ -582,11 +583,11 @@ export default function CountrySelect() {
     </span>
   )}
   {riskMeta.source === "snapshot-fallback" && (
-    <span className="ml-1 text-amber-700 dark:text-amber-400">
-      (Using local snapshot from {riskMeta.snapshotDate}. Please verify latest
-      guidance on GOV.UK)
-    </span>
-  )}
+  <span className="ml-1 text-amber-700 dark:text-amber-400">
+    (Using local snapshot{riskMeta.snapshotDate ? ` from ${riskMeta.snapshotDate}` : ""}.
+    Please verify latest guidance on GOV.UK)
+  </span>
+)}
 </p>
 
       <div className="grid gap-4">
