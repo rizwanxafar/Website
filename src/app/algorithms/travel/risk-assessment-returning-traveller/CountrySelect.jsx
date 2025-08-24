@@ -14,7 +14,7 @@ import {
 const STORAGE_KEY = "riskFormV1";
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-// ---- country name normalisation & aliasing ----
+/* -------------------- Country name normalisation & matching -------------------- */
 function normalizeName(s = "") {
   return s
     .toLowerCase()
@@ -28,9 +28,9 @@ function normalizeName(s = "") {
     .trim();
 }
 
-// Common aliases that crop up between lists/APIs
+// Common aliases / harmonisations
 const ALIASES = {
-  // turkey
+  // Türkiye / Turkey
   [normalizeName("Türkiye")]: "turkey",
   // DRC variants
   [normalizeName("Democratic Republic of the Congo")]: "congo democratic republic",
@@ -40,55 +40,55 @@ const ALIASES = {
   // Republic of the Congo
   [normalizeName("Republic of the Congo")]: "congo republic",
   [normalizeName("Congo (Republic)")]: "congo republic",
-  // Ivory Coast
+  // Côte d’Ivoire
   [normalizeName("Côte d’Ivoire")]: "cote divoire",
   [normalizeName("Cote d'Ivoire")]: "cote divoire",
   // Eswatini / Swaziland
-  [normalizeName("Eswatini")]: "eswatini",
   [normalizeName("Swaziland")]: "eswatini",
+  [normalizeName("Eswatini")]: "eswatini",
 };
 
-// Build a normalised lookup map once risk map is fetched
 function buildNormalizedMap(riskMap) {
+  // riskMap shape from /api/hcid: { country: [ { disease, evidence?, year? }, ... ] }
   const out = new Map();
   if (!riskMap) return out;
-  for (const [rawName, diseases] of Object.entries(riskMap)) {
+  for (const [rawName, entries] of Object.entries(riskMap)) {
     const norm = normalizeName(rawName);
-    out.set(norm, diseases);
+    out.set(norm, Array.isArray(entries) ? entries : []);
   }
   return out;
 }
 
-// Given a display name, try to find diseases using normalised map and fallbacks
-function getDiseasesForCountry(displayName, normMap) {
+/** Returns:
+ *  - Array<{ disease, evidence?, year? }> when found
+ *  - [] when explicitly “no HCIDs” for that country
+ *  - null when unknown / not found (→ show AMBER)
+ */
+function getEntriesForCountry(displayName, normMap) {
   if (!normMap) return null;
   let norm = normalizeName(displayName);
-  // alias redirect
   if (ALIASES[norm]) norm = ALIASES[norm];
-  // 1) exact normalised match
+
+  // 1) Exact normalised match
   if (normMap.has(norm)) return normMap.get(norm);
 
-  // 2) substring contains (either direction) to be forgiving about wording order
-  //    e.g., "democratic republic congo" vs "congo democratic republic"
-  for (const [key, diseases] of normMap.entries()) {
-    if (key.includes(norm) || norm.includes(key)) {
-      return diseases;
-    }
+  // 2) Contains either way (handles order differences)
+  for (const [key, entries] of normMap.entries()) {
+    if (key.includes(norm) || norm.includes(key)) return entries;
   }
 
-  // 3) last‑resort: split into tokens and require most tokens to appear
+  // 3) Token overlap (≥ 2/3 of tokens)
   const tokens = norm.split(" ").filter(Boolean);
-  for (const [key, diseases] of normMap.entries()) {
+  for (const [key, entries] of normMap.entries()) {
     let hits = 0;
     for (const t of tokens) if (key.includes(t)) hits++;
-    if (tokens.length && hits / tokens.length >= 0.66) {
-      return diseases;
-    }
+    if (tokens.length && hits / tokens.length >= 0.66) return entries;
   }
 
-  return null; // unknown
+  return null;
 }
 
+/* --------------------------------- Component --------------------------------- */
 export default function CountrySelect() {
   const [step, setStep] = useState("select"); // "select" | "review"
 
@@ -105,7 +105,7 @@ export default function CountrySelect() {
   const [riskMap, setRiskMap] = useState(null); // null = not loaded yet
   const [riskMeta, setRiskMeta] = useState({ source: "fallback", lastUpdatedText: null });
 
-  // Load from session
+  /* ---------- Load & persist to sessionStorage ---------- */
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
@@ -126,14 +126,12 @@ export default function CountrySelect() {
     } catch {}
   }, []);
 
-  // Persist to session
   useEffect(() => {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ selected, onset }));
     } catch {}
   }, [selected, onset]);
 
-  // Reset assessment
   const resetAll = () => {
     setSelected([]);
     setOnset("");
@@ -149,7 +147,7 @@ export default function CountrySelect() {
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
-  // Suggestions
+  /* -------------------- Country suggestions -------------------- */
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return vhfCountryNames;
@@ -158,7 +156,6 @@ export default function CountrySelect() {
     );
   }, [query]);
 
-  // Add / remove / update
   const addCountry = (nameRaw) => {
     const name = (nameRaw ?? query).trim();
     if (!name) return;
@@ -191,7 +188,6 @@ export default function CountrySelect() {
     }
   };
 
-  // Close dropdown on outside click
   useEffect(() => {
     const onDocClick = (e) => {
       const root = document.querySelector(".country-select-root");
@@ -201,7 +197,7 @@ export default function CountrySelect() {
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
-  // Validity & conflicts
+  /* -------------------- Validity & conflicts -------------------- */
   const countryStatus = (c) => validateCountryRange(c.arrival, c.leaving, todayISO);
   const conflictIds = useMemo(() => detectConflicts(selected), [selected]);
   const sortedSelected = useMemo(() => sortSelected(selected), [selected]);
@@ -213,12 +209,11 @@ export default function CountrySelect() {
     conflictIds.size === 0 &&
     onsetValid;
 
-  // Date input bounds
   const arrivalMaxFor = (c) =>
     c.leaving ? (c.leaving < todayISO ? c.leaving : todayISO) : todayISO;
   const leavingMinFor = (c) => c.arrival || undefined;
 
-  // Fetch GOV.UK risk map when entering Review
+  /* -------------------- Fetch GOV.UK map on Review -------------------- */
   useEffect(() => {
     if (step !== "review") return;
     let cancelled = false;
@@ -245,10 +240,9 @@ export default function CountrySelect() {
     };
   }, [step]);
 
-  // Build a normalised risk map for resilient lookups
   const normalizedRiskMap = useMemo(() => buildNormalizedMap(riskMap || {}), [riskMap]);
 
-  // -------------------- STEP 1: SELECT --------------------
+  /* -------------------- STEP 1: SELECT -------------------- */
   if (step === "select") {
     return (
       <div className="space-y-6">
@@ -276,7 +270,6 @@ export default function CountrySelect() {
             <div />
           )}
 
-          {/* Reset */}
           <button
             type="button"
             onClick={resetAll}
@@ -371,8 +364,8 @@ export default function CountrySelect() {
               else if (status === "future-date") warnText = "Dates cannot be in the future.";
               else if (hasConflict) warnText = "These dates overlap with another country. Adjust to avoid overlap.";
 
-              const arrivalMax = c.leaving ? (c.leaving < todayISO ? c.leaving : todayISO) : todayISO;
-              const leavingMin = c.arrival || undefined;
+              const arrivalMax = arrivalMaxFor(c);
+              const leavingMin = leavingMinFor(c);
 
               return (
                 <div
@@ -487,7 +480,7 @@ export default function CountrySelect() {
     );
   }
 
-  // -------------------- STEP 2: REVIEW --------------------
+  /* -------------------- STEP 2: REVIEW -------------------- */
   const daysFromLeavingToOnset = (leavingISO) => {
     if (!onset || !leavingISO) return null;
     try {
@@ -499,56 +492,50 @@ export default function CountrySelect() {
     }
   };
 
-  const normalizedMap = normalizedRiskMap; // alias for readability
-
+  // Build review list with entries per country (all diseases with evidence/year)
   const reviewList = sortSelected(selected).map((c) => {
     const diff = daysFromLeavingToOnset(c.leaving);
 
-    // GREEN: outside 21 days regardless of country risk
     if (diff !== null && diff > 21) {
       return {
         ...c,
         level: "green",
         header: "Outside 21‑day window",
         message: `Symptom onset is ${diff} days after leaving ${c.name} — outside the 21‑day VHF incubation window.`,
-        diseases: [],
+        entries: [],
       };
     }
 
-    // Lookup diseases from risk map using robust matching
-    const diseases = getDiseasesForCountry(c.name, normalizedMap);
+    const entries = getEntriesForCountry(c.name, normalizedRiskMap);
 
-    // diseases === null => parser didn't find this country -> AMBER (verify)
-    if (diseases === null) {
+    if (entries === null) {
       return {
         ...c,
         level: "amber",
         header: "Verify current risk on GOV.UK",
         message:
           "We could not confirm HCID data programmatically for this country. Please verify the country‑specific risk page.",
-        diseases: [],
+        entries: [],
       };
     }
 
-    // Empty array explicitly means "no HCIDs listed" (GREEN)
-    if (Array.isArray(diseases) && diseases.length === 0) {
+    if (Array.isArray(entries) && entries.length === 0) {
       return {
         ...c,
         level: "green",
         header: "No UKHSA‑listed HCIDs",
         message: "GOV.UK indicates no specific HCID risk listed for this country.",
-        diseases: [],
+        entries: [],
       };
     }
 
-    // Non-empty array -> RED
     return {
       ...c,
       level: "red",
       header: "Consider the following HCIDs",
       message:
         "Within 21 days of travel from a country with UKHSA‑listed HCID occurrence.",
-      diseases,
+      entries, // [{ disease, evidence?, year? }, ...]
     };
   });
 
@@ -593,7 +580,7 @@ export default function CountrySelect() {
             · Last updated (GOV.UK): {new Date(riskMeta.lastUpdatedText).toLocaleDateString()}
           </span>
         )}
-        {riskMeta.source !== "govuk" && (
+        {riskMeta.source !== "govuk-table" && (
           <span className="ml-1 text-amber-700 dark:text-amber-400">
             (automatic parse fallback in use — verify on GOV.UK)
           </span>
@@ -607,7 +594,7 @@ export default function CountrySelect() {
               ? "border-emerald-400 dark:border-emerald-500"
               : c.level === "red"
               ? "border-rose-500 dark:border-rose-500"
-              : "border-amber-400 dark:border-amber-500"; // amber
+              : "border-amber-400 dark:border-amber-500";
 
           const badge =
             c.level === "green"
@@ -632,10 +619,21 @@ export default function CountrySelect() {
                 <span className="font-medium">{c.header}:</span> {c.message}
               </p>
 
-              {c.diseases.length > 0 && (
+              {c.entries && c.entries.length > 0 && (
                 <ul className="mt-2 list-disc pl-5 text-sm">
-                  {c.diseases.map((d) => (
-                    <li key={d}>{d}</li>
+                  {c.entries.map((e, idx) => (
+                    <li key={`${e.disease}-${idx}`}>
+                      {e.disease}
+                      {(e.evidence || e.year) && (
+                        <span className="text-slate-600 dark:text-slate-300">
+                          {" — "}
+                          <em>
+                            {e.evidence || "Evidence not stated"}
+                            {e.year ? ` (${e.year})` : ""}
+                          </em>
+                        </span>
+                      )}
+                    </li>
                   ))}
                 </ul>
               )}
