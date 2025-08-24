@@ -14,7 +14,7 @@ const SEED_HCID_MAP = {
   ],
   Uganda: [{ disease: "Marburg virus disease", evidence: "Endemic" }],
   Nigeria: [{ disease: "Lassa fever", evidence: "Endemic" }],
-  Ghana: [{ disease: "Marburg virus disease", evidence: "Imported/Outbreak" }],
+  Ghana: [{ disease: "Marburg virus disease", evidence: "Outbreak/Imported" }],
   Guinea: [{ disease: "Ebola virus disease", evidence: "Endemic/Outbreak" }],
   "Sierra Leone": [
     { disease: "Lassa fever", evidence: "Endemic" },
@@ -50,8 +50,10 @@ function bodyHtmlFromGovUk(json) {
 /**
  * Parse GOV.UK tables into:
  *  { [country]: [ { disease, evidence?, year? }, ... ] }
- * Columns are typically: Country | HCID disease | Evidence | Year
- * We detect header indices when possible; otherwise assume the first 4 columns.
+ * Handles:
+ *  - header detection (Country | HCID disease | Evidence | Year)
+ *  - rowspans (carry forward last seen country when a row's country cell is empty)
+ *  - multiple diseases per cell (links, commas/semicolons/“and”, and <br> breaks)
  */
 function parseTablesToDetailedMap(html) {
   if (!html) return null;
@@ -60,11 +62,11 @@ function parseTablesToDetailedMap(html) {
   const tableRegex = /<table[\s\S]*?<\/table>/gi;
   const tables = html.match(tableRegex) || [];
 
-  const getCells = (row) => {
+  const getCells = (rowHtml) => {
     const cellRegex = /<(td|th)[^>]*>([\s\S]*?)<\/\1>/gi;
     const cells = [];
     let m;
-    while ((m = cellRegex.exec(row)) !== null) {
+    while ((m = cellRegex.exec(rowHtml)) !== null) {
       const raw = m[2] || "";
       const text = stripTags(raw);
       cells.push({ raw, text });
@@ -77,13 +79,8 @@ function parseTablesToDetailedMap(html) {
     const rows = table.match(rowRegex) || [];
     if (!rows.length) continue;
 
-    // Determine column indices from header if present
-    let idxCountry = 0;
-    let idxDisease = 1;
-    let idxEvidence = 2;
-    let idxYear = 3;
-
-    // Look for a header row with <th>
+    // Detect header indices if there's a header row
+    let idxCountry = 0, idxDisease = 1, idxEvidence = 2, idxYear = 3;
     const headerRow = rows.find((r) => /<th/i.test(r));
     if (headerRow) {
       const headers = getCells(headerRow).map((c) => c.text.toLowerCase());
@@ -94,82 +91,103 @@ function parseTablesToDetailedMap(html) {
         }
         return -1;
       };
-
       const cIdx = findIdx(["country", "territory"]);
       const dIdx = findIdx(["hcid", "disease"]);
       const eIdx = findIdx(["evidence"]);
       const yIdx = findIdx(["year", "date"]);
-
       idxCountry = cIdx !== -1 ? cIdx : idxCountry;
       idxDisease = dIdx !== -1 ? dIdx : idxDisease;
       idxEvidence = eIdx !== -1 ? eIdx : idxEvidence;
       idxYear = yIdx !== -1 ? yIdx : idxYear;
     }
 
+    let lastCountry = null; // carry forward across rowspan
+
     for (const row of rows) {
+      // Skip header
       const isHeader = /<th/i.test(row);
+      if (isHeader) continue;
+
       const cells = getCells(row);
       if (!cells.length) continue;
-      if (isHeader) continue; // skip header row
 
-      const country = cells[idxCountry]?.text?.trim() || "";
-      if (!country) continue;
-      if (/countries\s+[a-z]\s+to\s+[a-z]/i.test(country)) continue; // grouping row
+      // Country: use text from country cell if present; otherwise fallback to lastCountry (rowspan)
+      const countryCell = cells[idxCountry];
+      const countryText = (countryCell?.text || "").trim();
+      let country = countryText || lastCountry;
 
+      // Skip grouping rows like "Countries A to D"
+      if (country && /countries\s+[a-z]\s+to\s+[a-z]/i.test(country)) {
+        lastCountry = null;
+        continue;
+      }
+
+      if (!country) continue; // still nothing usable
+      lastCountry = country;  // remember for subsequent rowspan rows
+
+      // Disease cell
       const diseaseCell = cells[idxDisease];
-      const evidenceCell = cells[idxEvidence];
-      const yearCell = cells[idxYear];
+      // Evidence & year
+      const evidenceText = (cells[idxEvidence]?.text || "").trim() || undefined;
+      const yearText = (cells[idxYear]?.text || "").trim() || undefined;
 
-      // Disease text: prefer link text(s) if present
       let diseases = [];
       if (diseaseCell) {
+        const raw = diseaseCell.raw || "";
+
+        // 1) Collect link texts
         const linkTextMatches = [
-          ...(diseaseCell.raw.matchAll(/<a[^>]*>([\s\S]*?)<\/a>/gi)) || [],
-        ]
-          .map((mm) => stripTags(mm[1] || ""))
+          ...(raw.matchAll(/<a[^>]*>([\s\S]*?)<\/a>/gi)) || [],
+        ].map((mm) => stripTags(mm[1] || "")).filter(Boolean);
+
+        // 2) Split on <br> (any variant)
+        const withBrSplits = raw
+          .replace(/<br\s*\/?>/gi, "\n")
+          .split("\n")
+          .map((chunk) => stripTags(chunk).trim())
           .filter(Boolean);
 
-        const diseasePlain = (diseaseCell.text || "").trim();
+        // Combine: links + text splits
+        let candidates = linkTextMatches.length ? linkTextMatches : withBrSplits;
 
-        if (linkTextMatches.length) {
-          diseases = linkTextMatches;
-        } else if (diseasePlain) {
-          if (/^none\b|^no known\b/i.test(diseasePlain)) {
-            diseases = []; // explicit none
-          } else {
-            const split = diseasePlain
-              .split(/;|,|\/|\band\b/gi)
-              .map((s) => s.trim())
-              .filter(Boolean);
-            diseases = split.length ? split : [diseasePlain];
-          }
+        // If still empty, use the plain text
+        if (!candidates.length) {
+          const plain = (diseaseCell.text || "").trim();
+          if (plain) candidates = [plain];
+        }
+
+        // Flatten and split further on separators ; , / and "and"
+        diseases = candidates
+          .flatMap((s) => s.split(/;|,|\/|\band\b/gi))
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+        // Handle explicit "None" / "No known"
+        if (diseases.length === 1 && /^none\b|^no known\b/i.test(diseases[0])) {
+          diseases = [];
         }
       }
 
-      const evidenceText = (evidenceCell?.text || "").trim() || undefined;
-      const yearText = (yearCell?.text || "").trim() || undefined;
-
-      // Ensure country key exists
+      // Ensure map entry
       if (!Object.prototype.hasOwnProperty.call(map, country)) {
         map[country] = [];
       }
 
       if (diseases.length === 0) {
-        // If explicitly none, ensure empty array recorded (don't overwrite existing entries)
+        // Record explicit "no HCIDs" only if nothing recorded yet
         if (map[country].length === 0) {
           map[country] = [];
         }
       } else {
         for (const d of diseases) {
           if (!d) continue;
-          // Avoid exact duplicates
-          const already = map[country].some(
+          const dup = map[country].some(
             (e) =>
               e.disease.toLowerCase() === d.toLowerCase() &&
               (evidenceText ? e.evidence === evidenceText : true) &&
               (yearText ? e.year === yearText : true)
           );
-          if (!already) {
+          if (!dup) {
             map[country].push({
               disease: d,
               ...(evidenceText ? { evidence: evidenceText } : {}),
@@ -187,7 +205,7 @@ function parseTablesToDetailedMap(html) {
 export async function GET() {
   try {
     const res = await fetch(GOVUK_API, {
-      next: { revalidate: 60 * 60 * 24 }, // 24h cache (Vercel)
+      next: { revalidate: 60 * 60 * 24 }, // cache for 24h on Vercel
       headers: { "User-Agent": "IDNorthwest/1.0 (+https://idnorthwest.co.uk)" },
     });
     if (!res.ok) throw new Error(`GOV.UK fetch failed: ${res.status}`);
@@ -196,14 +214,12 @@ export async function GET() {
     const html = bodyHtmlFromGovUk(json);
     const parsed = parseTablesToDetailedMap(html);
 
-    // If parse fails, convert the seed shape into the same detailed form
+    // Build fallback in the same shape
     const fallback =
       Object.fromEntries(
         Object.entries(SEED_HCID_MAP).map(([country, arr]) => [
           country,
-          arr.map((e) =>
-            typeof e === "string" ? { disease: e } : e
-          ),
+          arr.map((e) => (typeof e === "string" ? { disease: e } : e)),
         ])
       ) || {};
 
@@ -216,20 +232,17 @@ export async function GET() {
       null;
 
     return NextResponse.json({
-      source: parsed ? "govuk-table" : "seed-fallback",
+      source: parsed ? "govuk-table+rowspan" : "seed-fallback",
       fetchedAt: new Date().toISOString(),
       lastUpdatedText,
       map: effectiveMap,
     });
   } catch (err) {
-    // Network or unexpected failure: detailed seed fallback
     const fallback =
       Object.fromEntries(
         Object.entries(SEED_HCID_MAP).map(([country, arr]) => [
           country,
-          arr.map((e) =>
-            typeof e === "string" ? { disease: e } : e
-          ),
+          arr.map((e) => (typeof e === "string" ? { disease: e } : e)),
         ])
       ) || {};
     return NextResponse.json({
