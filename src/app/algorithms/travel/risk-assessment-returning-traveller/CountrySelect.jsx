@@ -11,9 +11,8 @@ import {
   daysSince,
 } from "@/utils/travelDates";
 
-// simple ids for list items
-const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const STORAGE_KEY = "riskFormV1";
+const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 export default function CountrySelect() {
   const [step, setStep] = useState("select"); // "select" | "review"
@@ -25,21 +24,20 @@ export default function CountrySelect() {
 
   // Selected countries with dates: { id, name, arrival, leaving }
   const [selected, setSelected] = useState([]);
-  // Symptom onset date
   const [onset, setOnset] = useState("");
 
-  // UKHSA risk map & meta fetched from our API
-  const [riskMap, setRiskMap] = useState(null); // null = not loaded yet; {} = loaded empty
+  // Risk map & meta from API
+  const [riskMap, setRiskMap] = useState(null); // null = not loaded yet
   const [riskMeta, setRiskMeta] = useState({ source: "fallback", lastUpdatedText: null });
 
-  // ---- Load from sessionStorage on first mount ----
+  // Load from session
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.selected)) {
-          const withIds = parsed.selected.map(c => ({
+        if (parsed?.selected) {
+          const withIds = parsed.selected.map((c) => ({
             id: c.id || uid(),
             name: c.name,
             arrival: c.arrival || "",
@@ -53,44 +51,62 @@ export default function CountrySelect() {
     } catch {}
   }, []);
 
-  // ---- Persist to sessionStorage whenever state changes ----
+  // Persist to session
   useEffect(() => {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ selected, onset }));
     } catch {}
   }, [selected, onset]);
 
-  // Filtered suggestions
+  // Reset assessment
+  const resetAll = () => {
+    setSelected([]);
+    setOnset("");
+    setQuery("");
+    setOpen(false);
+    setShowInput(true);
+    setRiskMap(null);
+    setRiskMeta({ source: "fallback", lastUpdatedText: null });
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch {}
+    setStep("select");
+    // focus input after a tick
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  // Suggestions
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return vhfCountryNames;
     return vhfCountryNames.filter(
-      name => name.toLowerCase().startsWith(q) || name.toLowerCase().includes(q)
+      (name) => name.toLowerCase().startsWith(q) || name.toLowerCase().includes(q)
     );
   }, [query]);
 
-  // Add from typed or clicked suggestion (restricted to UKHSA list)
+  // Add / remove / update
   const addCountry = (nameRaw) => {
     const name = (nameRaw ?? query).trim();
     if (!name) return;
     if (!vhfCountryNames.includes(name)) return;
 
-    // Allow duplicates, but ask first (layovers / second visits)
-    const exists = selected.some(c => c.name.toLowerCase() === name.toLowerCase());
+    const exists = selected.some((c) => c.name.toLowerCase() === name.toLowerCase());
     if (exists) {
-      const ok = window.confirm(`${name} is already in the list. Add it again (e.g., for a second visit or layover)?`);
+      const ok = window.confirm(
+        `${name} is already in the list. Add it again (e.g., for a second visit or layover)?`
+      );
       if (!ok) return;
     }
 
-    setSelected(prev => [...prev, { id: uid(), name, arrival: "", leaving: "" }]);
+    setSelected((prev) => [...prev, { id: uid(), name, arrival: "", leaving: "" }]);
     setQuery("");
     setOpen(false);
     setShowInput(false);
   };
 
-  const removeCountry = (id) => setSelected(prev => prev.filter(c => c.id !== id));
+  const removeCountry = (id) => setSelected((prev) => prev.filter((c) => c.id !== id));
   const updateDate = (id, field, value) =>
-    setSelected(prev => prev.map(c => (c.id === id ? { ...c, [field]: value } : c)));
+    setSelected((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
 
   const onKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -101,7 +117,7 @@ export default function CountrySelect() {
     }
   };
 
-  // Close suggestions when clicking outside
+  // Close dropdown on outside click
   useEffect(() => {
     const onDocClick = (e) => {
       const root = document.querySelector(".country-select-root");
@@ -119,24 +135,24 @@ export default function CountrySelect() {
   const onsetValid = onset && onset <= todayISO;
   const canContinue =
     sortedSelected.length > 0 &&
-    sortedSelected.every(c => countryStatus(c) === "ok") &&
+    sortedSelected.every((c) => countryStatus(c) === "ok") &&
     conflictIds.size === 0 &&
     onsetValid;
 
-  // Arrival/leaving max/min helpers
-  const arrivalMaxFor = (c) => (c.leaving ? (c.leaving < todayISO ? c.leaving : todayISO) : todayISO);
+  // Date input bounds
+  const arrivalMaxFor = (c) =>
+    c.leaving ? (c.leaving < todayISO ? c.leaving : todayISO) : todayISO;
   const leavingMinFor = (c) => c.arrival || undefined;
 
-  // --- When entering REVIEW, fetch /api/hcid once ---
+  // Fetch GOV.UK risk map when entering Review
   useEffect(() => {
     if (step !== "review") return;
-
-    let isCancelled = false;
+    let cancelled = false;
     (async () => {
       try {
         const res = await fetch("/api/hcid", { cache: "no-cache" });
         const data = await res.json();
-        if (!isCancelled) {
+        if (!cancelled) {
           setRiskMap(data?.map ?? {});
           setRiskMeta({
             source: data?.source || "fallback",
@@ -144,45 +160,56 @@ export default function CountrySelect() {
           });
         }
       } catch {
-        if (!isCancelled) {
+        if (!cancelled) {
           setRiskMap({});
           setRiskMeta({ source: "fallback", lastUpdatedText: null });
         }
       }
     })();
-
     return () => {
-      isCancelled = true;
+      cancelled = true;
     };
   }, [step]);
 
-  // ---- STEP 1: SELECT ----
+  // -------------------- STEP 1: SELECT --------------------
   if (step === "select") {
     return (
       <div className="space-y-6">
-        {/* Chips */}
-        {sortedSelected.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {sortedSelected.map(c => (
-              <span
-                key={`chip-${c.id}`}
-                className="inline-flex items-center gap-2 rounded-full border-2 border-slate-300 dark:border-slate-700 px-3 py-1 text-sm text-slate-900 dark:text-slate-100"
-              >
-                {c.name}
-                <button
-                  type="button"
-                  className="rounded-md px-1.5 py-0.5 text-slate-600 dark:text-slate-300 hover:text-violet-700 dark:hover:text-violet-400"
-                  aria-label={`Remove ${c.name}`}
-                  onClick={() => removeCountry(c.id)}
+        <div className="flex items-center justify-between">
+          {sortedSelected.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {sortedSelected.map((c) => (
+                <span
+                  key={`chip-${c.id}`}
+                  className="inline-flex items-center gap-2 rounded-full border-2 border-slate-300 dark:border-slate-700 px-3 py-1 text-sm text-slate-900 dark:text-slate-100"
                 >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
+                  {c.name}
+                  <button
+                    type="button"
+                    className="rounded-md px-1.5 py-0.5 text-slate-600 dark:text-slate-300 hover:text-violet-700 dark:hover:text-violet-400"
+                    aria-label={`Remove ${c.name}`}
+                    onClick={() => removeCountry(c.id)}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div />
+          )}
 
-        {/* + Add country */}
+          {/* Reset */}
+          <button
+            type="button"
+            onClick={resetAll}
+            className="rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm font-medium hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400"
+            title="Clear all countries and dates"
+          >
+            Reset assessment
+          </button>
+        </div>
+
         {!showInput && (
           <div>
             <button
@@ -198,7 +225,6 @@ export default function CountrySelect() {
           </div>
         )}
 
-        {/* Searchable input */}
         {showInput && (
           <div className="country-select-root relative">
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -232,14 +258,13 @@ export default function CountrySelect() {
               </button>
             </div>
 
-            {/* Suggestions */}
             {open && suggestions.length > 0 && (
               <ul
                 id="country-suggestions"
                 className="absolute z-10 mt-2 max-h-64 w-full overflow-auto rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 shadow-lg"
                 role="listbox"
               >
-                {suggestions.map(name => (
+                {suggestions.map((name) => (
                   <li key={name}>
                     <button
                       type="button"
@@ -256,12 +281,11 @@ export default function CountrySelect() {
           </div>
         )}
 
-        {/* Per-country date cards */}
         {sortedSelected.length > 0 && (
           <div className="space-y-4">
-            {sortedSelected.map(c => {
+            {sortedSelected.map((c) => {
               const status = countryStatus(c);
-              const hasConflict = (detectConflicts(sortedSelected)).has(c.id);
+              const hasConflict = detectConflicts(sortedSelected).has(c.id);
               const showWarn = status !== "ok" || hasConflict;
 
               let warnText = "";
@@ -270,8 +294,8 @@ export default function CountrySelect() {
               else if (status === "future-date") warnText = "Dates cannot be in the future.";
               else if (hasConflict) warnText = "These dates overlap with another country. Adjust to avoid overlap.";
 
-              const arrivalMax = c.leaving ? (c.leaving < todayISO ? c.leaving : todayISO) : todayISO;
-              const leavingMin = c.arrival || undefined;
+              const arrivalMax = arrivalMaxFor(c);
+              const leavingMin = leavingMinFor(c);
 
               return (
                 <div
@@ -350,14 +374,11 @@ export default function CountrySelect() {
             )}
           </div>
           {onset && onset > todayISO && (
-            <p className="mt-2 text-xs text-rose-700 dark:text-rose-400">
-              Onset date cannot be in the future.
-            </p>
+            <p className="mt-2 text-xs text-rose-700 dark:text-rose-400">Onset date cannot be in the future.</p>
           )}
         </div>
 
-        {/* Continue */}
-        <div className="pt-2">
+        <div className="flex items-center gap-3 pt-2">
           <button
             type="button"
             disabled={!canContinue}
@@ -375,13 +396,21 @@ export default function CountrySelect() {
           >
             Continue
           </button>
+
+          <button
+            type="button"
+            onClick={resetAll}
+            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400"
+            title="Clear all countries and dates"
+          >
+            Reset
+          </button>
         </div>
       </div>
     );
   }
 
-  // ---- STEP 2: REVIEW ----
-
+  // -------------------- STEP 2: REVIEW --------------------
   const daysFromLeavingToOnset = (leavingISO) => {
     if (!onset || !leavingISO) return null;
     try {
@@ -394,11 +423,10 @@ export default function CountrySelect() {
   };
 
   const effectiveMap = riskMap || {}; // if API hasn’t returned yet, treat as empty
-  const reviewList = sortSelected(selected).map(c => {
+  const reviewList = sortSelected(selected).map((c) => {
     const diff = daysFromLeavingToOnset(c.leaving);
-    const diseases = effectiveMap[c.name] || [];
-    const hasKnownHCID = diseases.length > 0;
 
+    // three states: GREEN (outside 21d or explicit no-HCID), RED (within 21d & HCID present), AMBER (unknown, verify)
     if (diff !== null && diff > 21) {
       return {
         ...c,
@@ -408,22 +436,39 @@ export default function CountrySelect() {
         diseases: [],
       };
     }
-    if (!hasKnownHCID) {
+
+    const entry = Object.prototype.hasOwnProperty.call(effectiveMap, c.name)
+      ? effectiveMap[c.name]
+      : null;
+
+    if (entry && Array.isArray(entry) && entry.length === 0) {
       return {
         ...c,
         level: "green",
         header: "No UKHSA‑listed HCIDs",
-        message:
-          "GOV.UK feed shows no specific HCID for this country. Always verify on the day of assessment.",
+        message: "GOV.UK indicates no specific HCID risk listed for this country.",
         diseases: [],
       };
     }
+
+    if (entry && Array.isArray(entry) && entry.length > 0) {
+      return {
+        ...c,
+        level: "red",
+        header: "Consider the following HCIDs",
+        message: "Within 21 days of travel from a country with UKHSA‑listed HCID occurrence.",
+        diseases: entry,
+      };
+    }
+
+    // Unknown / parser couldn't find this country — be cautious
     return {
       ...c,
-      level: "red",
-      header: "Consider the following HCIDs",
-      message: "Within 21 days of travel from a country with UKHSA‑listed HCID occurrence.",
-      diseases,
+      level: "amber",
+      header: "Verify current risk on GOV.UK",
+      message:
+        "We could not confirm HCID data for this country programmatically. Please verify the country‑specific risk page.",
+      diseases: [],
     };
   });
 
@@ -431,51 +476,75 @@ export default function CountrySelect() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-          Country-specific risk review
+          Country‑specific risk review
         </h2>
-        <button
-          type="button"
-          onClick={() => setStep("select")}
-          className="rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm font-medium hover:border-violet-500 dark:hover:border-violet-400 hover:text-violet-700 dark:hover:text-violet-400"
-        >
-          ← Edit travel
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setStep("select")}
+            className="rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm font-medium hover:border-violet-500 dark:hover:border-violet-400 hover:text-violet-700 dark:hover:text-violet-400"
+            title="Edit travel"
+          >
+            ← Edit travel
+          </button>
+          <button
+            type="button"
+            onClick={resetAll}
+            className="rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm font-medium hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400"
+            title="Start a new assessment"
+          >
+            Reset assessment
+          </button>
+        </div>
       </div>
 
       <p className="text-xs text-slate-500 dark:text-slate-400">
         Source: GOV.UK HCID country‑specific risk.{" "}
-        <a className="underline hover:no-underline" href="https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk" target="_blank" rel="noreferrer">
+        <a
+          className="underline hover:no-underline"
+          href="https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk"
+          target="_blank"
+          rel="noreferrer"
+        >
           Open page
         </a>
         {riskMeta.lastUpdatedText && (
-          <span className="ml-1">· Last updated (GOV.UK): {new Date(riskMeta.lastUpdatedText).toLocaleDateString()}</span>
+          <span className="ml-1">
+            · Last updated (GOV.UK): {new Date(riskMeta.lastUpdatedText).toLocaleDateString()}
+          </span>
         )}
-        {riskMeta.source === "fallback" && (
-          <span className="ml-1 text-amber-700 dark:text-amber-400">(parser fallback in use; verify on GOV.UK)</span>
+        {riskMeta.source !== "govuk" && (
+          <span className="ml-1 text-amber-700 dark:text-amber-400">
+            (automatic parse fallback in use — verify on GOV.UK)
+          </span>
         )}
       </p>
 
       <div className="grid gap-4">
-        {reviewList.map(c => {
-          const styles =
+        {reviewList.map((c) => {
+          const colorClasses =
             c.level === "green"
               ? "border-emerald-400 dark:border-emerald-500"
-              : "border-rose-500 dark:border-rose-500";
+              : c.level === "red"
+              ? "border-rose-500 dark:border-rose-500"
+              : "border-amber-400 dark:border-amber-500"; // amber
+
+          const badge =
+            c.level === "green"
+              ? { bg: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-800 dark:text-emerald-300", label: "Low concern" }
+              : c.level === "red"
+              ? { bg: "bg-rose-100 dark:bg-rose-900/30", text: "text-rose-800 dark:text-rose-300", label: "Flag" }
+              : { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-800 dark:text-amber-300", label: "Verify" };
+
           return (
-            <div key={`review-${c.id}`} className={`rounded-xl border-2 p-4 bg-white dark:bg-slate-950 ${styles}`}>
+            <div key={`review-${c.id}`} className={`rounded-xl border-2 p-4 bg-white dark:bg-slate-950 ${colorClasses}`}>
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{c.name}</div>
                   <div className="text-xs text-slate-600 dark:text-slate-300">Travel: {c.arrival} → {c.leaving}</div>
                 </div>
-                <div
-                  className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ${
-                    c.level === "green"
-                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
-                      : "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300"
-                  }`}
-                >
-                  {c.level === "green" ? "Low concern" : "Flag"}
+                <div className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ${badge.bg} ${badge.text}`}>
+                  {badge.label}
                 </div>
               </div>
 
@@ -485,7 +554,7 @@ export default function CountrySelect() {
 
               {c.diseases.length > 0 && (
                 <ul className="mt-2 list-disc pl-5 text-sm">
-                  {c.diseases.map(d => (
+                  {c.diseases.map((d) => (
                     <li key={d}>{d}</li>
                   ))}
                 </ul>
@@ -495,12 +564,11 @@ export default function CountrySelect() {
         })}
       </div>
 
-      {/* Placeholder for next actions; we’ll drive exposures/questions next */}
       <div className="pt-2">
         <button
           type="button"
           className="rounded-lg px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-not-allowed"
-          title="Next step coming next: exposure questions and actions"
+          title="Next step coming up: exposure questions and actions"
         >
           Next step (coming up)
         </button>
