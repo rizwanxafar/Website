@@ -565,27 +565,29 @@ export default function CountrySelect() {
         </div>
       </div>
 
-      <p className="text-xs text-slate-500 dark:text-slate-400">
-        Source: GOV.UK HCID country‑specific risk.{" "}
-        <a
-          className="underline hover:no-underline"
-          href="https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Open page
-        </a>
-        {riskMeta.lastUpdatedText && (
-          <span className="ml-1">
-            · Last updated (GOV.UK): {new Date(riskMeta.lastUpdatedText).toLocaleDateString()}
-          </span>
-        )}
-        {riskMeta.source === "seed-fallback" && (
-          <span className="ml-1 text-amber-700 dark:text-amber-400">
-            (automatic parse fallback in use — verify on GOV.UK)
-              </span>
-        )}
-      </p>
+     <p className="text-xs text-slate-500 dark:text-slate-400">
+  Source: GOV.UK HCID country-specific risk.{" "}
+  <a
+    href="https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="underline"
+  >
+    Open page
+  </a>
+  {riskMeta.lastUpdatedText && (
+    <span className="ml-1">
+      · Last updated (GOV.UK):{" "}
+      {new Date(riskMeta.lastUpdatedText).toLocaleDateString()}
+    </span>
+  )}
+  {riskMeta.source === "snapshot-fallback" && (
+    <span className="ml-1 text-amber-700 dark:text-amber-400">
+      (Using local snapshot from {riskMeta.snapshotDate}. Please verify latest
+      guidance on GOV.UK)
+    </span>
+  )}
+</p>
 
       <div className="grid gap-4">
         {reviewList.map((c) => {
