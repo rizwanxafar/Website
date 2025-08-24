@@ -2,33 +2,18 @@
 "use client";
 
 import { useMemo, useState, useRef, useEffect } from "react";
-import { vhfCountryNames } from "../../../../data/vhfCountries";
-
-// today's date in YYYY-MM-DD (used to prevent future selections)
-const today = new Date().toISOString().slice(0, 10);
-
-// Overlap rule:
-// - ALLOW same-day handover (A ends on X, B starts on X) -> NOT overlap
-// - Count as overlap only if ranges truly intersect: (aEnd > bStart && bEnd > aStart)
-function rangesOverlap(aStart, aEnd, bStart, bEnd) {
-  if (!aStart || !aEnd || !bStart || !bEnd) return false;
-  return !(aEnd <= bStart || bEnd <= aStart);
-}
+import { vhfCountryNames } from "@/data/vhfCountries";
+import {
+  todayISO,
+  validateCountryRange,
+  detectConflicts,
+  sortSelected,
+  daysSince,
+} from "@/utils/travelDates";
 
 // easy unique id for list items
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
-
-// helper: days since (integer)
-function daysSince(iso) {
-  try {
-    const d = new Date(iso + "T00:00:00");
-    const t = new Date(today + "T00:00:00");
-    const ms = t - d;
-    return Math.floor(ms / (1000 * 60 * 60 * 24));
-  } catch {
-    return null;
-  }
-}
+const STORAGE_KEY = "riskFormV1";
 
 export default function CountrySelect() {
   const [query, setQuery] = useState("");
@@ -36,12 +21,48 @@ export default function CountrySelect() {
   const [showInput, setShowInput] = useState(true); // hide input after first add
   const inputRef = useRef(null);
 
-  // Selected countries with dates
-  // { id: string, name: string, arrival: "YYYY-MM-DD"|"", leaving: "YYYY-MM-DD"|"" }
+  // Selected countries with dates: { id, name, arrival, leaving }
   const [selected, setSelected] = useState([]);
-
   // Symptom onset date
   const [onset, setOnset] = useState("");
+
+  // ---- Load from sessionStorage on first mount ----
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.selected)) {
+          // Ensure items have ids (in case of older shape)
+          const withIds = parsed.selected.map((c) => ({
+            id: c.id || uid(),
+            name: c.name,
+            arrival: c.arrival || "",
+            leaving: c.leaving || "",
+          }));
+          setSelected(withIds);
+          setOnset(parsed.onset || "");
+          // Hide input if we already have at least one country
+          if (withIds.length > 0) setShowInput(false);
+        }
+      }
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---- Persist to sessionStorage whenever state changes ----
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ selected, onset })
+      );
+    } catch {
+      // ignore
+    }
+  }, [selected, onset]);
 
   // Filtered suggestions
   const suggestions = useMemo(() => {
@@ -59,7 +80,7 @@ export default function CountrySelect() {
     if (!name) return;
     if (!vhfCountryNames.includes(name)) return;
 
-    // If the same country already exists, ask whether to add again (layover, multi-leg)
+    // If same country already exists, confirm duplicate (layover/multi-leg)
     const exists = selected.some((c) => c.name.toLowerCase() === name.toLowerCase());
     if (exists) {
       const ok = window.confirm(
@@ -103,58 +124,25 @@ export default function CountrySelect() {
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
-  // Per-country range validity (includes "no future" rule)
-  const countryValidity = (c) => {
-    if (!c.arrival || !c.leaving) return "incomplete";
-    if (c.arrival > c.leaving) return "invalid-range";
-    if (c.arrival > today || c.leaving > today) return "future-date";
-    return "ok";
-  };
+  // Validity per country & conflicts across countries
+  const countryStatus = (c) => validateCountryRange(c.arrival, c.leaving, todayISO);
+  const conflictIds = useMemo(() => detectConflicts(selected), [selected]);
 
-  // Detect overlaps across all selected countries (by id)
-  const conflictIds = useMemo(() => {
-    const conflicts = new Set();
-    for (let i = 0; i < selected.length; i++) {
-      const a = selected[i];
-      if (countryValidity(a) !== "ok") continue;
-      for (let j = i + 1; j < selected.length; j++) {
-        const b = selected[j];
-        if (countryValidity(b) !== "ok") continue;
-        if (rangesOverlap(a.arrival, a.leaving, b.arrival, b.leaving)) {
-          conflicts.add(a.id);
-          conflicts.add(b.id);
-        }
-      }
-    }
-    return conflicts;
-  }, [selected]);
-
-  // Sort for display: earliest arrival first; incomplete/undated at the end
-  const sortedSelected = useMemo(() => {
-    const copy = [...selected];
-    copy.sort((a, b) => {
-      const aHas = a.arrival && a.leaving;
-      const bHas = b.arrival && b.leaving;
-      if (aHas && bHas) {
-        if (a.arrival !== b.arrival) return a.arrival < b.arrival ? -1 : 1;
-        if (a.leaving !== b.leaving) return a.leaving < b.leaving ? -1 : 1;
-        return a.name.localeCompare(b.name);
-      }
-      if (aHas && !bHas) return -1;
-      if (!aHas && bHas) return 1;
-      return a.name.localeCompare(b.name);
-    });
-    return copy;
-  }, [selected]);
+  // Sort for display (earliest first; incomplete at end)
+  const sortedSelected = useMemo(() => sortSelected(selected), [selected]);
 
   // Onset validity: required and not in the future
-  const onsetValid = onset && onset <= today;
+  const onsetValid = onset && onset <= todayISO;
 
   const allValidNonOverlapping =
     sortedSelected.length > 0 &&
-    sortedSelected.every((c) => countryValidity(c) === "ok") &&
+    sortedSelected.every((c) => countryStatus(c) === "ok") &&
     conflictIds.size === 0 &&
     onsetValid;
+
+  // Arrival/leaving max/min helpers to prevent future dates
+  const arrivalMaxFor = (c) => (c.leaving ? (c.leaving < todayISO ? c.leaving : todayISO) : todayISO);
+  const leavingMinFor = (c) => c.arrival || undefined;
 
   return (
     <div className="space-y-6">
@@ -258,24 +246,20 @@ export default function CountrySelect() {
       {sortedSelected.length > 0 && (
         <div className="space-y-4">
           {sortedSelected.map((c) => {
-            const validity = countryValidity(c);
+            const status = countryStatus(c);
             const hasConflict = conflictIds.has(c.id);
-            const showWarn = validity !== "ok" || hasConflict;
+            const showWarn = status !== "ok" || hasConflict;
 
             let warnText = "";
-            if (validity === "invalid-range") {
+            if (status === "invalid-range") {
               warnText = "Leaving date must be the same as or after the arrival date.";
-            } else if (validity === "incomplete") {
+            } else if (status === "incomplete") {
               warnText = "Please choose both arrival and leaving dates.";
-            } else if (validity === "future-date") {
+            } else if (status === "future-date") {
               warnText = "Dates cannot be in the future.";
             } else if (hasConflict) {
               warnText = "These dates overlap with another country. Adjust to avoid overlap.";
             }
-
-            // Max/min attributes to prevent future dates:
-            const arrivalMax = c.leaving ? (c.leaving < today ? c.leaving : today) : today;
-            const leavingMin = c.arrival || undefined;
 
             return (
               <div
@@ -303,7 +287,7 @@ export default function CountrySelect() {
                           ? "border-rose-400 dark:border-rose-500 focus:ring-rose-300"
                           : "border-slate-300 dark:border-slate-700 focus:ring-violet-400 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100"
                       }`}
-                      max={arrivalMax}
+                      max={arrivalMaxFor(c)}
                     />
                   </div>
                   <div>
@@ -319,8 +303,8 @@ export default function CountrySelect() {
                           ? "border-rose-400 dark:border-rose-500 focus:ring-rose-300"
                           : "border-slate-300 dark:border-slate-700 focus:ring-violet-400 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100"
                       }`}
-                      min={leavingMin}
-                      max={today}
+                      min={leavingMinFor(c)}
+                      max={todayISO}
                     />
                   </div>
                 </div>
@@ -347,17 +331,17 @@ export default function CountrySelect() {
             value={onset}
             onChange={(e) => setOnset(e.target.value)}
             className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-400"
-            max={today} // no future onset
+            max={todayISO}
           />
           {onset && (
             <div className="text-xs text-slate-600 dark:text-slate-300">
-              {onset > today
+              {onset > todayISO
                 ? "Onset cannot be in the future."
                 : `Days since onset: ${daysSince(onset)}`}
             </div>
           )}
         </div>
-        {onset && onset > today && (
+        {onset && onset > todayISO && (
           <p className="mt-2 text-xs text-rose-700 dark:text-rose-400">
             Onset date cannot be in the future.
           </p>
