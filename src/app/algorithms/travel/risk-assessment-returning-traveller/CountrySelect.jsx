@@ -22,9 +22,7 @@ function DecisionCard({ tone = "green", title, children }) {
       : "border-emerald-500 bg-emerald-50/60 dark:border-emerald-500 dark:bg-emerald-900/20";
   return (
     <div className={`rounded-xl border-2 p-4 ${classes}`}>
-      <div className="font-semibold mb-2">
-        {title}
-      </div>
+      <div className="font-semibold mb-2">{title}</div>
       <div className="text-sm space-y-1">{children}</div>
     </div>
   );
@@ -111,7 +109,11 @@ export default function CountrySelect() {
 
   // Risk map & meta from API
   const [riskMap, setRiskMap] = useState(null);
-  const [riskMeta, setRiskMeta] = useState({ source: "fallback", lastUpdatedText: null, snapshotDate: null });
+  const [riskMeta, setRiskMeta] = useState({
+    source: "fallback",
+    lastUpdatedText: null,
+    snapshotDate: null,
+  });
 
   /* ---------- Load & persist (session) ---------- */
   useEffect(() => {
@@ -263,7 +265,10 @@ export default function CountrySelect() {
     };
   }, [step]);
 
-  const normalizedRiskMap = useMemo(() => buildNormalizedMap(riskMap || {}), [riskMap]);
+  const normalizedRiskMap = useMemo(
+    () => buildNormalizedMap(riskMap || {}),
+    [riskMap]
+  );
 
   /* ==================== STEP 0: SCREENING ==================== */
   if (step === "screen") {
@@ -297,7 +302,10 @@ export default function CountrySelect() {
             </button>
             <button
               type="button"
-              onClick={() => { setQ1Fever("no"); setQ2Exposure(""); }}
+              onClick={() => {
+                setQ1Fever("no");
+                setQ2Exposure("");
+              }}
               className={`px-4 py-2 text-sm font-medium border-l-2 border-slate-300 dark:border-slate-700 ${
                 q1Fever === "no"
                   ? "bg-violet-600 text-white"
@@ -356,10 +364,16 @@ export default function CountrySelect() {
           <DecisionCard tone="red" title="AT RISK OF VHF">
             <ul className="list-disc pl-5">
               <li>ISOLATE PATIENT IN SIDE ROOM</li>
-              <li>Discuss with infection consultant (Infectious Disease/Microbiology/Virology)</li>
+              <li>
+                Discuss with infection consultant (Infectious Disease/Microbiology/Virology)
+              </li>
               <li>Urgent Malaria investigation</li>
-              <li>Full blood count, U&amp;Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
-              <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
+              <li>
+                Full blood count, U&amp;Es, LFTs, clotting screen, CRP, glucose, blood cultures
+              </li>
+              <li>
+                Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)
+              </li>
             </ul>
           </DecisionCard>
         )}
@@ -382,7 +396,10 @@ export default function CountrySelect() {
           {/* Edit or Reset always available */}
           <button
             type="button"
-            onClick={() => { setQ1Fever(""); setQ2Exposure(""); }}
+            onClick={() => {
+              setQ1Fever("");
+              setQ2Exposure("");
+            }}
             className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
           >
             Back / Edit answers
@@ -531,12 +548,16 @@ export default function CountrySelect() {
               const showWarn = status !== "ok" || hasConflict;
 
               let warnText = "";
-              if (status === "invalid-range") warnText = "Leaving date must be the same as or after the arrival date.";
-              else if (status === "incomplete") warnText = "Please choose both arrival and leaving dates.";
+              if (status === "invalid-range")
+                warnText = "Leaving date must be the same as or after the arrival date.";
+              else if (status === "incomplete")
+                warnText = "Please choose both arrival and leaving dates.";
               else if (status === "future-date") warnText = "Dates cannot be in the future.";
-              else if (hasConflict) warnText = "These dates overlap with another country. Adjust to avoid overlap.";
+              else if (hasConflict)
+                warnText = "These dates overlap with another country. Adjust to avoid overlap.";
 
-              const arrivalMax = c.leaving ? (c.leaving < todayISO ? c.leaving : todayISO) : todayISO;
+              const arrivalMax =
+                c.leaving ? (c.leaving < todayISO ? c.leaving : todayISO) : todayISO;
               const leavingMin = c.arrival || undefined;
 
               return (
@@ -611,12 +632,16 @@ export default function CountrySelect() {
             />
             {onset && (
               <div className="text-xs text-slate-600 dark:text-slate-300">
-                {onset > todayISO ? "Onset cannot be in the future." : `Days since onset: ${daysSince(onset)}`}
+                {onset > todayISO
+                  ? "Onset cannot be in the future."
+                  : `Days since onset: ${daysSince(onset)}`}
               </div>
             )}
           </div>
           {onset && onset > todayISO && (
-            <p className="mt-2 text-xs text-rose-700 dark:text-rose-400">Onset date cannot be in the future.</p>
+            <p className="mt-2 text-xs text-rose-700 dark:text-rose-400">
+              Onset date cannot be in the future.
+            </p>
           )}
         </div>
 
@@ -663,8 +688,6 @@ export default function CountrySelect() {
       return null;
     }
   };
-
-  const normalizedRiskMap = useMemo(() => buildNormalizedMap(riskMap || {}), [riskMap]);
 
   const reviewList = sortSelected(selected).map((c) => {
     const diff = daysFromLeavingToOnset(c.leaving);
@@ -782,19 +805,40 @@ export default function CountrySelect() {
 
           const badge =
             c.level === "green"
-              ? { bg: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-800 dark:text-emerald-300", label: "Low concern" }
+              ? {
+                  bg: "bg-emerald-100 dark:bg-emerald-900/30",
+                  text: "text-emerald-800 dark:text-emerald-300",
+                  label: "Low concern",
+                }
               : c.level === "red"
-              ? { bg: "bg-rose-100 dark:bg-rose-900/30", text: "text-rose-800 dark:text-rose-300", label: "Flag" }
-              : { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-800 dark:text-amber-300", label: "Verify" };
+              ? {
+                  bg: "bg-rose-100 dark:bg-rose-900/30",
+                  text: "text-rose-800 dark:text-rose-300",
+                  label: "Flag",
+                }
+              : {
+                  bg: "bg-amber-100 dark:bg-amber-900/30",
+                  text: "text-amber-800 dark:text-amber-300",
+                  label: "Verify",
+                };
 
           return (
-            <div key={`review-${c.id}`} className={`rounded-xl border-2 p-4 bg-white dark:bg-slate-950 ${colorClasses}`}>
+            <div
+              key={`review-${c.id}`}
+              className={`rounded-xl border-2 p-4 bg-white dark:bg-slate-950 ${colorClasses}`}
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{c.name}</div>
-                  <div className="text-xs text-slate-600 dark:text-slate-300">Travel: {c.arrival} → {c.leaving}</div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {c.name}
+                  </div>
+                  <div className="text-xs text-slate-600 dark:text-slate-300">
+                    Travel: {c.arrival} → {c.leaving}
+                  </div>
                 </div>
-                <div className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ${badge.bg} ${badge.text}`}>
+                <div
+                  className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ${badge.bg} ${badge.text}`}
+                >
                   {badge.label}
                 </div>
               </div>
