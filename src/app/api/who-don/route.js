@@ -160,6 +160,9 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const countriesParam = searchParams.get("countries") || "";
   const windowDays = parseInt(searchParams.get("days") || "", 10) || DEFAULT_DAYS;
+  const debug = searchParams.get("debug") === "1";
+
+
 
   const countries = countriesParam
     .split(",")
@@ -188,7 +191,7 @@ export async function GET(request) {
 
     for (const it of items) {
       if (!withinDays(it.published, windowDays)) continue;
-      const hay = normalize(`${it.title} ${it.summary}`);
+      const hay = normalize(`${it.title} ${it.summary} ${it.url}`);
       if (terms.some((t) => hay.includes(t))) matched.push(it);
     }
 
@@ -197,19 +200,22 @@ export async function GET(request) {
     byCountry[country] = matched.slice(0, 5);
   }
 
-  return NextResponse.json(
-    {
+  const debugInfo = debug
+  ? {
       source,
-      fetchedAt: new Date().toISOString(),
-      windowDays,
-      byCountry,
-    },
-    {
-      status: 200,
-      headers: {
-        // Edge cache for 6h with stale-while-revalidate
-        "Cache-Control": "s-maxage=21600, stale-while-revalidate=86400",
-      },
+      totalItemsFetched: items.length,
+      sample: items.slice(0, 10).map((x) => ({ title: x.title, url: x.url, published: x.published })),
     }
-  );
+  : undefined;
+
+  return NextResponse.json(
+  {
+    source,
+    fetchedAt: new Date().toISOString(),
+    windowDays,
+    byCountry,
+    ...(debugInfo ? { debug: debugInfo } : {}),
+  },
+  { status: 200, headers: { "Cache-Control": "s-maxage=21600, stale-while-revalidate=86400" } }
+);
 }
