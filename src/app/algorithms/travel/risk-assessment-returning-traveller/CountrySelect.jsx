@@ -580,10 +580,10 @@ export default function CountrySelect() {
             · Last updated (GOV.UK): {new Date(riskMeta.lastUpdatedText).toLocaleDateString()}
           </span>
         )}
-        {riskMeta.source !== "govuk-table" && (
+        {riskMeta.source === "seed-fallback" && (
           <span className="ml-1 text-amber-700 dark:text-amber-400">
             (automatic parse fallback in use — verify on GOV.UK)
-          </span>
+              </span>
         )}
       </p>
 
