@@ -1,27 +1,23 @@
-// src/app/algorithms/travel/risk-assessment-returning-traveller/page.js
+// src/app/algorithms/travel/risk-assessment-returning-traveller/page.jsx
 import CountrySelect from "./CountrySelect";
 
 export const metadata = {
-  title: "Risk assessment (returning traveller) · Algorithms",
+  title: "Risk assessment in the returning traveller (VHF) | ID Northwest",
   description:
-    "Choose country/countries of travel. Uses UKHSA HCID country-specific risk list.",
+    "Screening and country-specific risk assessment for viral haemorrhagic fevers in returning travellers.",
 };
 
-export default function RiskAssessment() {
+export default function Page() {
   return (
-    <main className="py-10 sm:py-14">
-      <header className="mb-8 sm:mb-10">
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-          Risk assessment — returning traveller
-        </h1>
-        <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl">
-          Country / countries of travel
-        </p>
-      </header>
+    <main className="py-8">
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+        Risk assessment in the returning traveller (VHF)
+      </h1>
 
-      <section className="max-w-2xl">
+      {/* No extra subheading here. The country heading appears only inside the select step. */}
+      <div className="mt-6">
         <CountrySelect />
-      </section>
+      </div>
     </main>
   );
 }
