@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { HCID_FALLBACK_MAP, HCID_SNAPSHOT_DATE } from "@/data/hcidFallbackSnapshot";
 
 const GOVUK_API =
-  "https://www.gov.uk/api/content/guidance/high-consequence-infectious-disease-country-specific-risk";
+  "https://www.gov.uk-bad/api/content/guidance/high-consequence-infectious-disease-country-specific-risk";
 
 function stripTags(s = "") {
   return s.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
