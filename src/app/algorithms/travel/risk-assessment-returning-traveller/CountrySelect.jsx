@@ -30,7 +30,7 @@ function DecisionCard({ tone = "green", title, children }) {
   );
 }
 
-/* -------------------- Country name helpers (unchanged) -------------------- */
+/* -------------------- Country name helpers -------------------- */
 function normalizeName(s = "") {
   return s
     .toLowerCase()
@@ -93,14 +93,14 @@ function getEntriesForCountry(displayName, normMap) {
 
 /* --------------------------------- Component --------------------------------- */
 export default function CountrySelect() {
-  // NEW: add a screening step before travel selection
-  const [step, setStep] = useState("screen"); // "screen" | "select" | "review"
+  // Steps: "screen" | "select" | "review"
+  const [step, setStep] = useState("screen");
 
   // Screening answers: explicit "yes" | "no" | "" (unset)
   const [q1Fever, setQ1Fever] = useState(""); // Does the patient have an illness with a history of feverishness?
   const [q2Exposure, setQ2Exposure] = useState(""); // High-risk VHF exposure within 21 days?
 
-  // Travel flow state (unchanged)
+  // Travel flow state
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [showInput, setShowInput] = useState(true);
@@ -268,15 +268,16 @@ export default function CountrySelect() {
   /* ==================== STEP 0: SCREENING ==================== */
   if (step === "screen") {
     const q1Answered = q1Fever === "yes" || q1Fever === "no";
-    const q2Available = q1Fever === "yes"; // per your rule: only ask Q2 if Q1 is yes
+    const q2Available = q1Fever === "yes"; // Only ask Q2 if Q1 is yes
     const q2Answered = !q2Available || q2Exposure === "yes" || q2Exposure === "no";
 
-    // End-state cards
+    // End-states
     const showGreen = q1Fever === "no"; // Q1 No -> green, don't ask Q2
     const showRed = q1Fever === "yes" && q2Exposure === "yes"; // Q2 Yes -> red
 
     return (
       <div className="space-y-6">
+        {/* Q1 */}
         <div className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
           <div className="mb-2 text-sm font-medium text-slate-900 dark:text-slate-100">
             Does the patient have an illness with a history of feverishness?
@@ -308,6 +309,7 @@ export default function CountrySelect() {
           </div>
         </div>
 
+        {/* Q2 (only if Q1 yes) */}
         {q2Available && (
           <div className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
             <div className="mb-2 text-sm font-medium text-slate-900 dark:text-slate-100">
@@ -355,7 +357,7 @@ export default function CountrySelect() {
             <ul className="list-disc pl-5">
               <li>ISOLATE PATIENT IN SIDE ROOM</li>
               <li>Discuss with infection consultant (Infectious Disease/Microbiology/Virology)</li>
-              <li>Urgent malaria investigation</li>
+              <li>Urgent Malaria investigation</li>
               <li>Full blood count, U&amp;Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
               <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
             </ul>
@@ -398,7 +400,7 @@ export default function CountrySelect() {
     );
   }
 
-  /* ==================== STEP 1: SELECT (existing) ==================== */
+  /* ==================== STEP 1: SELECT (country selection) ==================== */
   if (step === "select") {
     return (
       <div className="space-y-6">
@@ -447,27 +449,14 @@ export default function CountrySelect() {
           </div>
         </div>
 
-        {/* Add country input */}
-        {!showInput && (
-          <div>
-            <button
-              type="button"
-              onClick={() => {
-                setShowInput(true);
-                setTimeout(() => inputRef.current?.focus(), 0);
-              }}
-              className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-300 dark:border-slate-700 px-4 py-2 font-medium text-slate-900 dark:text-slate-100 hover:border-violet-500 dark:hover:border-violet-400 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition"
-            >
-              + Add country
-            </button>
-          </div>
-        )}
+        {/* Heading for country input */}
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          Country / countries of travel
+        </h2>
 
+        {/* Add country input */}
         {showInput && (
           <div className="country-select-root relative">
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Country / countries of travel
-            </label>
             <div className="flex gap-2">
               <input
                 ref={inputRef}
@@ -484,7 +473,7 @@ export default function CountrySelect() {
                 aria-autocomplete="list"
                 aria-expanded={open}
                 aria-controls="country-suggestions"
-                aria-label="Country / countries of travel"
+                aria-label="Country search"
               />
               <button
                 type="button"
@@ -516,6 +505,21 @@ export default function CountrySelect() {
                 ))}
               </ul>
             )}
+          </div>
+        )}
+
+        {!showInput && (
+          <div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowInput(true);
+                setTimeout(() => inputRef.current?.focus(), 0);
+              }}
+              className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-300 dark:border-slate-700 px-4 py-2 font-medium text-slate-900 dark:text-slate-100 hover:border-violet-500 dark:hover:border-violet-400 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition"
+            >
+              + Add country
+            </button>
           </div>
         )}
 
@@ -648,7 +652,7 @@ export default function CountrySelect() {
     );
   }
 
-  /* ==================== STEP 2: REVIEW (existing) ==================== */
+  /* ==================== STEP 2: REVIEW ==================== */
   const daysFromLeavingToOnset = (leavingISO) => {
     if (!onset || !leavingISO) return null;
     try {
@@ -659,6 +663,8 @@ export default function CountrySelect() {
       return null;
     }
   };
+
+  const normalizedRiskMap = useMemo(() => buildNormalizedMap(riskMap || {}), [riskMap]);
 
   const reviewList = sortSelected(selected).map((c) => {
     const diff = daysFromLeavingToOnset(c.leaving);
