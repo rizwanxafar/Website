@@ -13,7 +13,7 @@ export default function OutbreakSidebar({
   const [err, setErr] = useState("");
 
   const countryList = useMemo(() => {
-    // Deduplicate & keep order
+    // Deduplicate & keep original order
     const seen = new Set();
     const arr = [];
     for (const c of countries) {
@@ -35,9 +35,8 @@ export default function OutbreakSidebar({
           countries: countryList.join(","),
           days: String(recencyDays),
         }).toString();
-        const r = await fetch(`/api/wwho-don?${qs}`.replace("wwho", "who"), {
-          cache: "no-store",
-        });
+        // Explicit URL (no string replace)
+        const r = await fetch(`/api/who-don?${qs}`, { cache: "no-store" });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = await r.json();
         setData(j);
@@ -81,31 +80,38 @@ export default function OutbreakSidebar({
 
         {!err && !loading && data && (
           <div className="mt-3 space-y-4">
+            {/* Per-country lists (with empty-state messages) */}
             {countryList.map((c) => {
               const items = (data.byCountry?.[c] || []).slice(0, perCountryCap);
-              if (items.length === 0) return null;
               return (
                 <div key={c}>
                   <div className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-1">
                     {c}
                   </div>
-                  <ul className="space-y-2">
-                    {items.map((it) => (
-                      <li key={`${c}-${it.url}`}>
-                        <a
-                          href={it.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm underline"
-                        >
-                          {it.title}
-                        </a>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                          {it.published ? new Date(it.published).toLocaleDateString() : ""}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+
+                  {items.length > 0 ? (
+                    <ul className="space-y-2">
+                      {items.map((it) => (
+                        <li key={`${c}-${it.url}`}>
+                          <a
+                            href={it.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm underline"
+                          >
+                            {it.title}
+                          </a>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                            {it.published ? new Date(it.published).toLocaleDateString() : ""}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                      No DON items in the last {data.windowDays ?? recencyDays} days.
+                    </div>
+                  )}
                 </div>
               );
             })}
