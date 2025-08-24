@@ -1,38 +1,9 @@
 // src/app/api/hcid/route.js
 import { NextResponse } from "next/server";
+import { HCID_FALLBACK_MAP, HCID_SNAPSHOT_DATE } from "@/data/hcidFallbackSnapshot";
 
 const GOVUK_API =
   "https://www.gov.uk/api/content/guidance/high-consequence-infectious-disease-country-specific-risk";
-
-/** Seed fallback so we never give false reassurance if parsing fails. */
-const SEED_HCID_MAP = {
-  "Democratic Republic of the Congo": [
-    { disease: "Ebola virus disease", evidence: "Endemic" },
-  ],
-  "Congo (Democratic Republic)": [
-    { disease: "Ebola virus disease", evidence: "Endemic" },
-  ],
-  Uganda: [{ disease: "Marburg virus disease", evidence: "Endemic" }],
-  Nigeria: [{ disease: "Lassa fever", evidence: "Endemic" }],
-  Ghana: [{ disease: "Marburg virus disease", evidence: "Outbreak/Imported" }],
-  Guinea: [{ disease: "Ebola virus disease", evidence: "Endemic/Outbreak" }],
-  "Sierra Leone": [
-    { disease: "Lassa fever", evidence: "Endemic" },
-    { disease: "Ebola virus disease", evidence: "Outbreak (historical)" },
-  ],
-  Liberia: [
-    { disease: "Ebola virus disease", evidence: "Outbreak (historical)" },
-    { disease: "Lassa fever", evidence: "Endemic" },
-  ],
-  Sudan: [{ disease: "Ebola virus disease (Sudan virus)", evidence: "Outbreak (historical)" }],
-  "South Sudan": [{ disease: "Ebola virus disease", evidence: "Outbreak (historical)" }],
-  Afghanistan: [{ disease: "Crimean-Congo haemorrhagic fever", evidence: "Endemic/Outbreak" }],
-  Pakistan: [{ disease: "Crimean-Congo haemorrhagic fever", evidence: "Endemic/Outbreak" }],
-  Türkiye: [{ disease: "Crimean-Congo haemorrhagic fever", evidence: "Endemic/Outbreak" }],
-  Turkey: [{ disease: "Crimean-Congo haemorrhagic fever", evidence: "Endemic/Outbreak" }],
-  Iran: [{ disease: "Crimean-Congo haemorrhagic fever", evidence: "Endemic/Outbreak" }],
-  Iraq: [{ disease: "Crimean-Congo haemorrhagic fever", evidence: "Endemic/Outbreak" }],
-};
 
 function stripTags(s = "") {
   return s.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -52,7 +23,7 @@ function bodyHtmlFromGovUk(json) {
  *  { [country]: [ { disease, evidence?, year? }, ... ] }
  * Handles:
  *  - header detection (Country | HCID disease | Evidence | Year)
- *  - rowspans (carry forward last seen country when a row's country cell is empty)
+ *  - rowspans (carry forward last seen country when a row’s country cell is empty)
  *  - multiple diseases per cell (links, commas/semicolons/“and”, and <br> breaks)
  */
 function parseTablesToDetailedMap(html) {
@@ -79,7 +50,7 @@ function parseTablesToDetailedMap(html) {
     const rows = table.match(rowRegex) || [];
     if (!rows.length) continue;
 
-    // Detect header indices if there's a header row
+    // Detect column indices from header if present
     let idxCountry = 0, idxDisease = 1, idxEvidence = 2, idxYear = 3;
     const headerRow = rows.find((r) => /<th/i.test(r));
     if (headerRow) {
@@ -101,17 +72,14 @@ function parseTablesToDetailedMap(html) {
       idxYear = yIdx !== -1 ? yIdx : idxYear;
     }
 
-    let lastCountry = null; // carry forward across rowspan
+    let lastCountry = null; // carry forward across rowspan groups
 
     for (const row of rows) {
-      // Skip header
-      const isHeader = /<th/i.test(row);
-      if (isHeader) continue;
-
+      if (/<th/i.test(row)) continue; // skip header rows
       const cells = getCells(row);
       if (!cells.length) continue;
 
-      // Country: use text from country cell if present; otherwise fallback to lastCountry (rowspan)
+      // Country: read from cell if present; otherwise use lastCountry (rowspan effect)
       const countryCell = cells[idxCountry];
       const countryText = (countryCell?.text || "").trim();
       let country = countryText || lastCountry;
@@ -121,13 +89,12 @@ function parseTablesToDetailedMap(html) {
         lastCountry = null;
         continue;
       }
+      if (!country) continue;
 
-      if (!country) continue; // still nothing usable
-      lastCountry = country;  // remember for subsequent rowspan rows
+      lastCountry = country; // remember for subsequent rows in a rowspan
 
-      // Disease cell
+      // Disease, Evidence, Year
       const diseaseCell = cells[idxDisease];
-      // Evidence & year
       const evidenceText = (cells[idxEvidence]?.text || "").trim() || undefined;
       const yearText = (cells[idxYear]?.text || "").trim() || undefined;
 
@@ -135,34 +102,34 @@ function parseTablesToDetailedMap(html) {
       if (diseaseCell) {
         const raw = diseaseCell.raw || "";
 
-        // 1) Collect link texts
-        const linkTextMatches = [
+        // 1) extract link texts if present
+        const linkTexts = [
           ...(raw.matchAll(/<a[^>]*>([\s\S]*?)<\/a>/gi)) || [],
-        ].map((mm) => stripTags(mm[1] || "")).filter(Boolean);
+        ]
+          .map((mm) => stripTags(mm[1] || ""))
+          .filter(Boolean);
 
-        // 2) Split on <br> (any variant)
-        const withBrSplits = raw
+        // 2) split on <br> into separate lines, strip HTML and trim
+        const brSplit = raw
           .replace(/<br\s*\/?>/gi, "\n")
           .split("\n")
           .map((chunk) => stripTags(chunk).trim())
           .filter(Boolean);
 
-        // Combine: links + text splits
-        let candidates = linkTextMatches.length ? linkTextMatches : withBrSplits;
-
-        // If still empty, use the plain text
+        // prefer link texts if present, else use <br>-split chunks, else plain text
+        let candidates = linkTexts.length ? linkTexts : brSplit;
         if (!candidates.length) {
           const plain = (diseaseCell.text || "").trim();
           if (plain) candidates = [plain];
         }
 
-        // Flatten and split further on separators ; , / and "and"
+        // Split further on separators ; , / and "and"
         diseases = candidates
           .flatMap((s) => s.split(/;|,|\/|\band\b/gi))
           .map((s) => s.trim())
           .filter(Boolean);
 
-        // Handle explicit "None" / "No known"
+        // explicit “None/No known”
         if (diseases.length === 1 && /^none\b|^no known\b/i.test(diseases[0])) {
           diseases = [];
         }
@@ -174,7 +141,7 @@ function parseTablesToDetailedMap(html) {
       }
 
       if (diseases.length === 0) {
-        // Record explicit "no HCIDs" only if nothing recorded yet
+        // record explicit “no HCIDs” only if nothing added yet
         if (map[country].length === 0) {
           map[country] = [];
         }
@@ -205,7 +172,7 @@ function parseTablesToDetailedMap(html) {
 export async function GET() {
   try {
     const res = await fetch(GOVUK_API, {
-      next: { revalidate: 60 * 60 * 24 }, // cache for 24h on Vercel
+      next: { revalidate: 60 * 60 * 24 }, // cache on Vercel for 24h
       headers: { "User-Agent": "IDNorthwest/1.0 (+https://idnorthwest.co.uk)" },
     });
     if (!res.ok) throw new Error(`GOV.UK fetch failed: ${res.status}`);
@@ -214,16 +181,7 @@ export async function GET() {
     const html = bodyHtmlFromGovUk(json);
     const parsed = parseTablesToDetailedMap(html);
 
-    // Build fallback in the same shape
-    const fallback =
-      Object.fromEntries(
-        Object.entries(SEED_HCID_MAP).map(([country, arr]) => [
-          country,
-          arr.map((e) => (typeof e === "string" ? { disease: e } : e)),
-        ])
-      ) || {};
-
-    const effectiveMap = parsed && Object.keys(parsed).length ? parsed : fallback;
+    const effectiveMap = parsed && Object.keys(parsed).length ? parsed : HCID_FALLBACK_MAP;
 
     const lastUpdatedText =
       json?.public_updated_at ||
@@ -232,24 +190,19 @@ export async function GET() {
       null;
 
     return NextResponse.json({
-      source: parsed ? "govuk-table+rowspan" : "seed-fallback",
+      source: parsed ? "govuk-table+rowspan" : "snapshot-fallback",
       fetchedAt: new Date().toISOString(),
       lastUpdatedText,
       map: effectiveMap,
+      snapshotDate: parsed ? null : HCID_SNAPSHOT_DATE,
     });
   } catch (err) {
-    const fallback =
-      Object.fromEntries(
-        Object.entries(SEED_HCID_MAP).map(([country, arr]) => [
-          country,
-          arr.map((e) => (typeof e === "string" ? { disease: e } : e)),
-        ])
-      ) || {};
     return NextResponse.json({
-      source: "seed-fallback",
+      source: "snapshot-fallback",
       fetchedAt: new Date().toISOString(),
       lastUpdatedText: null,
-      map: fallback,
+      map: HCID_FALLBACK_MAP,
+      snapshotDate: HCID_SNAPSHOT_DATE,
       error: String(err?.message || err),
     });
   }
