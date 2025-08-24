@@ -465,7 +465,9 @@ export default function CountrySelect() {
 
         {showInput && (
           <div className="country-select-root relative">
-           
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Country / countries of travel
+            </label>
             <div className="flex gap-2">
               <input
                 ref={inputRef}
