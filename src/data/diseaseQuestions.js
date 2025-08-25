@@ -16,7 +16,7 @@ export const EXPOSURE_QUESTIONS = {
     id: "q3_lassa_rural",
     diseases: ["Lassa fever"],
     text:
-      "In this country, has the patient lived or worked in basic rural conditions in an area where human cases of Lassa fever occur?",
+      "In this country, has the patient lived or worked in basic rural conditions?",
   },
   EBOV_MARB_ANIMAL: {
     id: "q4_ebov_marb_animals",
