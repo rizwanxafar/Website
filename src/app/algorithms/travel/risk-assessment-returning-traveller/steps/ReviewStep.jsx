@@ -24,7 +24,7 @@ export default function ReviewStep({
   normalizedMap, // Map<normalizedCountryName, entries[]>
   onBackToSelect,
   onReset,
-  onContinueToExposures, // NEW: advance to exposure questions when any red country exists
+  onContinueToExposures,
 }) {
   const onsetDate = onset ? new Date(onset) : null;
 
@@ -141,14 +141,24 @@ export default function ReviewStep({
         </div>
       )}
 
-      {/* If everything is green, show the same "VHF unlikely" card up-front */}
-      {allGreen && (
-        <DecisionCard tone="green" title="VHF unlikely; manage locally">
-          <p>Please continue standard local management pathways.</p>
-        </DecisionCard>
-      )}
+      {/* Two-column layout: countries (left) + outcome (right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: countries list */}
+        <div className="lg:col-span-2 space-y-6">{cards}</div>
 
-      <div className="space-y-6">{cards}</div>
+        {/* Right: summary/outcome panel (only when all countries green) */}
+        <div className="lg:col-span-1 lg:sticky lg:top-4 h-fit">
+          {allGreen ? (
+            <DecisionCard tone="green" title="VHF unlikely; manage locally">
+              <p>Please continue standard local management pathways.</p>
+            </DecisionCard>
+          ) : (
+            <div className="rounded-lg border-2 border-slate-200 dark:border-slate-700 p-4 text-sm text-slate-500 dark:text-slate-400">
+              Review the country cards. If any country remains red, continue to exposure questions.
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Controls */}
       <div className="flex gap-3">
@@ -160,7 +170,6 @@ export default function ReviewStep({
           Back to travel details
         </button>
 
-        {/* Only show "Continue" if any country is red */}
         {anyRed && (
           <button
             type="button"
