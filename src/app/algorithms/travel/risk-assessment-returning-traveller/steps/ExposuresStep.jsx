@@ -11,10 +11,15 @@ const yesNoBtn = (active) =>
       : "bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700"
   }`;
 
+const txt = (s = "") => String(s).toLowerCase();
+const isNoKnownHcid = (disease = "") => txt(disease).includes("no known hcid");
+const isTravelAssociated = (disease = "") => txt(disease).includes("travel associated");
+const isImportedOnly = (evidence = "") => txt(evidence).includes("imported cases only");
+
 const hasDisease = (entries = [], name = "") =>
   entries.some((e) => String(e?.disease || "").toLowerCase().includes(name.toLowerCase()));
 
-// Lightweight amber summary (since DecisionCard has no amber tone)
+// Lightweight amber summary (since DecisionCard may not support amber tone)
 function AmberSummary({ title, children }) {
   return (
     <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-4 dark:border-amber-400 dark:bg-amber-900/20">
@@ -43,9 +48,14 @@ export default function ExposuresStep({
     const key = String(c.name || "").toLowerCase();
     const entries = normalizedMap.get(key) || [];
 
-    const showLassa = hasDisease(entries, "lassa");
-    const showEbovMarb = hasDisease(entries, "ebola") || hasDisease(entries, "marburg");
-    const showCchf = hasDisease(entries, "cchf");
+    // Filter out entries that should NOT trigger exposure questions
+    const entriesFiltered = (entries || []).filter(
+      (e) => !isNoKnownHcid(e.disease) && !isTravelAssociated(e.disease) && !isImportedOnly(e.evidence)
+    );
+
+    const showLassa = hasDisease(entriesFiltered, "lassa");
+    const showEbovMarb = hasDisease(entriesFiltered, "ebola") || hasDisease(entriesFiltered, "marburg");
+    const showCchf = hasDisease(entriesFiltered, "cchf");
 
     const row = exposuresByCountry[c.id] || {};
     const ansLassa = showLassa ? row.lassa || "" : null;
