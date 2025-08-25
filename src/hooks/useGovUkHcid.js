@@ -1,39 +1,44 @@
 // src/hooks/useGovUkHcid.js
-// Fetches /api/hcid and builds a normalised lookup map.
-// Use: const { map, meta, normalizedMap, refresh, loading, error } = useGovUkHcid();
+// Snapshot-only mode: always loads HCID_FALLBACK_MAP from local snapshot.
+// Safer for Vercel CPU limits. If you want to re-enable live fetch later,
+// see the commented section below.
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { buildNormalizedMap } from "@/utils/names";
+import {
+  HCID_FALLBACK_MAP,
+  HCID_SNAPSHOT_DATE,
+} from "@/data/hcidFallbackSnapshot";
 
 export default function useGovUkHcid() {
-  const [map, setMap] = useState(null); // raw object { Country: [entries] }
-  const [meta, setMeta] = useState({ source: "fallback", lastUpdatedText: null, snapshotDate: null });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  // In snapshot-only mode, map never changes
+  const [map] = useState(HCID_FALLBACK_MAP);
+  const [meta] = useState({
+    source: "fallback",
+    snapshotDate: HCID_SNAPSHOT_DATE,
+    lastUpdatedText: `Snapshot captured ${HCID_SNAPSHOT_DATE}`,
+  });
 
+  // No network, so no loading/error state
+  const loading = false;
+  const error = "";
+
+  // Refresh does nothing in snapshot-only mode
   const refresh = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/hcid", { cache: "no-cache" });
-      const data = await res.json();
-      setMap(data?.map ?? {});
-      setMeta({
-        source: data?.source || "fallback",
-        lastUpdatedText: data?.lastUpdatedText || null,
-        snapshotDate: data?.snapshotDate || null,
-      });
-    } catch (e) {
-      setMap({});
-      setMeta({ source: "fallback", lastUpdatedText: null, snapshotDate: null });
-      setError("Failed to fetch GOV.UK data; using local snapshot if available.");
-    } finally {
-      setLoading(false);
-    }
+    console.warn("Refresh called: snapshot-only mode (no live fetch).");
   };
 
-  // Consumers can call refresh() exactly when they want (e.g., on entering Review step)
   const normalizedMap = useMemo(() => buildNormalizedMap(map || {}), [map]);
 
   return { map, meta, normalizedMap, refresh, loading, error };
 }
+
+/*
+---------------------------------------------
+TO RE-ENABLE LIVE FETCH LATER:
+---------------------------------------------
+1. Restore useEffect + fetch from your old version.
+2. When fetch fails, fall back to HCID_FALLBACK_MAP.
+3. Keep meta.source = "live" when fetch succeeds, else "fallback".
+---------------------------------------------
+*/
