@@ -16,7 +16,7 @@ export default function CountrySelect() {
     q2Exposure, setQ2Exposure,
     selected, setSelected,
     onset, setOnset,
-    // UI helpers (select step)
+    // UI helpers (Select step)
     query, setQuery,
     open, setOpen,
     showInput, setShowInput,
@@ -25,8 +25,8 @@ export default function CountrySelect() {
     resetAll,
   } = useSessionForm();
 
-  // IMPORTANT: we now also take the raw `map` so SelectStep can build the country list.
-  const { map, normalizedMap, meta, refresh } = useGovUkHcid();
+  // Snapshot HCID data (used only by ReviewStep)
+  const { normalizedMap, meta, refresh } = useGovUkHcid();
 
   if (step === "screen") {
     return (
@@ -44,8 +44,7 @@ export default function CountrySelect() {
   if (step === "select") {
     return (
       <SelectStep
-        // data
-        map={map}
+        // travel selections
         selected={selected}
         setSelected={setSelected}
         onset={onset}
@@ -66,6 +65,7 @@ export default function CountrySelect() {
     );
   }
 
+  // Review
   return (
     <ReviewStep
       selected={selected}
