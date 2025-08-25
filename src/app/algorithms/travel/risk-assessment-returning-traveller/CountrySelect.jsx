@@ -1,3 +1,4 @@
+// src/app/algorithms/travel/risk-assessment-returning-traveller/CountrySelect.jsx
 "use client";
 
 import useSessionForm from "@/hooks/useSessionForm";
@@ -24,7 +25,8 @@ export default function CountrySelect() {
     resetAll,
   } = useSessionForm();
 
-  const { normalizedMap, meta, refresh } = useGovUkHcid();
+  // IMPORTANT: we now also take the raw `map` so SelectStep can build the country list.
+  const { map, normalizedMap, meta, refresh } = useGovUkHcid();
 
   if (step === "screen") {
     return (
@@ -42,10 +44,13 @@ export default function CountrySelect() {
   if (step === "select") {
     return (
       <SelectStep
+        // data
+        map={map}
         selected={selected}
         setSelected={setSelected}
         onset={onset}
         setOnset={setOnset}
+        // UI helpers
         query={query}
         setQuery={setQuery}
         open={open}
@@ -53,6 +58,7 @@ export default function CountrySelect() {
         showInput={showInput}
         setShowInput={setShowInput}
         inputRef={inputRef}
+        // nav
         onBackToScreen={() => setStep("screen")}
         onReset={resetAll}
         onContinue={() => setStep("review")}
