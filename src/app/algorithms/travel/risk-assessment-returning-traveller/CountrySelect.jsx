@@ -7,6 +7,7 @@ import useGovUkHcid from "@/hooks/useGovUkHcid";
 import ScreeningStep from "./steps/ScreeningStep";
 import SelectStep from "./steps/SelectStep";
 import ReviewStep from "./steps/ReviewStep";
+import ExposuresStep from "./steps/ExposuresStep"; // NEW
 
 export default function CountrySelect() {
   const {
@@ -16,16 +17,21 @@ export default function CountrySelect() {
     q2Exposure, setQ2Exposure,
     selected, setSelected,
     onset, setOnset,
-    // UI helpers (Select step)
+
+    // UI helpers (select step)
     query, setQuery,
     open, setOpen,
     showInput, setShowInput,
     inputRef,
+
+    // exposures
+    exposuresGlobal, setExposuresGlobal,
+    exposuresByCountry, setCountryExposure,
+
     // actions
     resetAll,
   } = useSessionForm();
 
-  // Snapshot HCID data (used only by ReviewStep)
   const { normalizedMap, meta, refresh } = useGovUkHcid();
 
   if (step === "screen") {
@@ -44,12 +50,10 @@ export default function CountrySelect() {
   if (step === "select") {
     return (
       <SelectStep
-        // travel selections
         selected={selected}
         setSelected={setSelected}
         onset={onset}
         setOnset={setOnset}
-        // UI helpers
         query={query}
         setQuery={setQuery}
         open={open}
@@ -57,7 +61,6 @@ export default function CountrySelect() {
         showInput={showInput}
         setShowInput={setShowInput}
         inputRef={inputRef}
-        // nav
         onBackToScreen={() => setStep("screen")}
         onReset={resetAll}
         onContinue={() => setStep("review")}
@@ -65,15 +68,30 @@ export default function CountrySelect() {
     );
   }
 
-  // Review
+  if (step === "review") {
+    return (
+      <ReviewStep
+        selected={selected}
+        onset={onset}
+        meta={meta}
+        normalizedMap={normalizedMap}
+        onBackToSelect={() => setStep("select")}
+        onReset={resetAll}
+        onContinueToExposures={() => setStep("exposures")} // NEW
+      />
+    );
+  }
+
+  // exposures
   return (
-    <ReviewStep
+    <ExposuresStep
       selected={selected}
-      onset={onset}
-      meta={meta}
       normalizedMap={normalizedMap}
-      refresh={refresh}
-      onBackToSelect={() => setStep("select")}
+      exposuresGlobal={exposuresGlobal}
+      setExposuresGlobal={setExposuresGlobal}
+      exposuresByCountry={exposuresByCountry}
+      setCountryExposure={setCountryExposure}
+      onBackToReview={() => setStep("review")}
       onReset={resetAll}
     />
   );
