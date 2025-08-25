@@ -14,6 +14,16 @@ const yesNoBtn = (active) =>
 const hasDisease = (entries = [], name = "") =>
   entries.some((e) => String(e?.disease || "").toLowerCase().includes(name.toLowerCase()));
 
+// Lightweight amber summary (since DecisionCard has no amber tone)
+function AmberSummary({ title, children }) {
+  return (
+    <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-4 dark:border-amber-400 dark:bg-amber-900/20">
+      <div className="font-semibold text-amber-900 dark:text-amber-200">{title}</div>
+      <div className="mt-2 text-sm text-amber-900/90 dark:text-amber-100">{children}</div>
+    </div>
+  );
+}
+
 export default function ExposuresStep({
   selected,                 // [{id,name,arrival,leaving}]
   normalizedMap,            // Map<normalizedCountryName, entries[]>
@@ -144,8 +154,8 @@ export default function ExposuresStep({
   if (gBleeding === "yes" || gBleeding === "no") answeredGlobalQs += 1;
   if (gOutbreak === "yes" || gBleeding === "yes") anyYes = true;
 
-  const totalRequired = requiredCountryQs + requiredGlobalQs;
-  const totalAnswered = answeredCountryQs + answeredGlobalQs;
+  const totalRequired = requiredGlobalQs + requiredCountryQs;
+  const totalAnswered = answeredGlobalQs + answeredCountryQs;
   const allAnswered = totalRequired === totalAnswered;
 
   // Summary panel content (only shows once all questions are answered)
@@ -172,12 +182,12 @@ export default function ExposuresStep({
       );
     } else {
       summaryNode = (
-        <DecisionCard tone="amber" title="Minimal risk of VHF">
+        <AmberSummary title="Minimal risk of VHF">
           <ul className="list-disc pl-5">
             <li>Urgent Malaria investigation</li>
             <li>Urgent local investigations as normally appropriate, including blood cultures.</li>
           </ul>
-        </DecisionCard>
+        </AmberSummary>
       );
     }
   }
@@ -213,6 +223,10 @@ export default function ExposuresStep({
                 No
               </button>
             </div>
+            <p className="mt-2 text-xs text-slate-500">
+              For current outbreak information, check WHO Disease Outbreak News and UKHSA Monthly
+              Summaries / country-specific risk pages.
+            </p>
           </div>
 
           <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
