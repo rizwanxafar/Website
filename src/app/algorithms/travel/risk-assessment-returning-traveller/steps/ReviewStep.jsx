@@ -4,7 +4,6 @@
 import { useEffect, useMemo } from "react";
 import { normalizeName, ALIASES } from "@/utils/names";
 import { sortSelected } from "@/utils/travelDates";
-import OutbreakSidebar from "@/components/OutbreakSidebar";
 
 export default function ReviewStep({
   selected, onset,
@@ -260,14 +259,7 @@ export default function ReviewStep({
         </div>
       </div>
 
-      {/* RIGHT: WHO news */}
-      <div>
-        <OutbreakSidebar
-          countries={countryNames}
-          recencyDays={365}
-          perCountryCap={5}
-        />
-      </div>
+      
     </div>
   );
 }
