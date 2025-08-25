@@ -1,5 +1,5 @@
 // src/hooks/useSessionForm.js
-// Centralises sessionStorage for screening + travel state
+// Centralises sessionStorage for screening + travel + exposures state
 
 import { useEffect, useRef, useState } from "react";
 
@@ -7,7 +7,7 @@ const STORAGE_KEY = "riskFormV1";
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 export default function useSessionForm() {
-  // Steps: "screen" | "select" | "review"
+  // Steps: "screen" | "select" | "review" | "exposures"
   const [step, setStep] = useState("screen");
 
   // Screening
@@ -23,6 +23,12 @@ export default function useSessionForm() {
   const [open, setOpen] = useState(false);
   const [showInput, setShowInput] = useState(true);
   const inputRef = useRef(null);
+
+  // Exposures
+  // Global outbreak Q1: "yes" | "no" | ""
+  const [exposuresGlobal, setExposuresGlobal] = useState({ q1_outbreak: "" });
+  // Per-country exposures keyed by row id: { [rowId]: { lassa, ebola_marburg, cchf } }
+  const [exposuresByCountry, setExposuresByCountry] = useState({});
 
   // Load once
   useEffect(() => {
@@ -47,6 +53,14 @@ export default function useSessionForm() {
         setOnset(parsed.onset || "");
         if (withIds.length > 0) setShowInput(false);
       }
+      if (parsed?.exposuresGlobal) {
+        setExposuresGlobal({
+          q1_outbreak: parsed.exposuresGlobal.q1_outbreak ?? "",
+        });
+      }
+      if (parsed?.exposuresByCountry) {
+        setExposuresByCountry(parsed.exposuresByCountry || {});
+      }
     } catch {}
   }, []);
 
@@ -59,10 +73,12 @@ export default function useSessionForm() {
           screening: { q1Fever, q2Exposure, step },
           selected,
           onset,
+          exposuresGlobal,
+          exposuresByCountry,
         })
       );
     } catch {}
-  }, [q1Fever, q2Exposure, step, selected, onset]);
+  }, [q1Fever, q2Exposure, step, selected, onset, exposuresGlobal, exposuresByCountry]);
 
   // Reset everything
   const resetAll = () => {
@@ -74,10 +90,23 @@ export default function useSessionForm() {
     setQuery("");
     setOpen(false);
     setShowInput(true);
+    setExposuresGlobal({ q1_outbreak: "" });
+    setExposuresByCountry({});
     try {
       sessionStorage.removeItem(STORAGE_KEY);
     } catch {}
     setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  // Helpers to update per-country exposures
+  const setCountryExposure = (rowId, key, value) => {
+    setExposuresByCountry((prev) => ({
+      ...prev,
+      [rowId]: {
+        ...(prev[rowId] || {}),
+        [key]: value, // "yes" | "no" | ""
+      },
+    }));
   };
 
   return {
@@ -93,6 +122,10 @@ export default function useSessionForm() {
     open, setOpen,
     showInput, setShowInput,
     inputRef,
+
+    // exposures
+    exposuresGlobal, setExposuresGlobal,
+    exposuresByCountry, setCountryExposure,
 
     // actions
     resetAll,
