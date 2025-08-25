@@ -42,7 +42,6 @@ export default function ExposuresStep({
     const ansEbovMarb = showEbovMarb ? row.ebola_marburg || "" : null;
     const ansCchf = showCchf ? row.cchf || "" : null;
 
-    // Count required & answered
     [ansLassa, ansEbovMarb, ansCchf].forEach((a) => {
       if (a !== null) {
         requiredCountryQs += 1;
@@ -139,7 +138,6 @@ export default function ExposuresStep({
   const gOutbreak = exposuresGlobal.q1_outbreak || "";
   const gBleeding = exposuresGlobal.q2_bleeding || "";
 
-  // Count them as required/answered
   const requiredGlobalQs = 2;
   let answeredGlobalQs = 0;
   if (gOutbreak === "yes" || gOutbreak === "no") answeredGlobalQs += 1;
@@ -174,7 +172,7 @@ export default function ExposuresStep({
       );
     } else {
       summaryNode = (
-        <DecisionCard tone="amber" title="Further urgent investigations recommended">
+        <DecisionCard tone="amber" title="Minimal risk of VHF">
           <ul className="list-disc pl-5">
             <li>Urgent Malaria investigation</li>
             <li>Urgent local investigations as normally appropriate, including blood cultures.</li>
@@ -192,7 +190,7 @@ export default function ExposuresStep({
 
       {/* Two-column layout: countries on the left, summary on the right */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: countries list (takes 2 columns on large screens) */}
+        {/* Left: countries list (2 columns on large screens) */}
         <div className="lg:col-span-2 space-y-6">
           {countryBlocks}
 
