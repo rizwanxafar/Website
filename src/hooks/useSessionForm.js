@@ -25,8 +25,11 @@ export default function useSessionForm() {
   const inputRef = useRef(null);
 
   // Exposures
-  // Global outbreak Q1: "yes" | "no" | ""
-  const [exposuresGlobal, setExposuresGlobal] = useState({ q1_outbreak: "" });
+  // Global Qs: outbreak + bleeding
+  const [exposuresGlobal, setExposuresGlobal] = useState({
+    q1_outbreak: "", // "yes" | "no" | ""
+    q2_bleeding: "", // "yes" | "no" | ""
+  });
   // Per-country exposures keyed by row id: { [rowId]: { lassa, ebola_marburg, cchf } }
   const [exposuresByCountry, setExposuresByCountry] = useState({});
 
@@ -56,6 +59,7 @@ export default function useSessionForm() {
       if (parsed?.exposuresGlobal) {
         setExposuresGlobal({
           q1_outbreak: parsed.exposuresGlobal.q1_outbreak ?? "",
+          q2_bleeding: parsed.exposuresGlobal.q2_bleeding ?? "",
         });
       }
       if (parsed?.exposuresByCountry) {
@@ -90,7 +94,7 @@ export default function useSessionForm() {
     setQuery("");
     setOpen(false);
     setShowInput(true);
-    setExposuresGlobal({ q1_outbreak: "" });
+    setExposuresGlobal({ q1_outbreak: "", q2_bleeding: "" });
     setExposuresByCountry({});
     try {
       sessionStorage.removeItem(STORAGE_KEY);
