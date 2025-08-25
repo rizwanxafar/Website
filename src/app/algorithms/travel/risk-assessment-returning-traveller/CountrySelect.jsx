@@ -3,13 +3,11 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 
-// STEP COMPONENTS (these should already exist in your repo)
+// STEP COMPONENTS
 import ScreeningStep from "./steps/ScreeningStep";
-import TravelStep from "./steps/TravelStep";
+import TravelStep from "./steps/TravelStep";     // keep for now; you can inline later if you want
 import ReviewStep from "./steps/ReviewStep";
 
-// If you already have a normalize utility, keep this import.
-// Otherwise this local fallback just lowercases and trims.
 import { normalizeName as externalNormalizeName } from "@/utils/names";
 
 // ------- Small helpers -------
@@ -41,28 +39,26 @@ function buildNormalizedMap(riskObj) {
   return m;
 }
 
-/** Generate a simple id for a selected travel row */
-function makeId() {
-  return Math.random().toString(36).slice(2, 9);
-}
-
 // ------- Main component -------
 
 export default function CountrySelect() {
-  // Flow state
+  // ---- Flow state
   const [step, setStep] = useState(STEPS.SCREENING);
 
-  // Travel data
-  const [selected, setSelected] = useState([]); // [{ id, name, arrival, leaving }]
-  const [onset, setOnset] = useState(""); // "YYYY-MM-DD"
+  // ---- Screening state (what ScreeningStep expects)
+  const [q1Fever, setQ1Fever] = useState("");       // "yes" | "no" | ""
+  const [q2Exposure, setQ2Exposure] = useState(""); // "yes" | "no" | ""
 
-  // HCID data (from /api/hcid) — NEW: store meta as well
+  // ---- Travel data
+  const [selected, setSelected] = useState([]); // [{ id, name, arrival, leaving }]
+  const [onset, setOnset] = useState("");      // "YYYY-MM-DD"
+
+  // ---- HCID snapshot (from /api/hcid)
   const [riskMap, setRiskMap] = useState(null);
-  const [hcidMeta, setHcidMeta] = useState(null); // <-- NEW
+  const [hcidMeta, setHcidMeta] = useState(null);
   const [loadingMap, setLoadingMap] = useState(false);
   const [mapError, setMapError] = useState("");
 
-  // Fetch the snapshot-only HCID once (and allow manual refresh)
   const refreshRiskMap = useCallback(async () => {
     try {
       setLoadingMap(true);
@@ -71,7 +67,7 @@ export default function CountrySelect() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       setRiskMap(json.map || {});
-      setHcidMeta(json.meta || null); // <-- capture meta
+      setHcidMeta(json.meta || null);
     } catch (e) {
       setMapError("Could not load HCID country risk data.");
       setRiskMap({});
@@ -85,53 +81,38 @@ export default function CountrySelect() {
     refreshRiskMap();
   }, [refreshRiskMap]);
 
-  // Normalized map for fast lookups
   const normalizedRiskMap = useMemo(
     () => buildNormalizedMap(riskMap || {}),
     [riskMap]
   );
 
-  // Navigation handlers
+  // ---- Navigation
   const goToScreening = () => setStep(STEPS.SCREENING);
-  const goToTravel = () => setStep(STEPS.TRAVEL);
-  const goToReview = () => setStep(STEPS.REVIEW);
+  const goToTravel   = () => setStep(STEPS.TRAVEL);
+  const goToReview   = () => setStep(STEPS.REVIEW);
 
   const handleReset = () => {
+    setQ1Fever("");
+    setQ2Exposure("");
     setSelected([]);
     setOnset("");
     setStep(STEPS.SCREENING);
   };
 
-  // Render
+  // ---- Render
   return (
     <div className="space-y-6">
-      {/* Title */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-          VHF Risk Assessment — Returning Traveller
-        </h1>
-
-        <div className="flex items-center gap-2">
-          {step > STEPS.SCREENING && (
-            <button
-              type="button"
-              onClick={handleReset}
-              className="rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm font-medium hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400"
-              title="Start a new assessment"
-            >
-              Reset
-            </button>
-          )}
-        </div>
-      </div>
+      {/* (No inner H1 here to avoid duplicate with page.jsx) */}
 
       {/* Step content */}
       {step === STEPS.SCREENING && (
         <ScreeningStep
-          // Your ScreeningStep should call onPass() when Q1=yes and Q2=no
-          onPass={goToTravel}
-          // If Q1 = no, your ScreeningStep should show the reusable green “VHF unlikely” block.
-          // If Q2 = yes, your ScreeningStep should show the reusable red “AT RISK OF VHF” block.
+          q1Fever={q1Fever}
+          setQ1Fever={setQ1Fever}
+          q2Exposure={q2Exposure}
+          setQ2Exposure={setQ2Exposure}
+          onContinue={goToTravel}   // proceed only when Q1=yes and Q2=no
+          onReset={handleReset}
         />
       )}
 
@@ -143,8 +124,6 @@ export default function CountrySelect() {
           setOnset={setOnset}
           onBack={goToScreening}
           onNext={goToReview}
-          // Optional extras your existing TravelStep might accept:
-          // allowSameDayTouch=true, etc.
         />
       )}
 
@@ -152,7 +131,7 @@ export default function CountrySelect() {
         <ReviewStep
           selected={selected}
           onset={onset}
-          meta={hcidMeta}               // <-- PASS META HERE (NEW)
+          meta={hcidMeta}
           normalizedMap={normalizedRiskMap}
           refresh={refreshRiskMap}
           onBackToSelect={goToTravel}
