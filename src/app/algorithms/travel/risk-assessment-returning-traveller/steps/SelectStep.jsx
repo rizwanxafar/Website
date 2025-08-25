@@ -1,8 +1,38 @@
 // src/app/algorithms/travel/risk-assessment-returning-traveller/steps/SelectStep.jsx
 "use client";
 
-import { useState } from "react";
-import { vhfCountryNames } from "@/data/vhfCountries"; // ✅ use static clean list
+import { useEffect, useMemo } from "react";
+import DecisionCard from "@/components/DecisionCard";
+import { vhfCountryNames } from "@/data/vhfCountries";
+
+const uid = () => Math.random().toString(36).slice(2, 9);
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
+const normalize = (s = "") =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const sortByLeaving = (arr) =>
+  [...arr].sort((a, b) => {
+    const ta = a.leaving ? new Date(a.leaving).getTime() : 0;
+    const tb = b.leaving ? new Date(b.leaving).getTime() : 0;
+    return ta - tb;
+  });
+
+// Validate there’s no overlap; same‑day handover allowed
+function validateNoOverlap(rows) {
+  const sorted = sortByLeaving(rows);
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const leave = sorted[i].leaving && new Date(sorted[i].leaving).getTime();
+    const arrive = sorted[i + 1].arrival && new Date(sorted[i + 1].arrival).getTime();
+    if (leave && arrive && leave > arrive) return false; // same day (=) is OK
+  }
+  return true;
+}
 
 export default function SelectStep({
   selected,
@@ -20,35 +50,59 @@ export default function SelectStep({
   onReset,
   onContinue,
 }) {
-  const [arrival, setArrival] = useState("");
-  const [leaving, setLeaving] = useState("");
+  // Build a filtered suggestion list from the clean country names
+  const filtered = useMemo(() => {
+    const q = normalize(query);
+    if (!q) return [];
+    const out = [];
+    for (const name of vhfCountryNames) {
+      if (normalize(name).includes(q)) {
+        out.push(name);
+        if (out.length >= 12) break; // cap suggestions
+      }
+    }
+    return out;
+  }, [query]);
 
-  // Filter list by query
-  const filteredCountries = vhfCountryNames.filter((c) =>
-    c.toLowerCase().includes(query.toLowerCase())
-  );
+  // Focus input when it appears
+  useEffect(() => {
+    if (showInput) setTimeout(() => inputRef?.current?.focus(), 0);
+  }, [showInput, inputRef]);
 
+  // Add a country (dates are per‑row and edited after adding)
   const addCountry = (name) => {
     if (!name) return;
-    setSelected([
-      ...selected,
-      {
-        id: Math.random().toString(36).slice(2),
-        name,
-        arrival: arrival || "",
-        leaving: leaving || "",
-      },
-    ]);
+    setSelected((prev) => sortByLeaving([...prev, { id: uid(), name, arrival: "", leaving: "" }]));
     setQuery("");
-    setArrival("");
-    setLeaving("");
-    setShowInput(false);
+    setOpen(false);
+    setShowInput(false); // match earlier behaviour: input hides after first pick
   };
 
-  const removeCountry = (id) => {
-    setSelected(selected.filter((c) => c.id !== id));
-    if (selected.length <= 1) setShowInput(true);
+  const addAnother = () => {
+    setShowInput(true);
+    setQuery("");
+    setOpen(false);
+    setTimeout(() => inputRef?.current?.focus(), 0);
   };
+
+  const updateDates = (id, field, value) => {
+    setSelected((prev) => {
+      const next = prev.map((c) => (c.id === id ? { ...c, [field]: value } : c));
+      return sortByLeaving(next);
+    });
+  };
+
+  const removeRow = (id) => {
+    setSelected((prev) => prev.filter((c) => c.id !== id));
+    if (selected.length <= 1) {
+      // If you removed the only row, show input again
+      setShowInput(true);
+    }
+  };
+
+  const allDatesFilled = selected.every((c) => c.arrival && c.leaving);
+  const noOverlap = validateNoOverlap(selected);
+  const canContinue = selected.length > 0 && allDatesFilled && onset && noOverlap;
 
   return (
     <div className="space-y-6">
@@ -56,124 +110,164 @@ export default function SelectStep({
         Country / countries of travel
       </h2>
 
-      {/* Country picker */}
+      {/* Add another country button once you’ve picked at least one */}
+      {!showInput && (
+        <button
+          type="button"
+          onClick={addAnother}
+          className="rounded-md border-2 border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:border-violet-500"
+        >
+          + Add another country
+        </button>
+      )}
+
+      {/* Searchable dropdown (country first, dates afterwards) */}
       {showInput && (
-        <div className="space-y-4">
+        <div className="relative max-w-xl">
           <input
             ref={inputRef}
-            type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
             onFocus={() => setOpen(true)}
-            placeholder="Search for a country..."
-            className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-2"
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+            placeholder="Start typing a country name…"
+            className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
           />
           {open && query && (
-            <ul className="max-h-40 overflow-y-auto rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
-              {filteredCountries.map((c) => (
-                <li
-                  key={c}
-                  onClick={() => addCountry(c)}
-                  className="cursor-pointer px-3 py-2 hover:bg-violet-100 dark:hover:bg-violet-800"
-                >
-                  {c}
-                </li>
-              ))}
-              {filteredCountries.length === 0 && (
-                <li className="px-3 py-2 text-slate-500">No matches</li>
-              )}
-            </ul>
+            <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 shadow">
+              <ul className="max-h-64 overflow-auto">
+                {filtered.length > 0 ? (
+                  filtered.map((name) => (
+                    <li key={name}>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => addCountry(name)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        {name}
+                      </button>
+                    </li>
+                  ))
+                ) : (
+                  <li className="px-3 py-2 text-sm text-slate-500">No matches</li>
+                )}
+              </ul>
+            </div>
           )}
-
-          {/* Travel dates */}
-          <div className="flex gap-3">
-            <div>
-              <label className="block text-sm">Arrival date</label>
-              <input
-                type="date"
-                value={arrival}
-                onChange={(e) => setArrival(e.target.value)}
-                className="rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm">Leaving date</label>
-              <input
-                type="date"
-                value={leaving}
-                onChange={(e) => setLeaving(e.target.value)}
-                className="rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-2"
-              />
-            </div>
-          </div>
         </div>
       )}
 
-      {/* Selected list */}
-      {selected.length > 0 && (
-        <div className="space-y-3">
-          {selected.map((c) => (
+      {/* Selected countries with per‑row date inputs */}
+      <div className="space-y-4">
+        {selected.length === 0 ? (
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            No countries added yet. Use the search box above to add your first country.
+          </p>
+        ) : (
+          selected.map((c) => (
             <div
               key={c.id}
-              className="flex items-center justify-between rounded-lg border-2 border-slate-300 dark:border-slate-700 p-3"
+              className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4"
             >
-              <div>
+              <div className="flex items-start justify-between gap-3">
                 <div className="font-medium">{c.name}</div>
-                <div className="text-sm text-slate-600 dark:text-slate-400">
-                  {c.arrival || "?"} → {c.leaving || "?"}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => removeRow(c.id)}
+                  className="rounded-md border-2 border-slate-300 dark:border-slate-700 px-2 py-1 text-xs hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400"
+                >
+                  Remove
+                </button>
               </div>
-              <button
-                onClick={() => removeCountry(c.id)}
-                className="rounded-lg border-2 border-rose-400 px-2 py-1 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900"
-              >
-                Remove
-              </button>
+
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <label className="text-sm">
+                  Arrival
+                  <input
+                    type="date"
+                    value={c.arrival}
+                    max={todayISO()}
+                    onChange={(e) => updateDates(c.id, "arrival", e.target.value)}
+                    className="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-700 px-2 py-1 text-sm dark:bg-slate-950"
+                  />
+                </label>
+
+                <label className="text-sm">
+                  Leaving
+                  <input
+                    type="date"
+                    value={c.leaving}
+                    max={todayISO()}
+                    onChange={(e) => updateDates(c.id, "leaving", e.target.value)}
+                    className="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-700 px-2 py-1 text-sm dark:bg-slate-950"
+                  />
+                </label>
+              </div>
             </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => setShowInput(true)}
-            className="rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-2 hover:border-violet-500"
-          >
-            + Add another country
-          </button>
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
       {/* Symptom onset */}
       <div>
-        <label className="block text-sm">Date of symptom onset</label>
+        <label className="block text-sm font-medium mb-1">Date of symptom onset</label>
         <input
           type="date"
           value={onset}
+          max={todayISO()}
           onChange={(e) => setOnset(e.target.value)}
-          className="rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-2"
+          className="rounded-md border-2 border-slate-300 dark:border-slate-700 px-3 py-2 text-sm dark:bg-slate-950"
         />
       </div>
 
-      {/* Nav buttons */}
+      {/* Warnings */}
+      {!validateNoOverlap(selected) && (
+        <DecisionCard tone="amber" title="Invalid dates">
+          <p>
+            Overlapping dates detected. Adjust arrival/leaving dates. Same‑day transfer is allowed.
+          </p>
+        </DecisionCard>
+      )}
+      {selected.length > 0 && !allDatesFilled && (
+        <DecisionCard tone="amber" title="Missing dates">
+          <p>Please enter arrival and leaving dates for each country.</p>
+        </DecisionCard>
+      )}
+
+      {/* Actions */}
       <div className="flex gap-3">
         <button
+          type="button"
           onClick={onBackToScreen}
-          className="rounded-lg border-2 border-slate-300 dark:border-slate-700 px-4 py-2"
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
         >
           Back
         </button>
         <button
+          type="button"
           onClick={onReset}
-          className="rounded-lg border-2 border-slate-300 dark:border-slate-700 px-4 py-2"
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400"
         >
           Reset
         </button>
         <button
+          type="button"
+          disabled={!canContinue}
           onClick={onContinue}
-          disabled={selected.length === 0 || !onset}
           className={`rounded-lg px-4 py-2 ${
-            selected.length > 0 && onset
+            canContinue
               ? "bg-violet-600 text-white hover:bg-violet-700"
-              : "bg-slate-200 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
+              : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
           }`}
+          title={
+            canContinue
+              ? "Continue"
+              : "Add at least one country, fill arrival & leaving dates for each, and set symptom onset"
+          }
         >
           Continue
         </button>
