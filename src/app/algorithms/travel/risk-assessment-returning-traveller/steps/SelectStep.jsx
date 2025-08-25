@@ -85,9 +85,27 @@ export default function SelectStep({
     setTimeout(() => inputRef?.current?.focus(), 0);
   };
 
+  // Enforce: leaving >= arrival; arrival <= leaving; keep list sorted
   const updateDates = (id, field, value) => {
     setSelected((prev) => {
-      const next = prev.map((c) => (c.id === id ? { ...c, [field]: value } : c));
+      const next = prev.map((c) => {
+        if (c.id !== id) return c;
+        if (field === "arrival") {
+          // If arrival moves after current leaving, clear leaving
+          const leavingOk =
+            c.leaving && value && new Date(value) > new Date(c.leaving) ? "" : c.leaving || "";
+          return { ...c, arrival: value, leaving: leavingOk };
+        }
+        if (field === "leaving") {
+          // If leaving before arrival, snap to arrival
+          let newLeaving = value;
+          if (c.arrival && value && new Date(value) < new Date(c.arrival)) {
+            newLeaving = c.arrival;
+          }
+          return { ...c, leaving: newLeaving };
+        }
+        return c;
+      });
       return sortByLeaving(next);
     });
   };
@@ -190,7 +208,8 @@ export default function SelectStep({
                   <input
                     type="date"
                     value={c.arrival}
-                    max={todayISO()}
+                    // Arrival cannot be in the future and (optionally) cannot be after leaving
+                    max={c.leaving || todayISO()}
                     onChange={(e) => updateDates(c.id, "arrival", e.target.value)}
                     className="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-700 px-2 py-1 text-sm dark:bg-slate-950"
                   />
@@ -201,7 +220,8 @@ export default function SelectStep({
                   <input
                     type="date"
                     value={c.leaving}
-                    max={todayISO()}
+                    min={c.arrival || undefined} // cannot be before arrival
+                    max={todayISO()}              // cannot be in the future
                     onChange={(e) => updateDates(c.id, "leaving", e.target.value)}
                     className="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-700 px-2 py-1 text-sm dark:bg-slate-950"
                   />
@@ -225,15 +245,15 @@ export default function SelectStep({
       </div>
 
       {/* Warnings */}
-      {!validateNoOverlap(selected) && (
-        <DecisionCard tone="amber" title="Invalid dates">
+      {!noOverlap && (
+        <DecisionCard tone="red" title="Invalid dates">
           <p>
             Overlapping dates detected. Adjust arrival/leaving dates. Same‑day transfer is allowed.
           </p>
         </DecisionCard>
       )}
       {selected.length > 0 && !allDatesFilled && (
-        <DecisionCard tone="amber" title="Missing dates">
+        <DecisionCard tone="red" title="Missing dates">
           <p>Please enter arrival and leaving dates for each country.</p>
         </DecisionCard>
       )}
