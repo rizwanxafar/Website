@@ -146,17 +146,13 @@ export default function ReviewStep({
         {/* Left: countries list */}
         <div className="lg:col-span-2 space-y-6">{cards}</div>
 
-        {/* Right: summary/outcome panel (only when all countries green) */}
+        {/* Right: summary/outcome panel */}
         <div className="lg:col-span-1 lg:sticky lg:top-4 h-fit">
           {allGreen ? (
             <DecisionCard tone="green" title="VHF unlikely; manage locally">
               <p>Please continue standard local management pathways.</p>
             </DecisionCard>
-          ) : (
-            <div className="rounded-lg border-2 border-slate-200 dark:border-slate-700 p-4 text-sm text-slate-500 dark:text-slate-400">
-              Review the country cards. If any country remains red, continue to exposure questions.
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
 
