@@ -1,7 +1,7 @@
 // src/app/algorithms/travel/risk-assessment-returning-traveller/steps/ExposuresStep.jsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DecisionCard from "@/components/DecisionCard";
 import { EXPOSURE_QUESTIONS as Q } from "@/data/diseaseQuestions";
 
@@ -210,6 +210,23 @@ export default function ExposuresStep({
   const setSevere = (v) => setPreMalariaSevere(v);
   const setFitOP = (v) => setPreMalariaFitOP(v);
 
+  // Determine POST-MALARIA red in the amber branch (no initial exposures, but escalated after malaria workflow)
+  const isPostMalariaRed =
+    (!anyYes && allAnswered) && (
+      // Amber → Malaria YES → concern 72h YES
+      (amberMalariaPositive === "yes" && amberConcern72h === "yes") ||
+      // Amber → Malaria NO → AltDx NO → concern 72h YES
+      (amberMalariaPositive === "no" && amberAltDx === "no" && amberConcern72h === "yes")
+    );
+
+  // IMPORTANT: Reset the red-chain state ONCE when we first enter post-malaria red
+  useEffect(() => {
+    if (isPostMalariaRed) {
+      resetRedChain();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPostMalariaRed]);
+
   // Shared blocks
   const ActionsCard = () => (
     <DecisionCard tone="red" title="Immediate actions">
@@ -297,7 +314,7 @@ export default function ExposuresStep({
     </>
   );
 
-  // Reusable red-chain renderer (called by both pre- and post-malaria red)
+  // Reusable red-chain renderer (used by pre- & post-malaria red)
   const renderSevereChain = () => (
     <>
       {/* Severe features */}
@@ -422,8 +439,6 @@ export default function ExposuresStep({
                     </ul>
                   </DecisionCard>
 
-                  {/* Start red-chain identical to pre-malaria */}
-                  {resetRedChain() /* ensure clean start */}
                   {renderSevereChain()}
                 </>
               )}
@@ -492,8 +507,6 @@ export default function ExposuresStep({
                         </ul>
                       </DecisionCard>
 
-                      {/* Start red-chain identical to pre-malaria */}
-                      {resetRedChain()}
                       {renderSevereChain()}
                     </>
                   )}
@@ -674,7 +687,7 @@ export default function ExposuresStep({
         </div>
 
         {/* Right: sticky outcome */}
-        <div className="lg:col-span-1 lg:sticky lg:top-4 h-fit">
+        <div className="lg:col-span-1 lg:sticky lg:top-4 h-fit min-h-[200px]">
           {summaryNode}
         </div>
       </div>
