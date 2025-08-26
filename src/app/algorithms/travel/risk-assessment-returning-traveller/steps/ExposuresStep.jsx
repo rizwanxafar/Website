@@ -1,3 +1,4 @@
+// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/ExposuresStep.jsx
 "use client";
 
 import { useState } from "react";
@@ -37,12 +38,12 @@ export default function ExposuresStep({
   setCountryExposure,       // (rowId, key, value) => void
   onBackToReview,
   onReset,
-  // Optional props retained for future print/export
+  // optional future props
   q1Fever,
   q2Exposure,
   onset,
 }) {
-  // ----- Country exposure questions -----
+  // ===== Country exposure questions =====
   let requiredCountryQs = 0;
   let answeredCountryQs = 0;
   let anyYes = false;
@@ -51,6 +52,7 @@ export default function ExposuresStep({
     const key = String(c.name || "").toLowerCase();
     const entries = normalizedMap.get(key) || [];
 
+    // Exclude “No known HCIDs”, “travel associated cases as below”, and “Imported cases only”
     const entriesFiltered = (entries || []).filter(
       (e) => !isNoKnownHcid(e.disease) && !isTravelAssociated(e.disease) && !isImportedOnly(e.evidence)
     );
@@ -107,8 +109,8 @@ export default function ExposuresStep({
           {showEbMarb && (
             <div className="mt-3">
               <div className="text-sm mb-1">
-                In this country, did the patient visit caves/mines, or have contact with primates,
-                antelopes or bats (or eat their raw/undercooked meat)?
+                In this country, did the patient visit caves/mines, or have contact
+                with primates, antelopes or bats (or eat their raw/undercooked meat)?
               </div>
               <div className="flex gap-2">
                 <button
@@ -128,8 +130,8 @@ export default function ExposuresStep({
           {showCchf && (
             <div className="mt-3">
               <div className="text-sm mb-1">
-                In this country, did the patient sustain a tick bite or crush a tick with bare hands,
-                OR have close involvement with animal slaughter?
+                In this country, did the patient sustain a tick bite or crush a tick
+                with bare hands, OR have close involvement with animal slaughter?
               </div>
               <div className="flex gap-2">
                 <button
@@ -150,7 +152,7 @@ export default function ExposuresStep({
     );
   });
 
-  // ----- Global questions -----
+  // ===== Global questions =====
   const gOutbreak = exposuresGlobal.q1_outbreak || "";
   const gBleeding = exposuresGlobal.q2_bleeding || "";
 
@@ -175,12 +177,12 @@ export default function ExposuresStep({
   };
 
   // ===== Pre-malaria red pathway (any exposure answer YES) =====
-  const [preMalariaMalariaPositive, setPreMalariaMalariaPositive] = useState(""); // "yes" | "no"
-  const [preMalariaOutbreakReturn, setPreMalariaOutbreakReturn] = useState("");   // "yes" | "no"
-  const [preMalariaConcern72h, setPreMalariaConcern72h] = useState("");           // "yes" | "no"
-  const [preMalariaSevere, setPreMalariaSevere] = useState("");                   // "yes" | "no"
-  const [preMalariaFitOP, setPreMalariaFitOP] = useState("");                     // "yes" | "no"
-  const [preMalariaVhfPositive, setPreMalariaVhfPositive] = useState("");         // "yes" | "no"
+  const [preMalariaMalariaPositive, setPreMalariaMalariaPositive] = useState(""); // yes/no
+  const [preMalariaOutbreakReturn, setPreMalariaOutbreakReturn] = useState("");   // yes/no
+  const [preMalariaConcern72h, setPreMalariaConcern72h] = useState("");           // yes/no
+  const [preMalariaSevere, setPreMalariaSevere] = useState("");                   // yes/no
+  const [preMalariaFitOP, setPreMalariaFitOP] = useState("");                     // yes/no
+  const [preMalariaVhfPositive, setPreMalariaVhfPositive] = useState("");         // yes/no
 
   const setMalariaResult = (v) => {
     setPreMalariaMalariaPositive(v);
@@ -213,7 +215,7 @@ export default function ExposuresStep({
     setPreMalariaVhfPositive("");
   };
 
-  // Shared blocks for actions/admit/outpatient
+  // Shared blocks
   const ActionsCard = () => (
     <DecisionCard tone="red" title="Immediate actions">
       <ul className="list-disc pl-5">
@@ -309,18 +311,6 @@ export default function ExposuresStep({
     </div>
   );
 
-  const gOutbreakYesNo = exposuresGlobal.q1_outbreak;
-  const gBleedingYesNo = exposuresGlobal.q2_bleeding;
-
-  const requiredGlobalQs = 2;
-  let answeredGlobalQs = 0;
-  if (gOutbreakYesNo === "yes" || gOutbreakYesNo === "no") answeredGlobalQs += 1;
-  if (gBleedingYesNo === "yes" || gBleedingYesNo === "no") answeredGlobalQs += 1;
-
-  const totalRequired2 = requiredGlobalQs + requiredCountryQs;
-  const totalAnswered2 = answeredGlobalQs + answeredCountryQs;
-  const allAnswered = totalRequired2 === totalAnswered2;
-
   if (allAnswered) {
     if (!anyYes) {
       // ---------------- AMBER PATHWAY (unchanged) ----------------
@@ -337,7 +327,6 @@ export default function ExposuresStep({
             </ul>
           </AmberSummary>
 
-          {/* Amber follow-ups */}
           {/* Malaria test? */}
           <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
             <div className="text-sm mb-1">Is the malaria test result positive?</div>
@@ -469,7 +458,7 @@ export default function ExposuresStep({
             Outcome of risk assessment
           </div>
 
-          {/* NEW: Immediate red warning appears as soon as any exposure is YES */}
+          {/* Immediate red warning as soon as any exposure is YES */}
           <DecisionCard tone="red" title="AT RISK OF VHF">
             <ul className="list-disc pl-5">
               <li>ISOLATE PATIENT IN SIDE ROOM</li>
@@ -480,7 +469,7 @@ export default function ExposuresStep({
             </ul>
           </DecisionCard>
 
-          {/* Malaria test question (flows per your spec) */}
+          {/* Malaria test question */}
           <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
             <div className="text-sm mb-1">Is the malaria test positive?</div>
             <div className="flex gap-2">
@@ -602,8 +591,6 @@ export default function ExposuresStep({
               )}
             </>
           )}
-
-          {/* If malaria + & NOT outbreak & 72h concern NO → final green already shown */}
         </div>
       );
     }
