@@ -523,6 +523,23 @@ export default function ExposuresStep({
                       >No</button>
                     </div>
                   </div>
+
+                  {/* NEW: mirror amber behaviour for this branch */}
+                  {preMalariaConcern72h === "yes" && (
+                    <DecisionCard tone="red" title="AT RISK OF VHF">
+                      <ul className="list-disc pl-5">
+                        <li>ISOLATE PATIENT IN SIDE ROOM</li>
+                        <li>Discuss with infection consultant (Infectious Disease/Microbiology/Virology)</li>
+                        <li>Urgent Malaria investigation</li>
+                        <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
+                        <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
+                      </ul>
+                    </DecisionCard>
+                  )}
+
+                  {preMalariaConcern72h === "no" && (
+                    <DecisionCard tone="green" title="VHF unlikely; manage locally" />
+                  )}
                 </>
               )}
 
@@ -538,10 +555,9 @@ export default function ExposuresStep({
           {/* Malaria NEGATIVE */}
           {preMalariaMalariaPositive === "no" && <ActionsCard />}
 
-          {/* Enter actions flow if: outbreak yes, or (outbreak no & concern 72h yes), or malaria negative */}
+          {/* Enter actions flow ONLY for: (malaria yes & outbreak yes) OR malaria no */}
           {(
             (preMalariaMalariaPositive === "yes" && preMalariaOutbreakReturn === "yes") ||
-            (preMalariaMalariaPositive === "yes" && preMalariaOutbreakReturn === "no" && preMalariaConcern72h === "yes") ||
             (preMalariaMalariaPositive === "no")
           ) && (
             <>
