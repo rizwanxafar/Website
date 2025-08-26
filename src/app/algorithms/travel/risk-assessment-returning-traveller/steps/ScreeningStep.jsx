@@ -6,23 +6,30 @@ import DecisionCard from "@/components/DecisionCard";
 export default function ScreeningStep({
   q1Fever, setQ1Fever,
   q2Exposure, setQ2Exposure,
-  onContinue,       // () => void
-  onReset,          // () => void
+  onContinue,
+  onReset,
 }) {
-  const q2Available = q1Fever === "yes"; // Only ask Q2 if Q1 is yes
-  const showGreen = q1Fever === "no"; // Q1 No -> green
-  const showRed = q1Fever === "yes" && q2Exposure === "yes"; // Q2 Yes -> red
-  const canProceed = q1Fever === "yes" && q2Exposure === "no";
+  const q2Available = q1Fever === "yes";           // Only ask Q2 if Q1 is yes
+  const showGreen   = q1Fever === "no";            // Q1 No -> green
+  const showRed     = q1Fever === "yes" && q2Exposure === "yes";
+  const canProceed  = q1Fever === "yes" && q2Exposure === "no";
 
   return (
     <div className="space-y-6">
+      {/* Trial / confidentiality banner */}
+      <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-900/30 p-3 text-sm text-amber-800 dark:text-amber-200">
+        This is an early trial version. Do <strong>not</strong> enter private or confidential
+        patient information. Clinical responsibility for the assessment and decisions remains
+        with the user.
+      </div>
+
       {/* Q1 */}
       <div className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
         <div className="mb-2 text-sm font-medium text-slate-900 dark:text-slate-100">
           Does the patient have an illness with a history of feverishness?
         </div>
 
-        <div className="inline-flex overflow-hidden rounded-lg border-2 border-slate-300 dark:border-slate-700">
+        <div className="inline-flex overflow-hidden rounded-lg border-2 border-slate-300 dark:border-slate-700" role="group" aria-label="Feverishness">
           <button
             type="button"
             onClick={() => setQ1Fever("yes")}
@@ -57,7 +64,7 @@ export default function ScreeningStep({
             VHF within the past 21 days?
           </div>
 
-          <div className="inline-flex overflow-hidden rounded-lg border-2 border-slate-300 dark:border-slate-700">
+          <div className="inline-flex overflow-hidden rounded-lg border-2 border-slate-300 dark:border-slate-700" role="group" aria-label="High-risk exposure">
             <button
               type="button"
               onClick={() => setQ2Exposure("yes")}
