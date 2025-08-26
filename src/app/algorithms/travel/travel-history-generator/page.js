@@ -237,16 +237,6 @@ export default function TravelHistoryGeneratorPage() {
             issues.push({ level: 'error', msg: `Trip ${tIdx + 1}, Stop ${sIdx + 1}: Arrival is after departure.` });
           }
         }
-        // Required fields
-        if (!s.country) {
-          issues.push({ level: 'warn', msg: `Trip ${tIdx + 1}, Stop ${sIdx + 1}: Country is required.` });
-        }
-        if (!s.arrival) {
-          issues.push({ level: 'warn', msg: `Trip ${tIdx + 1}, Stop ${sIdx + 1}: Arrival date is required.` });
-        }
-        if (!s.departure) {
-          issues.push({ level: 'warn', msg: `Trip ${tIdx + 1}, Stop ${sIdx + 1}: Departure date is required.` });
-        }
       });
       // Overlap check within the trip (same-day OK)
       for (let i = 0; i < trip.stops.length; i++) {
@@ -877,7 +867,7 @@ function StopCard({ stop, index, onChange, onRemove }) {
               <input
                 id={`malaria-${stop.id}`}
                 type="checkbox"
-                className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+                className=\"h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700\"
                 checked={stop.malaria.took}
                 onChange={(e) => onChange({ malaria: { ...stop.malaria, took: e.target.checked } })}
               />
@@ -1014,11 +1004,11 @@ function LayoverCard({ layover, onChange, onRemove }) {
 function Checkbox({ label, checked, onChange }) {
   const id = useMemo(() => uid(), []);
   return (
-    <label className="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+    <label className=\"flex items-start gap-2 py-1 text-sm text-slate-700 dark:text-slate-300\">
       <input
         id={id}
         type="checkbox"
-        className="h-4 w-4 rounded border-slate-300 dark:border-slate-700"
+        className=\"h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700\"
         checked={!!checked}
         onChange={(e) => onChange(e.target.checked)}
       />
