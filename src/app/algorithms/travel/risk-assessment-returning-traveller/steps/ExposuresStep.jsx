@@ -19,7 +19,6 @@ const isImportedOnly = (evidence = "") => txt(evidence).includes("imported cases
 const hasDisease = (entries = [], name = "") =>
   entries.some((e) => String(e?.disease || "").toLowerCase().includes(name.toLowerCase()));
 
-// Amber summary (DecisionCard has no amber tone)
 function AmberSummary({ title, children }) {
   return (
     <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-4 dark:border-amber-400 dark:bg-amber-900/20">
@@ -38,7 +37,7 @@ export default function ExposuresStep({
   setCountryExposure,       // (rowId, key, value) => void
   onBackToReview,
   onReset,
-  // Optional screening + onset (kept for future print/export)
+  // Optional props retained for future print/export
   q1Fever,
   q2Exposure,
   onset,
@@ -165,7 +164,7 @@ export default function ExposuresStep({
   const totalAnswered = answeredGlobalQs + answeredCountryQs;
   const allAnswered = totalRequired === totalAnswered;
 
-  // ===== Amber pathway (when all exposure answers are NO) =====
+  // ===== Amber pathway (all exposure answers NO) =====
   const [amberMalariaPositive, setAmberMalariaPositive] = useState("");
   const [amberAltDx, setAmberAltDx] = useState("");
   const [amberConcern72h, setAmberConcern72h] = useState("");
@@ -175,13 +174,13 @@ export default function ExposuresStep({
     setAmberConcern72h("");
   };
 
-  // ===== Pre-malaria red pathway (when any exposure answer is YES) =====
-  const [preMalariaMalariaPositive, setPreMalariaMalariaPositive] = useState(""); // "yes" | "no" | ""
-  const [preMalariaOutbreakReturn, setPreMalariaOutbreakReturn] = useState("");   // "yes" | "no" | ""
-  const [preMalariaConcern72h, setPreMalariaConcern72h] = useState("");           // "yes" | "no" | ""
-  const [preMalariaSevere, setPreMalariaSevere] = useState("");                   // "yes" | "no" | ""
-  const [preMalariaFitOP, setPreMalariaFitOP] = useState("");                     // "yes" | "no" | ""
-  const [preMalariaVhfPositive, setPreMalariaVhfPositive] = useState("");         // "yes" | "no" | ""
+  // ===== Pre-malaria red pathway (any exposure answer YES) =====
+  const [preMalariaMalariaPositive, setPreMalariaMalariaPositive] = useState(""); // "yes" | "no"
+  const [preMalariaOutbreakReturn, setPreMalariaOutbreakReturn] = useState("");   // "yes" | "no"
+  const [preMalariaConcern72h, setPreMalariaConcern72h] = useState("");           // "yes" | "no"
+  const [preMalariaSevere, setPreMalariaSevere] = useState("");                   // "yes" | "no"
+  const [preMalariaFitOP, setPreMalariaFitOP] = useState("");                     // "yes" | "no"
+  const [preMalariaVhfPositive, setPreMalariaVhfPositive] = useState("");         // "yes" | "no"
 
   const setMalariaResult = (v) => {
     setPreMalariaMalariaPositive(v);
@@ -214,7 +213,7 @@ export default function ExposuresStep({
     setPreMalariaVhfPositive("");
   };
 
-  // ===== Shared actions/admit/outpatient flow (used by pre-malaria red) =====
+  // Shared blocks for actions/admit/outpatient
   const ActionsCard = () => (
     <DecisionCard tone="red" title="Immediate actions">
       <ul className="list-disc pl-5">
@@ -229,7 +228,6 @@ export default function ExposuresStep({
   const AdmitBlock = () => (
     <>
       <DecisionCard tone="red" title="Admit" />
-      {/* VHF test result question */}
       <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
         <div className="text-sm mb-1">VHF test result positive?</div>
         <div className="flex gap-2">
@@ -237,16 +235,12 @@ export default function ExposuresStep({
             type="button"
             className={yesNoBtn(preMalariaVhfPositive === "yes")}
             onClick={() => setPreMalariaVhfPositive("yes")}
-          >
-            Yes
-          </button>
+          >Yes</button>
           <button
             type="button"
             className={yesNoBtn(preMalariaVhfPositive === "no")}
             onClick={() => setPreMalariaVhfPositive("no")}
-          >
-            No
-          </button>
+          >No</button>
         </div>
       </div>
 
@@ -276,7 +270,6 @@ export default function ExposuresStep({
         </ul>
       </DecisionCard>
 
-      {/* VHF test result question */}
       <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
         <div className="text-sm mb-1">VHF test result positive?</div>
         <div className="flex gap-2">
@@ -284,16 +277,12 @@ export default function ExposuresStep({
             type="button"
             className={yesNoBtn(preMalariaVhfPositive === "yes")}
             onClick={() => setPreMalariaVhfPositive("yes")}
-          >
-            Yes
-          </button>
+          >Yes</button>
           <button
             type="button"
             className={yesNoBtn(preMalariaVhfPositive === "no")}
             onClick={() => setPreMalariaVhfPositive("no")}
-          >
-            No
-          </button>
+          >No</button>
         </div>
       </div>
 
@@ -311,64 +300,7 @@ export default function ExposuresStep({
     </>
   );
 
-  const ActionsFlow = () => (
-    <>
-      {/* Severe features */}
-      <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
-        <div className="text-sm mb-1">
-          Does the patient have extensive bruising or active bleeding or uncontrolled diarrhoea or uncontrolled vomiting?
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className={yesNoBtn(preMalariaSevere === "yes")}
-            onClick={() => setSevere("yes")}
-          >
-            Yes
-          </button>
-          <button
-            type="button"
-            className={yesNoBtn(preMalariaSevere === "no")}
-            onClick={() => setSevere("no")}
-          >
-            No
-          </button>
-        </div>
-      </div>
-
-      {preMalariaSevere === "yes" && <AdmitBlock />}
-
-      {preMalariaSevere === "no" && (
-        <>
-          {/* Fit for OP? */}
-          <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
-            <div className="text-sm mb-1">Is the patient fit for outpatient management?</div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className={yesNoBtn(preMalariaFitOP === "yes")}
-                onClick={() => setFitOP("yes")}
-              >
-                Yes
-              </button>
-              <button
-                type="button"
-                className={yesNoBtn(preMalariaFitOP === "no")}
-                onClick={() => setFitOP("no")}
-              >
-                No
-              </button>
-            </div>
-          </div>
-
-          {preMalariaFitOP === "no" && <AdmitBlock />}
-          {preMalariaFitOP === "yes" && <OPBlock />}
-        </>
-      )}
-    </>
-  );
-
-  // ===== Summary panel (right side) =====
+  // ===== Right-hand summary panel =====
   let summaryNode = (
     <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
       <div className="text-sm text-slate-600 dark:text-slate-300">
@@ -377,9 +309,21 @@ export default function ExposuresStep({
     </div>
   );
 
+  const gOutbreakYesNo = exposuresGlobal.q1_outbreak;
+  const gBleedingYesNo = exposuresGlobal.q2_bleeding;
+
+  const requiredGlobalQs = 2;
+  let answeredGlobalQs = 0;
+  if (gOutbreakYesNo === "yes" || gOutbreakYesNo === "no") answeredGlobalQs += 1;
+  if (gBleedingYesNo === "yes" || gBleedingYesNo === "no") answeredGlobalQs += 1;
+
+  const totalRequired2 = requiredGlobalQs + requiredCountryQs;
+  const totalAnswered2 = answeredGlobalQs + answeredCountryQs;
+  const allAnswered = totalRequired2 === totalAnswered2;
+
   if (allAnswered) {
     if (!anyYes) {
-      // ---------------- AMBER PATHWAY (all exposure answers are NO) ----------------
+      // ---------------- AMBER PATHWAY (unchanged) ----------------
       summaryNode = (
         <div className="space-y-3">
           <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -394,6 +338,7 @@ export default function ExposuresStep({
           </AmberSummary>
 
           {/* Amber follow-ups */}
+          {/* Malaria test? */}
           <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
             <div className="text-sm mb-1">Is the malaria test result positive?</div>
             <div className="flex gap-2">
@@ -401,20 +346,16 @@ export default function ExposuresStep({
                 type="button"
                 className={yesNoBtn(amberMalariaPositive === "yes")}
                 onClick={() => setAmberMalaria("yes")}
-              >
-                Yes
-              </button>
+              >Yes</button>
               <button
                 type="button"
                 className={yesNoBtn(amberMalariaPositive === "no")}
                 onClick={() => setAmberMalaria("no")}
-              >
-                No
-              </button>
+              >No</button>
             </div>
           </div>
 
-          {/* Malaria positive path (amber) */}
+          {/* Malaria positive path */}
           {amberMalariaPositive === "yes" && (
             <>
               <DecisionCard tone="green" title="Manage as malaria; VHF unlikely" />
@@ -425,16 +366,12 @@ export default function ExposuresStep({
                     type="button"
                     className={yesNoBtn(amberConcern72h === "yes")}
                     onClick={() => setAmberConcern72h("yes")}
-                  >
-                    Yes
-                  </button>
+                  >Yes</button>
                   <button
                     type="button"
                     className={yesNoBtn(amberConcern72h === "no")}
                     onClick={() => setAmberConcern72h("no")}
-                  >
-                    No
-                  </button>
+                  >No</button>
                 </div>
               </div>
 
@@ -458,7 +395,7 @@ export default function ExposuresStep({
             </>
           )}
 
-          {/* Malaria negative path (amber) */}
+          {/* Malaria negative path */}
           {amberMalariaPositive === "no" && (
             <>
               <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
@@ -468,16 +405,12 @@ export default function ExposuresStep({
                     type="button"
                     className={yesNoBtn(amberAltDx === "yes")}
                     onClick={() => setAmberAltDx("yes")}
-                  >
-                    Yes
-                  </button>
+                  >Yes</button>
                   <button
                     type="button"
                     className={yesNoBtn(amberAltDx === "no")}
                     onClick={() => setAmberAltDx("no")}
-                  >
-                    No
-                  </button>
+                  >No</button>
                 </div>
               </div>
 
@@ -496,16 +429,12 @@ export default function ExposuresStep({
                         type="button"
                         className={yesNoBtn(amberConcern72h === "yes")}
                         onClick={() => setAmberConcern72h("yes")}
-                      >
-                        Yes
-                      </button>
+                      >Yes</button>
                       <button
                         type="button"
                         className={yesNoBtn(amberConcern72h === "no")}
                         onClick={() => setAmberConcern72h("no")}
-                      >
-                        No
-                      </button>
+                      >No</button>
                     </div>
                   </div>
 
@@ -533,14 +462,25 @@ export default function ExposuresStep({
         </div>
       );
     } else {
-      // ---------------- PRE-MALARIA RED PATHWAY (at least one exposure answer is YES) ----------------
+      // ---------------- PRE-MALARIA RED PATHWAY ----------------
       summaryNode = (
         <div className="space-y-3">
           <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             Outcome of risk assessment
           </div>
 
-          {/* Q: Is the malaria test positive? */}
+          {/* NEW: Immediate red warning appears as soon as any exposure is YES */}
+          <DecisionCard tone="red" title="AT RISK OF VHF">
+            <ul className="list-disc pl-5">
+              <li>ISOLATE PATIENT IN SIDE ROOM</li>
+              <li>Discuss with infection consultant (Infectious Disease/Microbiology/Virology)</li>
+              <li>Urgent Malaria investigation</li>
+              <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
+              <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
+            </ul>
+          </DecisionCard>
+
+          {/* Malaria test question (flows per your spec) */}
           <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
             <div className="text-sm mb-1">Is the malaria test positive?</div>
             <div className="flex gap-2">
@@ -548,23 +488,18 @@ export default function ExposuresStep({
                 type="button"
                 className={yesNoBtn(preMalariaMalariaPositive === "yes")}
                 onClick={() => setMalariaResult("yes")}
-              >
-                Yes
-              </button>
+              >Yes</button>
               <button
                 type="button"
                 className={yesNoBtn(preMalariaMalariaPositive === "no")}
                 onClick={() => setMalariaResult("no")}
-              >
-                No
-              </button>
+              >No</button>
             </div>
           </div>
 
-          {/* Malaria POSITIVE branch */}
+          {/* Malaria POSITIVE */}
           {preMalariaMalariaPositive === "yes" && (
             <>
-              {/* Outbreak return? */}
               <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
                 <div className="text-sm mb-1">Has the patient returned from a VHF outbreak area?</div>
                 <div className="flex gap-2">
@@ -572,20 +507,15 @@ export default function ExposuresStep({
                     type="button"
                     className={yesNoBtn(preMalariaOutbreakReturn === "yes")}
                     onClick={() => setOutbreakReturn("yes")}
-                  >
-                    Yes
-                  </button>
+                  >Yes</button>
                   <button
                     type="button"
                     className={yesNoBtn(preMalariaOutbreakReturn === "no")}
                     onClick={() => setOutbreakReturn("no")}
-                  >
-                    No
-                  </button>
+                  >No</button>
                 </div>
               </div>
 
-              {/* If malaria + and NOT outbreak → immediate green, then 72h concern */}
               {preMalariaOutbreakReturn === "no" && (
                 <>
                   <DecisionCard tone="green" title="Manage as malaria; VHF unlikely" />
@@ -596,22 +526,17 @@ export default function ExposuresStep({
                         type="button"
                         className={yesNoBtn(preMalariaConcern72h === "yes")}
                         onClick={() => setConcern72h("yes")}
-                      >
-                        Yes
-                      </button>
+                      >Yes</button>
                       <button
                         type="button"
                         className={yesNoBtn(preMalariaConcern72h === "no")}
                         onClick={() => setConcern72h("no")}
-                      >
-                        No
-                      </button>
+                      >No</button>
                     </div>
                   </div>
                 </>
               )}
 
-              {/* If malaria + and outbreak → amber + actions, then flow */}
               {preMalariaOutbreakReturn === "yes" && (
                 <>
                   <AmberSummary title="Manage as Malaria, but consider possibility of dual infection with VHF" />
@@ -621,21 +546,64 @@ export default function ExposuresStep({
             </>
           )}
 
-          {/* Malaria NEGATIVE branch → actions, then flow */}
+          {/* Malaria NEGATIVE */}
           {preMalariaMalariaPositive === "no" && <ActionsCard />}
 
-          {/* ENTER actions flow when:
-              - malaria positive & outbreak yes, OR
-              - malaria positive & outbreak no & 72h concern yes, OR
-              - malaria negative
-          */}
+          {/* Enter actions flow if: outbreak yes, or (outbreak no & concern 72h yes), or malaria negative */}
           {(
             (preMalariaMalariaPositive === "yes" && preMalariaOutbreakReturn === "yes") ||
             (preMalariaMalariaPositive === "yes" && preMalariaOutbreakReturn === "no" && preMalariaConcern72h === "yes") ||
             (preMalariaMalariaPositive === "no")
-          ) && <ActionsFlow />}
+          ) && (
+            <>
+              {/* Severe features */}
+              <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+                <div className="text-sm mb-1">
+                  Does the patient have extensive bruising or active bleeding or uncontrolled diarrhoea or uncontrolled vomiting?
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className={yesNoBtn(preMalariaSevere === "yes")}
+                    onClick={() => setSevere("yes")}
+                  >Yes</button>
+                  <button
+                    type="button"
+                    className={yesNoBtn(preMalariaSevere === "no")}
+                    onClick={() => setSevere("no")}
+                  >No</button>
+                </div>
+              </div>
 
-          {/* If malaria + & NOT outbreak & 72h concern NO → final green already shown above */}
+              {preMalariaSevere === "yes" && <AdmitBlock />}
+
+              {preMalariaSevere === "no" && (
+                <>
+                  {/* Fit for OP? */}
+                  <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+                    <div className="text-sm mb-1">Is the patient fit for outpatient management?</div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className={yesNoBtn(preMalariaFitOP === "yes")}
+                        onClick={() => setFitOP("yes")}
+                      >Yes</button>
+                      <button
+                        type="button"
+                        className={yesNoBtn(preMalariaFitOP === "no")}
+                        onClick={() => setFitOP("no")}
+                      >No</button>
+                    </div>
+                  </div>
+
+                  {preMalariaFitOP === "no" && <AdmitBlock />}
+                  {preMalariaFitOP === "yes" && <OPBlock />}
+                </>
+              )}
+            </>
+          )}
+
+          {/* If malaria + & NOT outbreak & 72h concern NO → final green already shown */}
         </div>
       );
     }
@@ -661,16 +629,12 @@ export default function ExposuresStep({
                 type="button"
                 className={yesNoBtn(exposuresGlobal.q1_outbreak === "yes")}
                 onClick={() => setExposuresGlobal({ ...exposuresGlobal, q1_outbreak: "yes" })}
-              >
-                Yes
-              </button>
+              >Yes</button>
               <button
                 type="button"
                 className={yesNoBtn(exposuresGlobal.q1_outbreak === "no")}
                 onClick={() => setExposuresGlobal({ ...exposuresGlobal, q1_outbreak: "no" })}
-              >
-                No
-              </button>
+              >No</button>
             </div>
             <p className="mt-2 text-xs text-slate-500">
               For current outbreak information, check WHO Disease Outbreak News and UKHSA Monthly Summaries / country-specific risk pages.
@@ -684,21 +648,17 @@ export default function ExposuresStep({
                 type="button"
                 className={yesNoBtn(exposuresGlobal.q2_bleeding === "yes")}
                 onClick={() => setExposuresGlobal({ ...exposuresGlobal, q2_bleeding: "yes" })}
-              >
-                Yes
-              </button>
+              >Yes</button>
               <button
                 type="button"
                 className={yesNoBtn(exposuresGlobal.q2_bleeding === "no")}
                 onClick={() => setExposuresGlobal({ ...exposuresGlobal, q2_bleeding: "no" })}
-              >
-                No
-              </button>
+              >No</button>
             </div>
           </div>
         </div>
 
-        {/* Right: outcome */}
+        {/* Right: sticky outcome */}
         <div className="lg:col-span-1 lg:sticky lg:top-4 h-fit">
           {summaryNode}
         </div>
