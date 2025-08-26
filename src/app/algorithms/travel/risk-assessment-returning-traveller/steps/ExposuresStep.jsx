@@ -20,7 +20,7 @@ const isImportedOnly = (evidence = "") => txt(evidence).includes("imported cases
 const hasDisease = (entries = [], name = "") =>
   entries.some((e) => String(e?.disease || "").toLowerCase().includes(name.toLowerCase()));
 
-// Lightweight amber summary (DecisionCard has no amber tone)
+// Amber summary (DecisionCard has no amber tone)
 function AmberSummary({ title, children }) {
   return (
     <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-4 dark:border-amber-400 dark:bg-amber-900/20">
@@ -39,14 +39,16 @@ export default function ExposuresStep({
   setCountryExposure,       // (rowId, key, value) => void
   onBackToReview,
   onReset,
+  // Optional screening + onset for printable context if parent passes them
+  q1Fever,
+  q2Exposure,
+  onset,
 }) {
-  // ----- Follow-up state for AMBER pathway (local to this step) -----
-  // "yes" | "no" | ""
+  // ----- Follow-up state for AMBER pathway -----
   const [malariaPositive, setMalariaPositive] = useState("");
   const [alternativeDx, setAlternativeDx] = useState("");
   const [concern72h, setConcern72h] = useState("");
 
-  // Reset downstream answers when upstream changes
   const setMalaria = (v) => {
     setMalariaPositive(v);
     setAlternativeDx("");
@@ -57,7 +59,7 @@ export default function ExposuresStep({
     setConcern72h("");
   };
 
-  // ----- Derive which per-country questions to show -----
+  // ----- Country exposure questions -----
   let requiredCountryQs = 0;
   let answeredCountryQs = 0;
   let anyYes = false;
@@ -66,21 +68,20 @@ export default function ExposuresStep({
     const key = String(c.name || "").toLowerCase();
     const entries = normalizedMap.get(key) || [];
 
-    // Filter out entries that should NOT trigger exposure questions
     const entriesFiltered = (entries || []).filter(
       (e) => !isNoKnownHcid(e.disease) && !isTravelAssociated(e.disease) && !isImportedOnly(e.evidence)
     );
 
-    const showLassa = hasDisease(entriesFiltered, "lassa");
-    const showEbovMarb = hasDisease(entriesFiltered, "ebola") || hasDisease(entriesFiltered, "marburg");
-    const showCchf = hasDisease(entriesFiltered, "cchf");
+    const showLassa   = hasDisease(entriesFiltered, "lassa");
+    const showEbMarb  = hasDisease(entriesFiltered, "ebola") || hasDisease(entriesFiltered, "marburg");
+    const showCchf    = hasDisease(entriesFiltered, "cchf");
 
     const row = exposuresByCountry[c.id] || {};
-    const ansLassa = showLassa ? row.lassa || "" : null;
-    const ansEbovMarb = showEbovMarb ? row.ebola_marburg || "" : null;
-    const ansCchf = showCchf ? row.cchf || "" : null;
+    const ansLassa  = showLassa  ? row.lassa || "" : null;
+    const ansEbMarb = showEbMarb ? row.ebola_marburg || "" : null;
+    const ansCchf   = showCchf   ? row.cchf || "" : null;
 
-    [ansLassa, ansEbovMarb, ansCchf].forEach((a) => {
+    [ansLassa, ansEbMarb, ansCchf].forEach((a) => {
       if (a !== null) {
         requiredCountryQs += 1;
         if (a === "yes" || a === "no") answeredCountryQs += 1;
@@ -90,13 +91,11 @@ export default function ExposuresStep({
 
     return (
       <div key={c.id}>
-        {idx > 0 && (
-          <div className="border-t border-slate-200 dark:border-slate-700 pt-6 -mt-2" />
-        )}
+        {idx > 0 && <div className="border-t border-slate-200 dark:border-slate-700 pt-6 -mt-2" />}
         <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
           <div className="font-medium">{c.name}</div>
 
-          {!showLassa && !showEbovMarb && !showCchf && (
+          {!showLassa && !showEbMarb && !showCchf && (
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
               No disease-specific exposure questions apply to this country.
             </p>
@@ -112,21 +111,17 @@ export default function ExposuresStep({
                   type="button"
                   className={yesNoBtn((exposuresByCountry[c.id]?.lassa || "") === "yes")}
                   onClick={() => setCountryExposure(c.id, "lassa", "yes")}
-                >
-                  Yes
-                </button>
+                >Yes</button>
                 <button
                   type="button"
                   className={yesNoBtn((exposuresByCountry[c.id]?.lassa || "") === "no")}
                   onClick={() => setCountryExposure(c.id, "lassa", "no")}
-                >
-                  No
-                </button>
+                >No</button>
               </div>
             </div>
           )}
 
-          {showEbovMarb && (
+          {showEbMarb && (
             <div className="mt-3">
               <div className="text-sm mb-1">
                 In this country, did the patient visit caves/mines, or have contact with primates,
@@ -137,16 +132,12 @@ export default function ExposuresStep({
                   type="button"
                   className={yesNoBtn((exposuresByCountry[c.id]?.ebola_marburg || "") === "yes")}
                   onClick={() => setCountryExposure(c.id, "ebola_marburg", "yes")}
-                >
-                  Yes
-                </button>
+                >Yes</button>
                 <button
                   type="button"
                   className={yesNoBtn((exposuresByCountry[c.id]?.ebola_marburg || "") === "no")}
                   onClick={() => setCountryExposure(c.id, "ebola_marburg", "no")}
-                >
-                  No
-                </button>
+                >No</button>
               </div>
             </div>
           )}
@@ -162,16 +153,12 @@ export default function ExposuresStep({
                   type="button"
                   className={yesNoBtn((exposuresByCountry[c.id]?.cchf || "") === "yes")}
                   onClick={() => setCountryExposure(c.id, "cchf", "yes")}
-                >
-                  Yes
-                </button>
+                >Yes</button>
                 <button
                   type="button"
                   className={yesNoBtn((exposuresByCountry[c.id]?.cchf || "") === "no")}
                   onClick={() => setCountryExposure(c.id, "cchf", "no")}
-                >
-                  No
-                </button>
+                >No</button>
               </div>
             </div>
           )}
@@ -194,7 +181,10 @@ export default function ExposuresStep({
   const totalAnswered = answeredGlobalQs + answeredCountryQs;
   const allAnswered = totalRequired === totalAnswered;
 
-  // ----- Summary panel (right side) -----
+  // Outcome print (prints the page, including outcome + answers on screen)
+  const handlePrint = () => window.print();
+
+  // Summary panel (right side)
   let summaryNode = (
     <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
       <div className="text-sm text-slate-600 dark:text-slate-300">
@@ -205,171 +195,140 @@ export default function ExposuresStep({
 
   if (allAnswered) {
     if (anyYes) {
-      // RED branch immediately
       summaryNode = (
-        <DecisionCard tone="red" title="AT RISK OF VHF">
-          <ul className="list-disc pl-5">
-            <li>ISOLATE PATIENT IN SIDE ROOM</li>
-            <li>Discuss with infection consultant (Infectious Disease/Microbiology/Virology)</li>
-            <li>Urgent Malaria investigation</li>
-            <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
-            <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
-          </ul>
-        </DecisionCard>
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Outcome of risk assessment
+          </div>
+          <DecisionCard tone="red" title="AT RISK OF VHF">
+            <ul className="list-disc pl-5">
+              <li>ISOLATE PATIENT IN SIDE ROOM</li>
+              <li>Discuss with infection consultant (Infectious Disease/Microbiology/Virology)</li>
+              <li>Urgent Malaria investigation</li>
+              <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
+              <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
+            </ul>
+          </DecisionCard>
+
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-2 text-sm hover:border-violet-500 dark:hover:border-violet-400"
+          >
+            Print summary
+          </button>
+        </div>
       );
     } else {
-      // AMBER branch with follow-up flow
       summaryNode = (
-        <div className="space-y-4">
-          <AmberSummary title="Minimal risk of VHF">
-            <ul className="list-disc pl-5">
-              <li>Urgent Malaria investigation</li>
-              <li>Urgent local investigations as normally appropriate, including blood cultures.</li>
-            </ul>
-          </AmberSummary>
-
-          {/* Q: Is the malaria test result positive? */}
-          <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
-            <div className="text-sm mb-1">Is the malaria test result positive?</div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className={yesNoBtn(malariaPositive === "yes")}
-                onClick={() => setMalaria("yes")}
-              >
-                Yes
-              </button>
-              <button
-                type="button"
-                className={yesNoBtn(malariaPositive === "no")}
-                onClick={() => setMalaria("no")}
-              >
-                No
-              </button>
-            </div>
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Outcome of risk assessment
           </div>
+          <div className="space-y-4">
+            <AmberSummary title="Minimal risk of VHF">
+              <ul className="list-disc pl-5">
+                <li>Urgent Malaria investigation</li>
+                <li>Urgent local investigations as normally appropriate, including blood cultures.</li>
+              </ul>
+            </AmberSummary>
 
-          {/* If malaria positive → green box + ask 72h concern */}
-          {malariaPositive === "yes" && (
-            <>
-              <DecisionCard tone="green" title="Manage as malaria; VHF unlikely" />
-
-              <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
-                <div className="text-sm mb-1">
-                  Clinical concern OR no improvement after 72 hours?
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className={yesNoBtn(concern72h === "yes")}
-                    onClick={() => setConcern72h("yes")}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    className={yesNoBtn(concern72h === "no")}
-                    onClick={() => setConcern72h("no")}
-                  >
-                    No
-                  </button>
-                </div>
+            {/* Amber follow-ups */}
+            <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+              <div className="text-sm mb-1">Is the malaria test result positive?</div>
+              <div className="flex gap-2">
+                <button type="button" className={yesNoBtn(malariaPositive === "yes")} onClick={() => setMalaria("yes")}>Yes</button>
+                <button type="button" className={yesNoBtn(malariaPositive === "no")}  onClick={() => setMalaria("no")}>No</button>
               </div>
+            </div>
 
-              {concern72h === "yes" && (
-                <DecisionCard tone="red" title="AT RISK OF VHF">
-                  <ul className="list-disc pl-5">
-                    <li>ISOLATE PATIENT IN SIDE ROOM</li>
-                    <li>Discuss with infection consultant (Infectious Disease/Microbiology/Virology)</li>
-                    <li>Urgent Malaria investigation</li>
-                    <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
-                    <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
-                  </ul>
-                </DecisionCard>
-              )}
-
-              {concern72h === "no" && (
-                <DecisionCard tone="green" title="VHF unlikely; manage locally">
-                  <p>Please continue standard local management pathways.</p>
-                </DecisionCard>
-              )}
-            </>
-          )}
-
-          {/* If malaria negative → ask alternative diagnosis */}
-          {malariaPositive === "no" && (
-            <>
-              <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
-                <div className="text-sm mb-1">Alternative diagnosis established?</div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className={yesNoBtn(alternativeDx === "yes")}
-                    onClick={() => setAltDx("yes")}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    className={yesNoBtn(alternativeDx === "no")}
-                    onClick={() => setAltDx("no")}
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-
-              {alternativeDx === "yes" && (
-                <DecisionCard tone="green" title="VHF unlikely; manage locally">
-                  <p>Please continue standard local management pathways.</p>
-                </DecisionCard>
-              )}
-
-              {alternativeDx === "no" && (
-                <>
-                  <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
-                    <div className="text-sm mb-1">
-                      Clinical concern OR no improvement after 72 hours?
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className={yesNoBtn(concern72h === "yes")}
-                        onClick={() => setConcern72h("yes")}
-                      >
-                        Yes
-                      </button>
-                      <button
-                        type="button"
-                        className={yesNoBtn(concern72h === "no")}
-                        onClick={() => setConcern72h("no")}
-                      >
-                        No
-                      </button>
-                    </div>
+            {malariaPositive === "yes" && (
+              <>
+                <DecisionCard tone="green" title="Manage as malaria; VHF unlikely" />
+                <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+                  <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
+                  <div className="flex gap-2">
+                    <button type="button" className={yesNoBtn(concern72h === "yes")} onClick={() => setConcern72h("yes")}>Yes</button>
+                    <button type="button" className={yesNoBtn(concern72h === "no")}  onClick={() => setConcern72h("no")}>No</button>
                   </div>
+                </div>
 
-                  {concern72h === "yes" && (
-                    <DecisionCard tone="red" title="AT RISK OF VHF">
-                      <ul className="list-disc pl-5">
-                        <li>ISOLATE PATIENT IN SIDE ROOM</li>
-                        <li>Discuss with infection consultant (Infectious Disease/Microbiology/Virology)</li>
-                        <li>Urgent Malaria investigation</li>
-                        <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
-                        <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
-                      </ul>
-                    </DecisionCard>
-                  )}
+                {concern72h === "yes" && (
+                  <DecisionCard tone="red" title="AT RISK OF VHF">
+                    <ul className="list-disc pl-5">
+                      <li>ISOLATE PATIENT IN SIDE ROOM</li>
+                      <li>Discuss with infection consultant (Infectious Disease/Microbiology/Virology)</li>
+                      <li>Urgent Malaria investigation</li>
+                      <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
+                      <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
+                    </ul>
+                  </DecisionCard>
+                )}
 
-                  {concern72h === "no" && (
-                    <DecisionCard tone="green" title="VHF unlikely; manage locally">
-                      <p>Please continue standard local management pathways.</p>
-                    </DecisionCard>
-                  )}
-                </>
-              )}
-            </>
-          )}
+                {concern72h === "no" && (
+                  <DecisionCard tone="green" title="VHF unlikely; manage locally">
+                    <p>Please continue standard local management pathways.</p>
+                  </DecisionCard>
+                )}
+              </>
+            )}
+
+            {malariaPositive === "no" && (
+              <>
+                <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+                  <div className="text-sm mb-1">Alternative diagnosis established?</div>
+                  <div className="flex gap-2">
+                    <button type="button" className={yesNoBtn(alternativeDx === "yes")} onClick={() => setAltDx("yes")}>Yes</button>
+                    <button type="button" className={yesNoBtn(alternativeDx === "no")}  onClick={() => setAltDx("no")}>No</button>
+                  </div>
+                </div>
+
+                {alternativeDx === "yes" && (
+                  <DecisionCard tone="green" title="VHF unlikely; manage locally">
+                    <p>Please continue standard local management pathways.</p>
+                  </DecisionCard>
+                )}
+
+                {alternativeDx === "no" && (
+                  <>
+                    <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+                      <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
+                      <div className="flex gap-2">
+                        <button type="button" className={yesNoBtn(concern72h === "yes")} onClick={() => setConcern72h("yes")}>Yes</button>
+                        <button type="button" className={yesNoBtn(concern72h === "no")}  onClick={() => setConcern72h("no")}>No</button>
+                      </div>
+                    </div>
+
+                    {concern72h === "yes" && (
+                      <DecisionCard tone="red" title="AT RISK OF VHF">
+                        <ul className="list-disc pl-5">
+                          <li>ISOLATE PATIENT IN SIDE ROOM</li>
+                          <li>Discuss with infection consultant (Infectious Disease/Microbiology/Virology)</li>
+                          <li>Urgent Malaria investigation</li>
+                          <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
+                          <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
+                        </ul>
+                      </DecisionCard>
+                    )}
+
+                    {concern72h === "no" && (
+                      <DecisionCard tone="green" title="VHF unlikely; manage locally">
+                        <p>Please continue standard local management pathways.</p>
+                      </DecisionCard>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-2 text-sm hover:border-violet-500 dark:hover:border-violet-400"
+            >
+              Print summary
+            </button>
+          </div>
         </div>
       );
     }
@@ -381,59 +340,34 @@ export default function ExposuresStep({
         Exposure questions (contextual)
       </h2>
 
-      {/* Two-column layout: countries on the left, summary on the right */}
+      {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: countries list (2 columns on large screens) */}
+        {/* Left: countries + globals */}
         <div className="lg:col-span-2 space-y-6">
           {countryBlocks}
 
-          {/* Global questions BELOW the countries list */}
+          {/* Global questions */}
           <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
             <div className="text-sm mb-1">{Q.GLOBAL_OUTBREAK.text}</div>
             <div className="flex gap-2">
-              <button
-                type="button"
-                className={yesNoBtn(gOutbreak === "yes")}
-                onClick={() => setExposuresGlobal({ ...exposuresGlobal, q1_outbreak: "yes" })}
-              >
-                Yes
-              </button>
-              <button
-                type="button"
-                className={yesNoBtn(gOutbreak === "no")}
-                onClick={() => setExposuresGlobal({ ...exposuresGlobal, q1_outbreak: "no" })}
-              >
-                No
-              </button>
+              <button type="button" className={yesNoBtn(exposuresGlobal.q1_outbreak === "yes")} onClick={() => setExposuresGlobal({ ...exposuresGlobal, q1_outbreak: "yes" })}>Yes</button>
+              <button type="button" className={yesNoBtn(exposuresGlobal.q1_outbreak === "no")}  onClick={() => setExposuresGlobal({ ...exposuresGlobal, q1_outbreak: "no" })}>No</button>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              For current outbreak information, check WHO Disease Outbreak News and UKHSA Monthly
-              Summaries / country-specific risk pages.
+              For current outbreak information, check WHO Disease Outbreak News and UKHSA Monthly Summaries / country-specific risk pages.
             </p>
           </div>
 
           <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
             <div className="text-sm mb-1">{Q.GLOBAL_BLEEDING.text}</div>
             <div className="flex gap-2">
-              <button
-                type="button"
-                className={yesNoBtn(gBleeding === "yes")}
-                onClick={() => setExposuresGlobal({ ...exposuresGlobal, q2_bleeding: "yes" })}
-              >
-                Yes
-              </button>
-              <button
-                type="button"
-                className={yesNoBtn(gBleeding === "no")}
-                onClick={() => setExposuresGlobal({ ...exposuresGlobal, q2_bleeding: "no" })}
-              >
-                No
-              </button>
+              <button type="button" className={yesNoBtn(exposuresGlobal.q2_bleeding === "yes")} onClick={() => setExposuresGlobal({ ...exposuresGlobal, q2_bleeding: "yes" })}>Yes</button>
+              <button type="button" className={yesNoBtn(exposuresGlobal.q2_bleeding === "no")}  onClick={() => setExposuresGlobal({ ...exposuresGlobal, q2_bleeding: "no" })}>No</button>
             </div>
           </div>
         </div>
 
-        {/* Right: summary box (sticky on large screens) */}
+        {/* Right: outcome */}
         <div className="lg:col-span-1 lg:sticky lg:top-4 h-fit">
           {summaryNode}
         </div>
@@ -452,7 +386,7 @@ export default function ExposuresStep({
         <button
           type="button"
           onClick={onReset}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400"
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:border-rose-400"
         >
           New assessment
         </button>
