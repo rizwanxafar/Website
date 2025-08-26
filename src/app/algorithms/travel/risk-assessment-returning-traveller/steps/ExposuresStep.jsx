@@ -176,7 +176,7 @@ export default function ExposuresStep({
     setAmberConcern72h("");
   };
 
-  // ===== Pre-malaria red pathway (any exposure answer YES) =====
+  // ===== Red pathway state (shared by pre- & post-malaria) =====
   const [preMalariaMalariaPositive, setPreMalariaMalariaPositive] = useState(""); // yes/no
   const [preMalariaOutbreakReturn, setPreMalariaOutbreakReturn] = useState("");   // yes/no
   const [preMalariaConcern72h, setPreMalariaConcern72h] = useState("");           // yes/no
@@ -184,36 +184,31 @@ export default function ExposuresStep({
   const [preMalariaFitOP, setPreMalariaFitOP] = useState("");                     // yes/no
   const [preMalariaVhfPositive, setPreMalariaVhfPositive] = useState("");         // yes/no
 
+  // Helpers to reset red-chain states when entering it
+  const resetRedChain = () => {
+    setPreMalariaSevere("");
+    setPreMalariaFitOP("");
+    setPreMalariaVhfPositive("");
+  };
+
+  // Pre-malaria controls
   const setMalariaResult = (v) => {
     setPreMalariaMalariaPositive(v);
     setPreMalariaOutbreakReturn("");
     setPreMalariaConcern72h("");
-    setPreMalariaSevere("");
-    setPreMalariaFitOP("");
-    setPreMalariaVhfPositive("");
+    resetRedChain();
   };
   const setOutbreakReturn = (v) => {
     setPreMalariaOutbreakReturn(v);
     setPreMalariaConcern72h("");
-    setPreMalariaSevere("");
-    setPreMalariaFitOP("");
-    setPreMalariaVhfPositive("");
+    resetRedChain();
   };
   const setConcern72h = (v) => {
     setPreMalariaConcern72h(v);
-    setPreMalariaSevere("");
-    setPreMalariaFitOP("");
-    setPreMalariaVhfPositive("");
+    resetRedChain();
   };
-  const setSevere = (v) => {
-    setPreMalariaSevere(v);
-    setPreMalariaFitOP("");
-    setPreMalariaVhfPositive("");
-  };
-  const setFitOP = (v) => {
-    setPreMalariaFitOP(v);
-    setPreMalariaVhfPositive("");
-  };
+  const setSevere = (v) => setPreMalariaSevere(v);
+  const setFitOP = (v) => setPreMalariaFitOP(v);
 
   // Shared blocks
   const ActionsCard = () => (
@@ -302,6 +297,56 @@ export default function ExposuresStep({
     </>
   );
 
+  // Reusable red-chain renderer (called by both pre- and post-malaria red)
+  const renderSevereChain = () => (
+    <>
+      {/* Severe features */}
+      <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+        <div className="text-sm mb-1">
+          Does the patient have extensive bruising or active bleeding or uncontrolled diarrhoea or uncontrolled vomiting?
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className={yesNoBtn(preMalariaSevere === "yes")}
+            onClick={() => setSevere("yes")}
+          >Yes</button>
+          <button
+            type="button"
+            className={yesNoBtn(preMalariaSevere === "no")}
+            onClick={() => setSevere("no")}
+          >No</button>
+        </div>
+      </div>
+
+      {preMalariaSevere === "yes" && <AdmitBlock />}
+
+      {preMalariaSevere === "no" && (
+        <>
+          {/* Fit for OP? */}
+          <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+            <div className="text-sm mb-1">Is the patient fit for outpatient management?</div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className={yesNoBtn(preMalariaFitOP === "yes")}
+                onClick={() => setFitOP("yes")}
+              >Yes</button>
+              <button
+                type="button"
+                className={yesNoBtn(preMalariaFitOP === "no")}
+                onClick={() => setFitOP("no")}
+              >No</button>
+            </div>
+          </div>
+
+          {preMalariaFitOP === "no" && <AdmitBlock />}
+          {preMalariaFitOP === "yes" && <OPBlock />}
+        </>
+      )}
+    </>
+  );
+
   // ===== Right-hand summary panel =====
   let summaryNode = (
     <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
@@ -313,7 +358,7 @@ export default function ExposuresStep({
 
   if (allAnswered) {
     if (!anyYes) {
-      // ---------------- AMBER PATHWAY (unchanged) ----------------
+      // ---------------- AMBER PATHWAY (all exposure answers NO) ----------------
       summaryNode = (
         <div className="space-y-3">
           <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -344,7 +389,7 @@ export default function ExposuresStep({
             </div>
           </div>
 
-          {/* Malaria positive path */}
+          {/* Malaria POSITIVE in amber branch */}
           {amberMalariaPositive === "yes" && (
             <>
               <DecisionCard tone="green" title="Manage as malaria; VHF unlikely" />
@@ -364,16 +409,23 @@ export default function ExposuresStep({
                 </div>
               </div>
 
+              {/* POST-MALARIA RED (amber path): if concern/no-improvement = YES */}
               {amberConcern72h === "yes" && (
-                <DecisionCard tone="red" title="AT RISK OF VHF">
-                  <ul className="list-disc pl-5">
-                    <li>ISOLATE PATIENT IN SIDE ROOM</li>
-                    <li>Discuss with infection consultant (Infectious Disease/Microbiology/Virology)</li>
-                    <li>Urgent Malaria investigation</li>
-                    <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
-                    <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
-                  </ul>
-                </DecisionCard>
+                <>
+                  <DecisionCard tone="red" title="AT RISK OF VHF">
+                    <ul className="list-disc pl-5">
+                      <li>ISOLATE PATIENT IN SIDE ROOM</li>
+                      <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+                      <li>Urgent Malaria investigation</li>
+                      <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
+                      <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
+                    </ul>
+                  </DecisionCard>
+
+                  {/* Start red-chain identical to pre-malaria */}
+                  {resetRedChain() /* ensure clean start */}
+                  {renderSevereChain()}
+                </>
               )}
 
               {amberConcern72h === "no" && (
@@ -384,7 +436,7 @@ export default function ExposuresStep({
             </>
           )}
 
-          {/* Malaria negative path */}
+          {/* Malaria NEGATIVE in amber branch */}
           {amberMalariaPositive === "no" && (
             <>
               <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
@@ -427,16 +479,23 @@ export default function ExposuresStep({
                     </div>
                   </div>
 
+                  {/* POST-MALARIA RED (amber path): if no alt-dx & concern 72h = YES */}
                   {amberConcern72h === "yes" && (
-                    <DecisionCard tone="red" title="AT RISK OF VHF">
-                      <ul className="list-disc pl-5">
-                        <li>ISOLATE PATIENT IN SIDE ROOM</li>
-                        <li>Discuss with infection consultant (Infectious Disease/Microbiology/Virology)</li>
-                        <li>Urgent Malaria investigation</li>
-                        <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
-                        <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
-                      </ul>
-                    </DecisionCard>
+                    <>
+                      <DecisionCard tone="red" title="AT RISK OF VHF">
+                        <ul className="list-disc pl-5">
+                          <li>ISOLATE PATIENT IN SIDE ROOM</li>
+                          <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+                          <li>Urgent Malaria investigation</li>
+                          <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
+                          <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
+                        </ul>
+                      </DecisionCard>
+
+                      {/* Start red-chain identical to pre-malaria */}
+                      {resetRedChain()}
+                      {renderSevereChain()}
+                    </>
                   )}
 
                   {amberConcern72h === "no" && (
@@ -451,7 +510,7 @@ export default function ExposuresStep({
         </div>
       );
     } else {
-      // ---------------- PRE-MALARIA RED PATHWAY ----------------
+      // ---------------- PRE-MALARIA RED PATHWAY (any exposure YES) ----------------
       summaryNode = (
         <div className="space-y-3">
           <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -462,7 +521,7 @@ export default function ExposuresStep({
           <DecisionCard tone="red" title="AT RISK OF VHF">
             <ul className="list-disc pl-5">
               <li>ISOLATE PATIENT IN SIDE ROOM</li>
-              <li>Discuss with infection consultant (Infectious Disease/Microbiology/Virology)</li>
+              <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
               <li>Urgent Malaria investigation</li>
               <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
               <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
@@ -524,12 +583,12 @@ export default function ExposuresStep({
                     </div>
                   </div>
 
-                  {/* NEW: mirror amber behaviour for this branch */}
+                  {/* Mirror amber behaviour for this branch */}
                   {preMalariaConcern72h === "yes" && (
                     <DecisionCard tone="red" title="AT RISK OF VHF">
                       <ul className="list-disc pl-5">
                         <li>ISOLATE PATIENT IN SIDE ROOM</li>
-                        <li>Discuss with infection consultant (Infectious Disease/Microbiology/Virology)</li>
+                        <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
                         <li>Urgent Malaria investigation</li>
                         <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
                         <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
@@ -559,54 +618,7 @@ export default function ExposuresStep({
           {(
             (preMalariaMalariaPositive === "yes" && preMalariaOutbreakReturn === "yes") ||
             (preMalariaMalariaPositive === "no")
-          ) && (
-            <>
-              {/* Severe features */}
-              <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
-                <div className="text-sm mb-1">
-                  Does the patient have extensive bruising or active bleeding or uncontrolled diarrhoea or uncontrolled vomiting?
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className={yesNoBtn(preMalariaSevere === "yes")}
-                    onClick={() => setSevere("yes")}
-                  >Yes</button>
-                  <button
-                    type="button"
-                    className={yesNoBtn(preMalariaSevere === "no")}
-                    onClick={() => setSevere("no")}
-                  >No</button>
-                </div>
-              </div>
-
-              {preMalariaSevere === "yes" && <AdmitBlock />}
-
-              {preMalariaSevere === "no" && (
-                <>
-                  {/* Fit for OP? */}
-                  <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
-                    <div className="text-sm mb-1">Is the patient fit for outpatient management?</div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className={yesNoBtn(preMalariaFitOP === "yes")}
-                        onClick={() => setFitOP("yes")}
-                      >Yes</button>
-                      <button
-                        type="button"
-                        className={yesNoBtn(preMalariaFitOP === "no")}
-                        onClick={() => setFitOP("no")}
-                      >No</button>
-                    </div>
-                  </div>
-
-                  {preMalariaFitOP === "no" && <AdmitBlock />}
-                  {preMalariaFitOP === "yes" && <OPBlock />}
-                </>
-              )}
-            </>
-          )}
+          ) && renderSevereChain()}
         </div>
       );
     }
