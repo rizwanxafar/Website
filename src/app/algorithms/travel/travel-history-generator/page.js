@@ -10,11 +10,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-export const metadata = {
-  title: 'Travel History Generator · ID Northwest',
-  description:
-    'Create a printable travel history summary with a timeline. No patient-identifiable information is stored.',
-};
+// NOTE: Metadata moved to colocated layout.js because this page is a Client Component.
 
 // ---- Minimal countries stub for datalist (replace with canonical dataset later) ----
 const COUNTRY_STUB = [
