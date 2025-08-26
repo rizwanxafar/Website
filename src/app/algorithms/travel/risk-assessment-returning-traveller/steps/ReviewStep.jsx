@@ -1,4 +1,3 @@
-// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/ReviewStep.jsx
 "use client";
 
 import DecisionCard from "@/components/DecisionCard";
@@ -25,7 +24,7 @@ export default function ReviewStep({
   onBackToSelect,
   onReset,
   onContinueToExposures,
-  // Optional screening answers for print summary (passed from parent if available)
+  // Optional screening answers for future print/export
   q1Fever,
   q2Exposure,
 }) {
@@ -117,11 +116,6 @@ export default function ReviewStep({
 
   const allGreen = selected.length > 0 && !anyRed;
 
-  // Minimal printable summary for this step (green outcome only)
-  const handlePrint = () => {
-    window.print();
-  };
-
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
@@ -145,22 +139,10 @@ export default function ReviewStep({
           </div>
 
           {allGreen ? (
-            <>
-              <DecisionCard tone="green" title="VHF unlikely; manage locally">
-                <p>Please continue standard local management pathways.</p>
-              </DecisionCard>
-
-              {/* Print summary button (prints the page; your browser will include visible content) */}
-              <button
-                type="button"
-                onClick={handlePrint}
-                className="mt-2 w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-2 text-sm hover:border-violet-500 dark:hover:border-violet-400"
-              >
-                Print summary
-              </button>
-            </>
+            <DecisionCard tone="green" title="VHF unlikely; manage locally">
+              <p>Please continue standard local management pathways.</p>
+            </DecisionCard>
           ) : (
-            // If not all green, no hint card; proceed via main CTA
             <div className="text-sm text-slate-500 dark:text-slate-400">
               Continue below when ready.
             </div>
@@ -178,7 +160,7 @@ export default function ReviewStep({
           Back to travel details
         </button>
 
-        { !allGreen && (
+        {!allGreen && (
           <button
             type="button"
             onClick={onContinueToExposures}
