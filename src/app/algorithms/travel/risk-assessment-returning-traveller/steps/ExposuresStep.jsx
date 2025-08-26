@@ -1,4 +1,3 @@
-// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/ExposuresStep.jsx
 "use client";
 
 import { useState } from "react";
@@ -39,7 +38,7 @@ export default function ExposuresStep({
   setCountryExposure,       // (rowId, key, value) => void
   onBackToReview,
   onReset,
-  // Optional screening + onset for printable context if parent passes them
+  // Optional screening + onset (kept for future print/export)
   q1Fever,
   q2Exposure,
   onset,
@@ -72,9 +71,9 @@ export default function ExposuresStep({
       (e) => !isNoKnownHcid(e.disease) && !isTravelAssociated(e.disease) && !isImportedOnly(e.evidence)
     );
 
-    const showLassa   = hasDisease(entriesFiltered, "lassa");
-    const showEbMarb  = hasDisease(entriesFiltered, "ebola") || hasDisease(entriesFiltered, "marburg");
-    const showCchf    = hasDisease(entriesFiltered, "cchf");
+    const showLassa  = hasDisease(entriesFiltered, "lassa");
+    const showEbMarb = hasDisease(entriesFiltered, "ebola") || hasDisease(entriesFiltered, "marburg");
+    const showCchf   = hasDisease(entriesFiltered, "cchf");
 
     const row = exposuresByCountry[c.id] || {};
     const ansLassa  = showLassa  ? row.lassa || "" : null;
@@ -181,9 +180,6 @@ export default function ExposuresStep({
   const totalAnswered = answeredGlobalQs + answeredCountryQs;
   const allAnswered = totalRequired === totalAnswered;
 
-  // Outcome print (prints the page, including outcome + answers on screen)
-  const handlePrint = () => window.print();
-
   // Summary panel (right side)
   let summaryNode = (
     <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
@@ -209,14 +205,6 @@ export default function ExposuresStep({
               <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
             </ul>
           </DecisionCard>
-
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-2 text-sm hover:border-violet-500 dark:hover:border-violet-400"
-          >
-            Print summary
-          </button>
         </div>
       );
     } else {
@@ -278,8 +266,8 @@ export default function ExposuresStep({
                 <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
                   <div className="text-sm mb-1">Alternative diagnosis established?</div>
                   <div className="flex gap-2">
-                    <button type="button" className={yesNoBtn(alternativeDx === "yes")} onClick={() => setAltDx("yes")}>Yes</button>
-                    <button type="button" className={yesNoBtn(alternativeDx === "no")}  onClick={() => setAltDx("no")}>No</button>
+                    <button type="button" className={yesNoBtn(alternativeDx === "yes")} onClick={() => setAlternativeDx("yes")}>Yes</button>
+                    <button type="button" className={yesNoBtn(alternativeDx === "no")}  onClick={() => setAlternativeDx("no")}>No</button>
                   </div>
                 </div>
 
@@ -320,14 +308,6 @@ export default function ExposuresStep({
                 )}
               </>
             )}
-
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-2 text-sm hover:border-violet-500 dark:hover:border-violet-400"
-            >
-              Print summary
-            </button>
           </div>
         </div>
       );
