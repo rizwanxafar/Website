@@ -25,10 +25,12 @@ export default function ReviewStep({
   onBackToSelect,
   onReset,
   onContinueToExposures,
+  // Optional screening answers for print summary (passed from parent if available)
+  q1Fever,
+  q2Exposure,
 }) {
   const onsetDate = onset ? new Date(onset) : null;
 
-  // Build rendered cards + track if any red
   let anyRed = false;
 
   const cards = selected.map((c, idx) => {
@@ -40,7 +42,6 @@ export default function ReviewStep({
     const key = String(c.name || "").toLowerCase();
     const entries = normalizedMap.get(key) || [];
 
-    // 1) Outside incubation window => GREEN (always)
     if (outside21) {
       return (
         <div key={c.id}>
@@ -56,7 +57,6 @@ export default function ReviewStep({
       );
     }
 
-    // 2) Explicit "No known HCIDs" (or no entries at all) => GREEN
     const hasNoKnown = entries.some((e) => isNoKnownHcid(e.disease)) || entries.length === 0;
     if (hasNoKnown) {
       return (
@@ -69,7 +69,6 @@ export default function ReviewStep({
       );
     }
 
-    // 3) Travel-associated only (and/or imported-only) => GREEN
     const everyIsTravelish = entries.every(
       (e) => isTravelAssociated(e.disease) || isImportedOnly(e.evidence) || isNoKnownHcid(e.disease)
     );
@@ -94,7 +93,6 @@ export default function ReviewStep({
       );
     }
 
-    // 4) Everything else => RED (list diseases with evidence/year)
     anyRed = true;
     const listed = entries.filter(
       (e) => !isNoKnownHcid(e.disease) && !isTravelAssociated(e.disease)
@@ -119,40 +117,54 @@ export default function ReviewStep({
 
   const allGreen = selected.length > 0 && !anyRed;
 
+  // Minimal printable summary for this step (green outcome only)
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
         Review countries and risks
       </h2>
 
-      {/* Snapshot warning banner */}
       {meta?.source === "fallback" && (
         <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-900/30 p-3 text-sm text-amber-800 dark:text-amber-200">
-          ⚠ Using local HCID snapshot (captured {meta.snapshotDate}).{" "}
-          For the latest country-specific HCID risk information, always check{" "}
-          <a
-            href="https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline font-medium hover:text-amber-600 dark:hover:text-amber-300"
-          >
-            GOV.UK
-          </a>.
+          ⚠ Using local HCID snapshot (captured {meta.snapshotDate}). For the latest information, always check GOV.UK.
         </div>
       )}
 
-      {/* Two-column layout: countries (left) + outcome (right) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: countries list */}
+        {/* Left: countries */}
         <div className="lg:col-span-2 space-y-6">{cards}</div>
 
-        {/* Right: summary/outcome panel */}
-        <div className="lg:col-span-1 lg:sticky lg:top-4 h-fit">
+        {/* Right: outcome panel */}
+        <div className="lg:col-span-1 lg:sticky lg:top-4 h-fit space-y-2">
+          <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Outcome of risk assessment
+          </div>
+
           {allGreen ? (
-            <DecisionCard tone="green" title="VHF unlikely; manage locally">
-              <p>Please continue standard local management pathways.</p>
-            </DecisionCard>
-          ) : null}
+            <>
+              <DecisionCard tone="green" title="VHF unlikely; manage locally">
+                <p>Please continue standard local management pathways.</p>
+              </DecisionCard>
+
+              {/* Print summary button (prints the page; your browser will include visible content) */}
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="mt-2 w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 px-3 py-2 text-sm hover:border-violet-500 dark:hover:border-violet-400"
+              >
+                Print summary
+              </button>
+            </>
+          ) : (
+            // If not all green, no hint card; proceed via main CTA
+            <div className="text-sm text-slate-500 dark:text-slate-400">
+              Continue below when ready.
+            </div>
+          )}
         </div>
       </div>
 
@@ -166,7 +178,7 @@ export default function ReviewStep({
           Back to travel details
         </button>
 
-        {anyRed && (
+        { !allGreen && (
           <button
             type="button"
             onClick={onContinueToExposures}
@@ -179,7 +191,7 @@ export default function ReviewStep({
         <button
           type="button"
           onClick={onReset}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400"
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:border-rose-400"
         >
           New assessment
         </button>
