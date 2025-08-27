@@ -1,7 +1,7 @@
 // src/app/algorithms/travel/risk-assessment-returning-traveller/steps/ExposuresStep.jsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import DecisionCard from "@/components/DecisionCard";
 import { EXPOSURE_QUESTIONS as Q } from "@/data/diseaseQuestions";
 
@@ -184,7 +184,11 @@ export default function ExposuresStep({
   const [preMalariaFitOP, setPreMalariaFitOP] = useState("");                     // yes/no
   const [preMalariaVhfPositive, setPreMalariaVhfPositive] = useState("");         // yes/no
 
-  // Helpers to reset red-chain states when entering it
+  // Post-malaria red activation flag (to reset chain once)
+  const [postRedActive, setPostRedActive] = useState(false);
+  const postRedActivatedRef = useRef(false);
+
+  // Helpers to reset red-chain states
   const resetRedChain = () => {
     setPreMalariaSevere("");
     setPreMalariaFitOP("");
@@ -219,10 +223,17 @@ export default function ExposuresStep({
       (amberMalariaPositive === "no" && amberAltDx === "no" && amberConcern72h === "yes")
     );
 
-  // IMPORTANT: Reset the red-chain state ONCE when we first enter post-malaria red
+  // Activate post-malaria red once, and reset chain exactly once
   useEffect(() => {
-    if (isPostMalariaRed) {
+    if (isPostMalariaRed && !postRedActivatedRef.current) {
+      postRedActivatedRef.current = true;
+      setPostRedActive(true);
       resetRedChain();
+    }
+    if (!isPostMalariaRed) {
+      // allow future re-activation if user changes answers back and forth
+      postRedActivatedRef.current = false;
+      setPostRedActive(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPostMalariaRed]);
@@ -427,7 +438,7 @@ export default function ExposuresStep({
               </div>
 
               {/* POST-MALARIA RED (amber path): if concern/no-improvement = YES */}
-              {amberConcern72h === "yes" && (
+              {(postRedActive && amberConcern72h === "yes") && (
                 <>
                   <DecisionCard tone="red" title="AT RISK OF VHF">
                     <ul className="list-disc pl-5">
@@ -495,7 +506,7 @@ export default function ExposuresStep({
                   </div>
 
                   {/* POST-MALARIA RED (amber path): if no alt-dx & concern 72h = YES */}
-                  {amberConcern72h === "yes" && (
+                  {(postRedActive && amberConcern72h === "yes") && (
                     <>
                       <DecisionCard tone="red" title="AT RISK OF VHF">
                         <ul className="list-disc pl-5">
@@ -596,17 +607,20 @@ export default function ExposuresStep({
                     </div>
                   </div>
 
-                  {/* Mirror amber behaviour for this branch */}
+                  {/* If concern/no-improvement = YES → red warning, then severe chain */}
                   {preMalariaConcern72h === "yes" && (
-                    <DecisionCard tone="red" title="AT RISK OF VHF">
-                      <ul className="list-disc pl-5">
-                        <li>ISOLATE PATIENT IN SIDE ROOM</li>
-                        <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
-                        <li>Urgent Malaria investigation</li>
-                        <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
-                        <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
-                      </ul>
-                    </DecisionCard>
+                    <>
+                      <DecisionCard tone="red" title="AT RISK OF VHF">
+                        <ul className="list-disc pl-5">
+                          <li>ISOLATE PATIENT IN SIDE ROOM</li>
+                          <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+                          <li>Urgent Malaria investigation</li>
+                          <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
+                          <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
+                        </ul>
+                      </DecisionCard>
+                      {renderSevereChain()}
+                    </>
                   )}
 
                   {preMalariaConcern72h === "no" && (
@@ -619,19 +633,19 @@ export default function ExposuresStep({
                 <>
                   <AmberSummary title="Manage as Malaria, but consider possibility of dual infection with VHF" />
                   <ActionsCard />
+                  {renderSevereChain()}
                 </>
               )}
             </>
           )}
 
           {/* Malaria NEGATIVE */}
-          {preMalariaMalariaPositive === "no" && <ActionsCard />}
-
-          {/* Enter actions flow ONLY for: (malaria yes & outbreak yes) OR malaria no */}
-          {(
-            (preMalariaMalariaPositive === "yes" && preMalariaOutbreakReturn === "yes") ||
-            (preMalariaMalariaPositive === "no")
-          ) && renderSevereChain()}
+          {preMalariaMalariaPositive === "no" && (
+            <>
+              <ActionsCard />
+              {renderSevereChain()}
+            </>
+          )}
         </div>
       );
     }
@@ -686,9 +700,11 @@ export default function ExposuresStep({
           </div>
         </div>
 
-        {/* Right: sticky outcome */}
-        <div className="lg:col-span-1 lg:sticky lg:top-4 h-fit min-h-[200px]">
-          {summaryNode}
+        {/* Right: sticky outcome (scrolls internally) */}
+        <div className="lg:col-span-1 lg:sticky lg:top-4">
+          <div className="h-fit max-h-[80vh] overflow-y-auto">
+            {summaryNode}
+          </div>
         </div>
       </div>
 
@@ -713,4 +729,3 @@ export default function ExposuresStep({
     </div>
   );
 }
-
