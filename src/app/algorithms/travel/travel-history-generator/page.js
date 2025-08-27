@@ -322,9 +322,9 @@ export default function TravelHistoryGeneratorPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setShowAbout(true)} className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40">About</button>
-          <button type="button" onClick={printPage} className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40">Print / PDF</button>
-          <button type="button" onClick={clearAll} className="rounded-lg bg-rose-600 text-white px-3 py-2 text-sm hover:bg-rose-700">Clear all</button>
+          <button type="button" onClick={() => setShowAbout(true)} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400">About</button>
+          <button type="button" onClick={printPage} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400">Print / PDF</button>
+          <button type="button" onClick={clearAll} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400">Clear all</button>
         </div>
       </header>
 
@@ -360,7 +360,7 @@ export default function TravelHistoryGeneratorPage() {
           <TripCard key={trip.id} trip={trip} index={tIdx} updateTrip={updateTrip} updateStop={updateStop} addStop={addStop} removeStop={removeStop} addLayover={addLayover} updateLayover={updateLayover} removeLayover={removeLayover} removeTrip={removeTrip} />
         ))}
         <div>
-          <button type="button" onClick={addTrip} className="rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40">+ Add another trip</button>
+          <button type="button" onClick={addTrip} className="rounded-lg px-4 py-2 bg-violet-600 text-white hover:bg-violet-700">+ Add another trip</button>
         </div>
       </section>
 
@@ -399,7 +399,7 @@ export default function TravelHistoryGeneratorPage() {
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3">Text summary</h2>
           <textarea readOnly className="w-full min-h-[220px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={summaryText} />
           <div className="mt-3 flex gap-2">
-            <button type="button" onClick={() => navigator.clipboard.writeText(summaryText)} className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40">Copy summary</button>
+            <button type="button" onClick={() => navigator.clipboard.writeText(summaryText)} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400">Copy summary</button>
           </div>
         </div>
         <div className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
@@ -441,9 +441,9 @@ function TripCard({ trip, index, updateTrip, updateStop, addStop, removeStop, ad
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Trip {index + 1}</h2>
         <div className="flex gap-2">
-          <button type="button" onClick={() => addStop(trip.id)} className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40">+ Add stop</button>
-          <button type="button" onClick={() => addLayover(trip.id)} className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40">+ Add layover</button>
-          <button type="button" onClick={() => removeTrip(trip.id)} className="rounded-lg bg-rose-600 text-white px-3 py-2 text-sm hover:bg-rose-700">Remove trip</button>
+          <button type="button" onClick={() => addStop(trip.id)} className="rounded-lg px-4 py-2 bg-violet-600 text-white hover:bg-violet-700">+ Add stop</button>
+          <button type="button" onClick={() => addLayover(trip.id)} className="rounded-lg px-4 py-2 bg-violet-600 text-white hover:bg-violet-700">+ Add layover</button>
+          <button type="button" onClick={() => removeTrip(trip.id)} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400">Remove trip</button>
         </div>
       </div>
 
@@ -491,7 +491,7 @@ function StopCard({ stop, index, onChange, onRemove }) {
     <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Stop {index + 1}</h3>
-        <button type="button" onClick={onRemove} className="rounded-lg bg-rose-600 text-white px-3 py-1.5 text-xs hover:bg-rose-700">Remove stop</button>
+        <button type="button" onClick={onRemove} className="rounded-lg px-4 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400">Remove stop</button>
       </div>
 
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -632,7 +632,7 @@ function LayoverCard({ layover, onChange, onRemove }) {
     <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
       <div className="flex items-start justify-between gap-3">
         <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Layover</h4>
-        <button type="button" onClick={onRemove} className="rounded-lg bg-rose-600 text-white px-3 py-1.5 text-xs hover:bg-rose-700">Remove layover</button>
+        <button type="button" onClick={onRemove} className="rounded-lg px-4 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400">Remove layover</button>
       </div>
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
@@ -863,3 +863,4 @@ function exposuresToText(exp) {
   if (exp.otherText) labels.push(exp.otherText);
   return labels.join(', ');
 }
+
