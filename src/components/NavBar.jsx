@@ -9,8 +9,7 @@ const nav = [
   { href: "/", label: "Home" },
   { href: "/algorithms", label: "Algorithms" },
   { href: "/guidelines", label: "Guidelines" },
-  { href: "/calculators", label: "Calculators" },
-  { href: "/teaching", label: "Teaching" },
+  { href: "/teaching", label: "Education" }, // renamed Teaching → Education
 ];
 
 export default function NavBar() {
@@ -23,8 +22,10 @@ export default function NavBar() {
           href="/"
           className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-semibold"
         >
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-white">ID</span>
-          <span>ID Northwest</span>
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-white">
+            ID
+          </span>
+          <span>ID North West</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-2">
