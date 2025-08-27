@@ -54,9 +54,9 @@ export default function Home() {
         className="pointer-events-none absolute inset-0 -z-10"
       >
         {/* fine dotted grid */}
-        <div className="absolute inset-0 opacity-[0.08] dark:opacity-[0.10] [background:radial-gradient(currentColor_1px,transparent_1.5px)] [background-size:18px_18px] text-slate-600 dark:text-slate-300" />
+        <div className="absolute inset-0 opacity-[10] dark:opacity-[0.10] [background:radial-gradient(currentColor_1px,transparent_1.5px)] [background-size:18px_18px] text-slate-600 dark:text-slate-300" />
         {/* aurora wash */}
-        <div className="absolute inset-0 opacity-30 dark:opacity-25 blur-2xl [mask-image:radial-gradient(60%_40%_at_50%_20%,black,transparent_70%)]">
+        <div className="absolute inset-0 opacity-60 dark:opacity-25 blur-2xl [mask-image:radial-gradient(60%_40%_at_50%_20%,black,transparent_70%)]">
           <div className="absolute -top-24 left-1/2 h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-[conic-gradient(from_180deg_at_50%_50%,theme(colors.violet.500/.35),theme(colors.sky.400/.25),theme(colors.cyan.400/.25),transparent_70%)]" />
         </div>
       </div>
