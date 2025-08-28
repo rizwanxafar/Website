@@ -1,4 +1,3 @@
-// src/app/algorithms/travel/risk-assessment-returning-traveller/CountrySelect.jsx
 "use client";
 
 import useSessionForm from "@/hooks/useSessionForm";
@@ -7,7 +6,8 @@ import useGovUkHcid from "@/hooks/useGovUkHcid";
 import ScreeningStep from "./steps/ScreeningStep";
 import SelectStep from "./steps/SelectStep";
 import ReviewStep from "./steps/ReviewStep";
-import ExposuresStep from "./steps/ExposuresStep"; // NEW
+import ExposuresStep from "./steps/ExposuresStep";
+import SummaryStep from "./steps/SummaryStep";
 
 export default function CountrySelect() {
   const {
@@ -17,22 +17,39 @@ export default function CountrySelect() {
     q2Exposure, setQ2Exposure,
     selected, setSelected,
     onset, setOnset,
-
     // UI helpers (select step)
     query, setQuery,
     open, setOpen,
     showInput, setShowInput,
     inputRef,
-
-    // exposures
-    exposuresGlobal, setExposuresGlobal,
-    exposuresByCountry, setCountryExposure,
-
     // actions
     resetAll,
   } = useSessionForm();
 
   const { normalizedMap, meta, refresh } = useGovUkHcid();
+
+  // --- exposures state (lives here so SummaryStep can use it too) ---
+  // Global exposure Qs
+  const [exposuresGlobal, setExposuresGlobal] = React.useState({
+    q1_outbreak: "", // yes|no|""
+    q2_bleeding: "", // yes|no|""
+  });
+
+  // Per-country exposure answers
+  const [exposuresByCountry, setExposuresByCountry] = React.useState({});
+  const setCountryExposure = (rowId, key, value) => {
+    setExposuresByCountry((prev) => ({
+      ...prev,
+      [rowId]: { ...(prev[rowId] || {}), [key]: value },
+    }));
+  };
+
+  // Reset exposures when leaving review->screen etc. (included in resetAll already)
+  const hardReset = () => {
+    setExposuresByCountry({});
+    setExposuresGlobal({ q1_outbreak: "", q2_bleeding: "" });
+    resetAll();
+  };
 
   if (step === "screen") {
     return (
@@ -42,7 +59,7 @@ export default function CountrySelect() {
         q2Exposure={q2Exposure}
         setQ2Exposure={setQ2Exposure}
         onContinue={() => setStep("select")}
-        onReset={resetAll}
+        onReset={hardReset}
       />
     );
   }
@@ -62,7 +79,7 @@ export default function CountrySelect() {
         setShowInput={setShowInput}
         inputRef={inputRef}
         onBackToScreen={() => setStep("screen")}
-        onReset={resetAll}
+        onReset={hardReset}
         onContinue={() => setStep("review")}
       />
     );
@@ -75,24 +92,39 @@ export default function CountrySelect() {
         onset={onset}
         meta={meta}
         normalizedMap={normalizedMap}
+        refresh={refresh}
         onBackToSelect={() => setStep("select")}
-        onReset={resetAll}
-        onContinueToExposures={() => setStep("exposures")} // NEW
+        onReset={hardReset}
+        onContinueToExposures={() => setStep("exposures")}
       />
     );
   }
 
-  // exposures
+  if (step === "exposures") {
+    return (
+      <ExposuresStep
+        selected={selected}
+        normalizedMap={normalizedMap}
+        exposuresGlobal={exposuresGlobal}
+        setExposuresGlobal={setExposuresGlobal}
+        exposuresByCountry={exposuresByCountry}
+        setCountryExposure={setCountryExposure}
+        onBackToReview={() => setStep("review")}
+        onReset={hardReset}
+        onContinueToSummary={() => setStep("summary")}
+      />
+    );
+  }
+
+  // new step
   return (
-    <ExposuresStep
+    <SummaryStep
       selected={selected}
       normalizedMap={normalizedMap}
       exposuresGlobal={exposuresGlobal}
-      setExposuresGlobal={setExposuresGlobal}
       exposuresByCountry={exposuresByCountry}
-      setCountryExposure={setCountryExposure}
-      onBackToReview={() => setStep("review")}
-      onReset={resetAll}
+      onBackToExposures={() => setStep("exposures")}
+      onReset={hardReset}
     />
   );
 }
