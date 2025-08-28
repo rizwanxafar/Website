@@ -2,6 +2,7 @@
 
 import useSessionForm from "@/hooks/useSessionForm";
 import useGovUkHcid from "@/hooks/useGovUkHcid";
+import React from "react";
 
 import ScreeningStep from "./steps/ScreeningStep";
 import SelectStep from "./steps/SelectStep";
