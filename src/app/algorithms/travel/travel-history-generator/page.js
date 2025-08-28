@@ -247,40 +247,11 @@ export default function TravelHistoryGeneratorPage() {
 
       {/* Companions */}
       <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Companions</h2>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Who did you travel with?</label>
-            <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={state.companions.group} onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, group: e.target.value } }))}>
-              {['Alone', 'Family', 'Friends', 'Tour group', 'Work colleagues', 'Other'].map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
-          {state.companions.group === 'Other' && (
-            <div>
-              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Describe</label>
-              <input type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={state.companions.otherText} onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, otherText: e.target.value } }))} />
-            </div>
-          )}
-          <div>
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Are companions well?</label>
-            <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={state.companions.companionsWell} onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, companionsWell: e.target.value } }))}>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-              <option value="unknown">Unknown</option>
-            </select>
-          </div>
-        </div>
-      </section>
-
-      {/* Visual timeline — full width Card Rail */}
-      <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline (Card Rail)</h2>
-          <span className="text-xs text-slate-500 dark:text-slate-400">UK shown as start and end anchors</span>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline (Vertical)</h2>
+          <span className="text-xs text-slate-500 dark:text-slate-400">Print‑optimised snapshot</span>
         </div>
-        <TimelineCardRail stops={timelineStops} layovers={timelineLayovers} />
+        <TimelineVertical stops={timelineStops} layovers={timelineLayovers} />
       </section>
 
       {/* Text summary below timeline */}
@@ -760,6 +731,11 @@ function buildSummary(state) {
 
 function exposuresToText(exp) {
   if (!exp) return '';
+  return exposuresToArray(exp).join(', ');
+}
+
+function exposuresToArray(exp) {
+  if (!exp) return [];
   const labels = [];
   if (exp.mosquito) labels.push('mosquito exposure');
   if (exp.tick) labels.push('tick exposure');
@@ -779,5 +755,5 @@ function exposuresToText(exp) {
   if (exp.prison) labels.push('prison contact');
   if (exp.refugeeCamp) labels.push('refugee camp contact');
   if (exp.otherText) labels.push(exp.otherText);
-  return labels.join(', ');
+  return labels;
 }
