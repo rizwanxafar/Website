@@ -650,32 +650,151 @@ export default function SummaryStep({
   }
 
   // anyYes === true -> PRE-MALARIA RED
-  return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-        Outcome of risk assessment
-      </h2>
+  // anyYes === true -> PRE-MALARIA RED
+return (
+  <div className="space-y-6">
+    <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+      Outcome of risk assessment
+    </h2>
 
-      <DecisionCard tone="red" title="AT RISK OF VHF" />
-      {ActionsCard()}
-      {renderSevereChain()}
+    {/* Same opening card as screeningRed */}
+    <DecisionCard tone="red" title="AT RISK OF VHF">
+      <ul className="list-disc pl-5">
+        <li>ISOLATE PATIENT IN SIDE ROOM</li>
+        <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+        <li>Urgent Malaria investigation</li>
+        <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
+        <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
+      </ul>
+    </DecisionCard>
 
-      <div className="flex gap-3">
+    {/* Malaria test? */}
+    <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+      <div className="text-sm mb-1">Is the malaria test positive?</div>
+      <div className="flex gap-2">
         <button
           type="button"
-          onClick={onBackToExposures}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
+          className={yesNoBtn(preMalariaMalariaPositive === "yes")}
+          onClick={() => setMalariaResult("yes")}
         >
-          Back to exposures
+          Yes
         </button>
         <button
           type="button"
-          onClick={onReset}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:border-rose-400"
+          className={yesNoBtn(preMalariaMalariaPositive === "no")}
+          onClick={() => setMalariaResult("no")}
         >
-          New assessment
+          No
         </button>
       </div>
     </div>
-  );
+
+    {/* Malaria positive */}
+    {preMalariaMalariaPositive === "yes" && (
+      <>
+        <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+          <div className="text-sm mb-1">Has the patient returned from a VHF outbreak area?</div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className={yesNoBtn(preMalariaOutbreakReturn === "yes")}
+              onClick={() => setOutbreakReturn("yes")}
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              className={yesNoBtn(preMalariaOutbreakReturn === "no")}
+              onClick={() => setOutbreakReturn("no")}
+            >
+              No
+            </button>
+          </div>
+        </div>
+
+        {/* Malaria + outbreak NO */}
+        {preMalariaOutbreakReturn === "no" && (
+          <>
+            <DecisionCard tone="green" title="Manage as malaria; VHF unlikely" />
+            <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+              <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className={yesNoBtn(preMalariaConcern72h === "yes")}
+                  onClick={() => setConcern72h("yes")}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  className={yesNoBtn(preMalariaConcern72h === "no")}
+                  onClick={() => setConcern72h("no")}
+                >
+                  No
+                </button>
+              </div>
+            </div>
+
+            {preMalariaConcern72h === "yes" && (
+              <>
+                <DecisionCard tone="red" title="AT RISK OF VHF">
+                  <ul className="list-disc pl-5">
+                    <li>ISOLATE PATIENT IN SIDE ROOM</li>
+                    <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+                    <li>Urgent Malaria investigation</li>
+                    <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
+                    <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
+                  </ul>
+                </DecisionCard>
+                {renderSevereChain()}
+              </>
+            )}
+
+            {preMalariaConcern72h === "no" && (
+              <DecisionCard tone="green" title="VHF unlikely; manage locally" />
+            )}
+          </>
+        )}
+
+        {/* Malaria + outbreak YES (dual infection consideration) */}
+        {preMalariaOutbreakReturn === "yes" && (
+          <>
+            <DecisionCard
+              tone="amber"
+              title="Manage as Malaria, but consider possibility of dual infection with VHF"
+            />
+            {ActionsCard()}
+            {renderSevereChain()}
+          </>
+        )}
+      </>
+    )}
+
+    {/* Malaria negative */}
+    {preMalariaMalariaPositive === "no" && (
+      <>
+        {ActionsCard()}
+        {renderSevereChain()}
+      </>
+    )}
+
+    <div className="flex gap-3">
+      <button
+        type="button"
+        onClick={onBackToExposures}
+        className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
+      >
+        Back to exposures
+      </button>
+      <button
+        type="button"
+        onClick={onReset}
+        className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:border-rose-400"
+      >
+        New assessment
+      </button>
+    </div>
+  </div>
+);
 }
