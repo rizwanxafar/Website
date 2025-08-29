@@ -1,3 +1,4 @@
+// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/ScreeningStep.jsx
 "use client";
 
 import DecisionCard from "@/components/DecisionCard";
@@ -14,7 +15,7 @@ export default function ScreeningStep({
   q2Exposure, setQ2Exposure,
   onContinue,       // proceed to Select
   onReset,
-  onEscalateToSummary, // NEW: jump into Summary pre-malaria red
+  onEscalateToSummary, // jump into Summary pre-malaria red
 }) {
   const q2Available = q1Fever === "yes";
   const showGreen = q1Fever === "no";
@@ -98,16 +99,9 @@ export default function ScreeningStep({
               onClick={onEscalateToSummary}
               className="rounded-lg px-4 py-2 bg-violet-600 text-white hover:bg-violet-700"
             >
-              Continue to red pathway
+              Next steps
             </button>
-
-            <button
-              type="button"
-              onClick={onReset}
-              className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:border-rose-400"
-            >
-              New assessment
-            </button>
+            {/* Removed the extra "New assessment" button here */}
           </div>
         </>
       )}
