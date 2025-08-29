@@ -1,10 +1,11 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v3 (Vertical Timeline, aligned nodes + checkbox accommodations)
-// - Client-only. Session restore via localStorage. No server storage.
-// - Output = text summary (with indented exposure details) + visual Vertical timeline (labels only).
-// - Countries currently a stubbed datalist; swap to ISO dataset later.
+// Travel History Generator — v4
+// - Vertical rail with nodes outside cards (arrival node + bold date above, departure node + bold date below)
+// - UK start/end nodes show overall earliest trip start and latest trip end
+// - Layovers get compact nodes + bold dates, no full card
+// - Client-only; session storage; no PII; text summary + print-friendly timeline
 
 import { useEffect, useMemo, useState } from 'react';
 
@@ -29,7 +30,7 @@ const VACCINE_OPTIONS = [
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine'];
 
 // ---- Persistence ----
-const LS_KEY = 'travel-history-generator:v3';
+const LS_KEY = 'travel-history-generator:v4';
 
 // ---- Helpers ----
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -90,7 +91,7 @@ const emptyStop = () => ({
     healthcareFacility: false, healthcareFacilityDetails: '',
     prison: false, prisonDetails: '',
     refugeeCamp: false, refugeeCampDetails: '',
-    safariWildlife: false, safariWildlifeDetails: '', // NEW exposure
+    safariWildlife: false, safariWildlifeDetails: '', // extra exposure
     otherText: '',
   },
 
@@ -158,7 +159,7 @@ export default function TravelHistoryGeneratorPage() {
     setIssues(list);
   }, [state.trips]);
 
-  // Derived — flattened/sorted stops & layovers for the timeline
+  // Derived — flattened/sorted stops & layovers for timeline
   const timelineStops = useMemo(() => {
     const stops = [];
     state.trips.forEach((trip) => {
@@ -196,6 +197,18 @@ export default function TravelHistoryGeneratorPage() {
       if (!da && !db) return 0; if (!da) return 1; if (!db) return -1; return da - db;
     });
     return layovers;
+  }, [state.trips]);
+
+  // UK dates: earliest trip start, latest trip end
+  const ukDates = useMemo(() => {
+    const starts = state.trips.map((t) => parseDate(t.startDate)).filter(Boolean);
+    const ends = state.trips.map((t) => parseDate(t.endDate)).filter(Boolean);
+    const minStart = starts.length ? new Date(Math.min(...starts)) : null;
+    const maxEnd = ends.length ? new Date(Math.max(...ends)) : null;
+    return {
+      depart: minStart ? formatDMY(minStart.toISOString()) : '',
+      return: maxEnd ? formatDMY(maxEnd.toISOString()) : '',
+    };
   }, [state.trips]);
 
   const summaryText = useMemo(() => buildSummary(state), [state]);
@@ -283,15 +296,15 @@ export default function TravelHistoryGeneratorPage() {
         </div>
       </section>
 
-      {/* Timeline (Vertical) */}
+      {/* Timeline (Vertical with outside nodes) */}
       <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline (Vertical)</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline</h2>
         </div>
-        <TimelineVertical stops={timelineStops} layovers={timelineLayovers} />
+        <TimelineVertical stops={timelineStops} layovers={timelineLayovers} ukDates={ukDates} />
       </section>
 
-      {/* Text summary below timeline */}
+      {/* Text summary */}
       <section className="mt-6 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3">Text summary</h2>
         <textarea readOnly className="w-full min-h-[240px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={summaryText} />
@@ -300,7 +313,7 @@ export default function TravelHistoryGeneratorPage() {
         </div>
       </section>
 
-      {/* About modal (basic) */}
+      {/* About modal */}
       {showAbout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowAbout(false)} />
@@ -400,7 +413,6 @@ function StopCard({ stop, index, onChange, onRemove }) {
     const set = new Set(stop.accommodations || []);
     if (set.has(value)) set.delete(value);
     else {
-      // If user selects "Prefer not to say", clear others; if selecting others, remove "Prefer not to say"
       if (value === 'Prefer not to say') {
         set.clear();
         set.add(value);
@@ -422,7 +434,6 @@ function StopCard({ stop, index, onChange, onRemove }) {
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Country *</label>
-          {/* Datalist for countries */}
           <input list="country-options" type="text" placeholder="Start typing…" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.country} onChange={(e) => onChange({ country: e.target.value })} />
           <datalist id="country-options">
             {COUNTRY_STUB.map((c) => (<option key={c} value={c} />))}
@@ -495,9 +506,7 @@ function StopCard({ stop, index, onChange, onRemove }) {
           {/* Vector-borne */}
           <fieldset className="space-y-2">
             <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Vector-borne</legend>
-
             <ExposureCheck label="Mosquito exposure" checked={exp.mosquito} details={exp.mosquitoDetails} onToggle={(v) => onChange({ exposures: { ...exp, mosquito: v } })} onDetails={(v) => onChange({ exposures: { ...exp, mosquitoDetails: v } })} />
-
             <ExposureCheck label="Tick exposure" checked={exp.tick} details={exp.tickDetails} onToggle={(v) => onChange({ exposures: { ...exp, tick: v } })} onDetails={(v) => onChange({ exposures: { ...exp, tickDetails: v } })} />
 
             <div className="space-y-1">
@@ -517,54 +526,38 @@ function StopCard({ stop, index, onChange, onRemove }) {
           {/* Water / Environment */}
           <fieldset className="space-y-2">
             <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Water / Environment</legend>
-
             <ExposureCheck label="Freshwater contact" checked={exp.freshwater} details={exp.freshwaterDetails} onToggle={(v) => onChange({ exposures: { ...exp, freshwater: v } })} onDetails={(v) => onChange({ exposures: { ...exp, freshwaterDetails: v } })} />
-
             <ExposureCheck label="Caves/mines" checked={exp.cavesMines} details={exp.cavesMinesDetails} onToggle={(v) => onChange({ exposures: { ...exp, cavesMines: v } })} onDetails={(v) => onChange({ exposures: { ...exp, cavesMinesDetails: v } })} />
-
             <ExposureCheck label="Rural/forest stay" checked={exp.ruralForest} details={exp.ruralForestDetails} onToggle={(v) => onChange({ exposures: { ...exp, ruralForest: v } })} onDetails={(v) => onChange({ exposures: { ...exp, ruralForestDetails: v } })} />
           </fieldset>
 
           {/* Animal & Procedures */}
           <fieldset className="space-y-2">
             <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Animal & Procedures</legend>
-
             <ExposureCheck label="Animal contact" checked={exp.animalContact} details={exp.animalContactDetails} onToggle={(v) => onChange({ exposures: { ...exp, animalContact: v } })} onDetails={(v) => onChange({ exposures: { ...exp, animalContactDetails: v } })} />
-
             <ExposureCheck label="Animal bite/scratch" checked={exp.animalBiteScratch} details={exp.animalBiteScratchDetails} onToggle={(v) => onChange({ exposures: { ...exp, animalBiteScratch: v } })} onDetails={(v) => onChange({ exposures: { ...exp, animalBiteScratchDetails: v } })} />
-
             <ExposureCheck label="Bushmeat handling" checked={exp.bushmeat} details={exp.bushmeatDetails} onToggle={(v) => onChange({ exposures: { ...exp, bushmeat: v } })} onDetails={(v) => onChange({ exposures: { ...exp, bushmeatDetails: v } })} />
-
             <ExposureCheck label="Needles/tattoos/piercings" checked={exp.needlesTattoos} details={exp.needlesTattoosDetails} onToggle={(v) => onChange({ exposures: { ...exp, needlesTattoos: v } })} onDetails={(v) => onChange({ exposures: { ...exp, needlesTattoosDetails: v } })} />
-
             <ExposureCheck label="Safari / wildlife viewing" checked={exp.safariWildlife} details={exp.safariWildlifeDetails} onToggle={(v) => onChange({ exposures: { ...exp, safariWildlife: v } })} onDetails={(v) => onChange({ exposures: { ...exp, safariWildlifeDetails: v } })} />
           </fieldset>
 
           {/* Food & Water */}
           <fieldset className="space-y-2">
             <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Food & Water</legend>
-
             <ExposureCheck label="Street food" checked={exp.streetFood} details={exp.streetFoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, streetFood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, streetFoodDetails: v } })} />
-
             <ExposureCheck label="Drank untreated water" checked={exp.untreatedWater} details={exp.untreatedWaterDetails} onToggle={(v) => onChange({ exposures: { ...exp, untreatedWater: v } })} onDetails={(v) => onChange({ exposures: { ...exp, untreatedWaterDetails: v } })} />
-
             <ExposureCheck label="Undercooked food" checked={exp.undercookedFood} details={exp.undercookedFoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, undercookedFood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, undercookedFoodDetails: v } })} />
-
             <ExposureCheck label="Undercooked seafood" checked={exp.undercookedSeafood} details={exp.undercookedSeafoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, undercookedSeafood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, undercookedSeafoodDetails: v } })} />
           </fieldset>
 
           {/* Institutional / Social */}
           <fieldset className="space-y-2 md:col-span-2">
             <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Institutional / Social</legend>
-
             <div className="grid sm:grid-cols-2 gap-2">
               <ExposureCheck label="Healthcare facility contact" checked={exp.healthcareFacility} details={exp.healthcareFacilityDetails} onToggle={(v) => onChange({ exposures: { ...exp, healthcareFacility: v } })} onDetails={(v) => onChange({ exposures: { ...exp, healthcareFacilityDetails: v } })} />
-
               <ExposureCheck label="Prison contact" checked={exp.prison} details={exp.prisonDetails} onToggle={(v) => onChange({ exposures: { ...exp, prison: v } })} onDetails={(v) => onChange({ exposures: { ...exp, prisonDetails: v } })} />
-
               <ExposureCheck label="Refugee camp contact" checked={exp.refugeeCamp} details={exp.refugeeCampDetails} onToggle={(v) => onChange({ exposures: { ...exp, refugeeCamp: v } })} onDetails={(v) => onChange({ exposures: { ...exp, refugeeCampDetails: v } })} />
             </div>
-
             <div className="mt-3">
               <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other exposure (free-text)</label>
               <input type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm" value={exp.otherText} onChange={(e) => onChange({ exposures: { ...exp, otherText: e.target.value } })} />
@@ -700,14 +693,22 @@ function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
   );
 }
 
-// ---- Timeline (Vertical) ----
-function TimelineVertical({ stops, layovers }) {
+/**
+ * Timeline (Vertical)
+ * - Fixed left gutter with spine
+ * - For each stop: Top "arrival row" (node + bold date), then card, then Bottom "departure row" (node + bold date)
+ * - UK anchors use ukDates.depart and ukDates.return
+ * - Layovers are compact strips with their own nodes + bold dates between relevant stops
+ */
+function TimelineVertical({ stops, layovers, ukDates }) {
+  // Build simple sequence with UK anchors
   const items = [
-    { type: 'anchor', id: 'uk-start', label: 'United Kingdom' },
+    { type: 'anchor-start', id: 'uk-start', label: 'United Kingdom', date: ukDates?.depart || '' },
     ...stops.map((s) => ({ type: 'stop', ...s })),
-    { type: 'anchor', id: 'uk-end', label: 'United Kingdom' },
+    { type: 'anchor-end', id: 'uk-end', label: 'United Kingdom', date: ukDates?.return || '' },
   ];
 
+  // Helper: layovers whose start falls between stop A and next stop B
   const layoversBetween = (a, b) => {
     const aEnd = parseDate(a?.departure || a?.arrival);
     const bStart = parseDate(b?.arrival || b?.departure);
@@ -718,53 +719,67 @@ function TimelineVertical({ stops, layovers }) {
     });
   };
 
+  // Shared gutter UI
+  const Spine = () => (
+    <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-slate-300 dark:bg-slate-700" aria-hidden="true" />
+  );
+  const Node = () => (
+    <span className="inline-block h-3 w-3 rounded-full bg-violet-600 align-middle" aria-hidden="true" />
+  );
+
   return (
     <div className="relative">
-      {/* Spine aligned at left-4 */}
-      <div className="absolute left-4 top-0 bottom-0 w-1 bg-slate-300 dark:bg-slate-700" />
-
+      <Spine />
       <ol className="space-y-6">
-        {items.map((it, idx) => {
-          const next = items[idx + 1];
-          const between = next ? layoversBetween(it, next) : [];
-          return (
-            <li key={it.id || it.label + idx} className="relative pl-14">
-              {/* Node marker centered on the spine */}
-              <span
-                className={classNames(
-                  'absolute left-4 -translate-x-1/2 top-2 inline-block h-6 w-6 rounded-full border-2',
-                  it.type === 'anchor'
-                    ? 'border-violet-600 bg-white dark:bg-slate-950'
-                    : 'border-slate-400 bg-white dark:bg-slate-950'
-                )}
-                aria-hidden="true"
-              />
+        {/* UK start anchor */}
+        <li className="relative pl-24">
+          <div className="flex items-center gap-3">
+            <div className="absolute left-8 -translate-x-1/2">
+              <Node />
+            </div>
+            {items[0].date ? <strong className="tabular-nums">{items[0].date}</strong> : <span className="text-slate-500 text-sm">Start</span>}
+          </div>
+          <div className="mt-2 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3">
+            <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">United Kingdom</div>
+          </div>
+        </li>
 
-              {/* Card */}
-              {it.type === 'anchor' ? (
-                <div className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3">
-                  <div className="text-xs font-medium text-slate-500 dark:text-slate-400">Anchor</div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{it.label}</div>
+        {/* Iterate stops with arrival row, card, layovers, departure row */}
+        {items
+          .filter((it) => it.type === 'stop')
+          .map((it, idx, arr) => {
+            const nextStop = arr[idx + 1];
+            const between = nextStop ? layoversBetween(it, nextStop) : [];
+            return (
+              <li key={it.id} className="relative pl-24">
+                {/* Arrival row (node + bold date) */}
+                <div className="flex items-center gap-3">
+                  <div className="absolute left-8 -translate-x-1/2">
+                    <Node />
+                  </div>
+                  <strong className="tabular-nums">{formatDMY(it.arrival)}</strong>
                 </div>
-              ) : (
-                <div className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
+
+                {/* Stop card */}
+                <div className="mt-2 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate" title={it.label}>
-                      {it.label}
-                    </h3>
-                    <div className="text-sm text-slate-700 dark:text-slate-300">
-                      {formatDMY(it.arrival)} → {formatDMY(it.departure)}
-                    </div>
+                    <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate" title={it.label}>{it.label}</h3>
                   </div>
 
                   {/* Details grid */}
                   <div className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-2">
                     <div className="text-sm">
                       <span className="font-medium">Accommodation:</span>{' '}
-                      {it.accommodations?.length ? it.accommodations.join(', ') : '—'}
+                      {it.accommodations?.length
+                        ? (it.accommodations.includes('Other') && it.accommodationOther
+                          ? [...it.accommodations.filter(a => a !== 'Other'), `Other: ${it.accommodationOther}`].join(', ')
+                          : it.accommodations.join(', ')
+                        )
+                        : '—'}
                     </div>
                     <div className="text-sm">
-                      <span className="font-medium">Vaccines:</span> {it.vaccines?.length ? it.vaccines.join(', ') : '—'}
+                      <span className="font-medium">Vaccines:</span>{' '}
+                      {it.vaccines?.length ? it.vaccines.join(', ') : '—'}
                     </div>
                     <div className="text-sm">
                       <span className="font-medium">Malaria prophylaxis:</span>{' '}
@@ -782,24 +797,61 @@ function TimelineVertical({ stops, layovers }) {
                     </div>
                   </div>
                 </div>
-              )}
 
-              {/* Layovers to next */}
-              {between.length > 0 && (
-                <div className="mt-2 ml-1 flex flex-wrap items-center gap-2">
-                  {between.map((l) => (
-                    <span key={l.id} className="inline-flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                      <span className="inline-block h-2.5 w-2.5 rotate-45 bg-violet-600" />
-                      {(l.city ? `${l.city}, ` : '') + (l.country || '')}
-                      {l.start ? ` (${formatDMY(l.start)}` : ''}
-                      {l.end ? ` → ${formatDMY(l.end)})` : l.start ? ')' : ''}
-                    </span>
-                  ))}
+                {/* Layovers between this stop and the next stop */}
+                {between.length > 0 && (
+                  <div className="mt-3 space-y-3">
+                    {between.map((l) => (
+                      <div key={l.id} className="relative">
+                        {/* Layover arrival row */}
+                        <div className="flex items-center gap-3 pl-24">
+                          <div className="absolute left-8 -translate-x-1/2">
+                            <Node />
+                          </div>
+                          <strong className="tabular-nums">{formatDMY(l.start)}</strong>
+                          <span className="text-xs text-slate-500">Layover start</span>
+                        </div>
+                        {/* Layover strip */}
+                        <div className="mt-1 ml-24 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-xs text-slate-700 dark:text-slate-300">
+                          {(l.city ? `${l.city}, ` : '') + (l.country || '')}
+                          {l.leftAirport === 'yes' && l.accommodation ? ` · ${l.accommodation}` : ''}
+                        </div>
+                        {/* Layover departure row */}
+                        <div className="mt-1 flex items-center gap-3 pl-24">
+                          <div className="absolute left-8 -translate-x-1/2">
+                            <Node />
+                          </div>
+                          <strong className="tabular-nums">{formatDMY(l.end)}</strong>
+                          <span className="text-xs text-slate-500">Layover end</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Departure row (node + bold date) */}
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="absolute left-8 -translate-x-1/2">
+                    <Node />
+                  </div>
+                  <strong className="tabular-nums">{formatDMY(it.departure)}</strong>
                 </div>
-              )}
-            </li>
-          );
-        })}
+              </li>
+            );
+          })}
+
+        {/* UK end anchor */}
+        <li className="relative pl-24">
+          <div className="mt-1 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3">
+            <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">United Kingdom</div>
+          </div>
+          <div className="mt-2 flex items-center gap-3">
+            <div className="absolute left-8 -translate-x-1/2">
+              <Node />
+            </div>
+            {items[items.length - 1].date ? <strong className="tabular-nums">{items[items.length - 1].date}</strong> : <span className="text-slate-500 text-sm">End</span>}
+          </div>
+        </li>
       </ol>
     </div>
   );
@@ -877,7 +929,7 @@ function buildSummary(state) {
     lines.push(`Companions: ${who}; companions well: ${c.companionsWell}`);
   }
 
-  lines.push('Note: Timeline displays UK → trips → UK for visual clarity.');
+  lines.push('Note: Dates appear on the rail; cards show travel details.');
 
   return lines.join('\n');
 }
