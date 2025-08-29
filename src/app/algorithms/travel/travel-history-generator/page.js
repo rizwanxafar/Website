@@ -1,7 +1,7 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v2 (Vertical Timeline)
+// Travel History Generator — v3 (Vertical Timeline, aligned nodes + checkbox accommodations)
 // - Client-only. Session restore via localStorage. No server storage.
 // - Output = text summary (with indented exposure details) + visual Vertical timeline (labels only).
 // - Countries currently a stubbed datalist; swap to ISO dataset later.
@@ -29,7 +29,7 @@ const VACCINE_OPTIONS = [
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine'];
 
 // ---- Persistence ----
-const LS_KEY = 'travel-history-generator:v2';
+const LS_KEY = 'travel-history-generator:v3';
 
 // ---- Helpers ----
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -63,10 +63,10 @@ function rangesOverlap(aStart, aEnd, bStart, bEnd) {
 const emptyStop = () => ({
   id: uid(),
   country: '',
-  cities: [''], // << multiple cities per stop
+  cities: [''], // multiple cities per stop
   arrival: '',
   departure: '',
-  accommodations: [], // << multiple accommodation types
+  accommodations: [], // multiple accommodation types
   accommodationOther: '',
 
   // Exposures with per-exposure details (details shown only in text summary)
@@ -90,7 +90,7 @@ const emptyStop = () => ({
     healthcareFacility: false, healthcareFacilityDetails: '',
     prison: false, prisonDetails: '',
     refugeeCamp: false, refugeeCampDetails: '',
-    safariWildlife: false, safariWildlifeDetails: '', // << NEW exposure
+    safariWildlife: false, safariWildlifeDetails: '', // NEW exposure
     otherText: '',
   },
 
@@ -287,7 +287,6 @@ export default function TravelHistoryGeneratorPage() {
       <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline (Vertical)</h2>
-          {/* caption removed per request */}
         </div>
         <TimelineVertical stops={timelineStops} layovers={timelineLayovers} />
       </section>
@@ -320,8 +319,8 @@ export default function TravelHistoryGeneratorPage() {
         @media print {
           header, .no-print { display: none !important; }
           main { padding: 0 !important; }
-          .print\:block { display: block !important; }
-          .print\:grid { display: grid !important; }
+          .print\\:block { display: block !important; }
+          .print\\:grid { display: grid !important; }
         }
       `}</style>
     </main>
@@ -382,6 +381,7 @@ function TripCard({ trip, index, updateTrip, updateStop, addStop, removeStop, ad
 function StopCard({ stop, index, onChange, onRemove }) {
   const exp = stop.exposures;
 
+  // Cities handlers
   const setCity = (i, val) => {
     const cities = [...(stop.cities || [])];
     cities[i] = val;
@@ -395,9 +395,21 @@ function StopCard({ stop, index, onChange, onRemove }) {
     onChange({ cities });
   };
 
-  const onAccomChange = (e) => {
-    const values = Array.from(e.target.selectedOptions).map((o) => o.value);
-    onChange({ accommodations: values });
+  // Accommodation handlers (checkbox group)
+  const toggleAccommodation = (value) => {
+    const set = new Set(stop.accommodations || []);
+    if (set.has(value)) set.delete(value);
+    else {
+      // If user selects "Prefer not to say", clear others; if selecting others, remove "Prefer not to say"
+      if (value === 'Prefer not to say') {
+        set.clear();
+        set.add(value);
+      } else {
+        set.delete('Prefer not to say');
+        set.add(value);
+      }
+    }
+    onChange({ accommodations: Array.from(set) });
   };
 
   return (
@@ -410,7 +422,7 @@ function StopCard({ stop, index, onChange, onRemove }) {
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Country *</label>
-        {/* Datalist for countries */}
+          {/* Datalist for countries */}
           <input list="country-options" type="text" placeholder="Start typing…" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.country} onChange={(e) => onChange({ country: e.target.value })} />
           <datalist id="country-options">
             {COUNTRY_STUB.map((c) => (<option key={c} value={c} />))}
@@ -441,19 +453,36 @@ function StopCard({ stop, index, onChange, onRemove }) {
         </div>
       </div>
 
-      {/* Accommodation (multi-select) */}
-      <div className="mt-4 grid sm:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Accommodation (select one or more)</label>
-          <select multiple className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm h-[120px]" value={stop.accommodations} onChange={onAccomChange}>
-            {ACCOMMODATION_OPTIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
-          </select>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Hold Ctrl/Cmd (desktop) to select multiple.</p>
+      {/* Accommodation (checkbox group) */}
+      <div className="mt-4">
+        <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Accommodation (select one or more)</label>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {ACCOMMODATION_OPTIONS.map((opt) => {
+            const checked = (stop.accommodations || []).includes(opt);
+            const id = `${stop.id}-accom-${opt.replace(/\s+/g, '-').toLowerCase()}`;
+            return (
+              <label key={opt} htmlFor={id} className="flex items-start gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
+                <input
+                  id={id}
+                  type="checkbox"
+                  className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700"
+                  checked={checked}
+                  onChange={() => toggleAccommodation(opt)}
+                />
+                <span>{opt}</span>
+              </label>
+            );
+          })}
         </div>
-        {stop.accommodations.includes('Other') && (
-          <div className="sm:col-span-2">
+        {(stop.accommodations || []).includes('Other') && (
+          <div className="mt-2">
             <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other (describe)</label>
-            <input type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.accommodationOther} onChange={(e) => onChange({ accommodationOther: e.target.value })} />
+            <input
+              type="text"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              value={stop.accommodationOther}
+              onChange={(e) => onChange({ accommodationOther: e.target.value })}
+            />
           </div>
         )}
       </div>
@@ -691,7 +720,7 @@ function TimelineVertical({ stops, layovers }) {
 
   return (
     <div className="relative">
-      {/* Spine */}
+      {/* Spine aligned at left-4 */}
       <div className="absolute left-4 top-0 bottom-0 w-1 bg-slate-300 dark:bg-slate-700" />
 
       <ol className="space-y-6">
@@ -700,10 +729,10 @@ function TimelineVertical({ stops, layovers }) {
           const between = next ? layoversBetween(it, next) : [];
           return (
             <li key={it.id || it.label + idx} className="relative pl-14">
-              {/* Node marker: larger, no text inside */}
+              {/* Node marker centered on the spine */}
               <span
                 className={classNames(
-                  'absolute left-3 top-2 inline-block h-6 w-6 rounded-full border-2',
+                  'absolute left-4 -translate-x-1/2 top-2 inline-block h-6 w-6 rounded-full border-2',
                   it.type === 'anchor'
                     ? 'border-violet-600 bg-white dark:bg-slate-950'
                     : 'border-slate-400 bg-white dark:bg-slate-950'
