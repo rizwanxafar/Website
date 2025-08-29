@@ -1,3 +1,4 @@
+// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/SummaryStep.jsx
 "use client";
 
 import { useMemo, useState, useRef, useEffect } from "react";
@@ -11,9 +12,9 @@ const yesNoBtn = (active) =>
   }`;
 
 const txt = (s = "") => String(s).toLowerCase();
-const isNoKnownHcid = (disease = "") => txt(disease).includes("no known hcid");
-const isTravelAssociated = (disease = "") => txt(disease).includes("travel associated");
-const isImportedOnly = (evidence = "") => txt(evidence).includes("imported cases only");
+const isNoKnownHcid = (d = "") => txt(d).includes("no known hcid");
+const isTravelAssociated = (d = "") => txt(d).includes("travel associated");
+const isImportedOnly = (e = "") => txt(e).includes("imported cases only");
 const hasDisease = (entries = [], name = "") =>
   entries.some((e) => String(e?.disease || "").toLowerCase().includes(name.toLowerCase()));
 
@@ -22,14 +23,14 @@ export default function SummaryStep({
   normalizedMap,
   exposuresGlobal,
   exposuresByCountry,
-  entryMode = "normal",      // NEW: "normal" | "screeningRed"
+  entryMode = "normal",      // "normal" | "screeningRed"
   onBackToExposures,
-  onBackToScreen,            // NEW: used when coming from screening
+  onBackToScreen,
   onReset,
 }) {
   const fromScreeningRed = entryMode === "screeningRed";
 
-  // Compute exposure completion (used when not from screening)
+  // ----- Exposure completion / any-yes rollup -----
   const { allAnswered, anyYes } = useMemo(() => {
     let requiredCountryQs = 0;
     let answeredCountryQs = 0;
@@ -40,17 +41,22 @@ export default function SummaryStep({
       const entries = normalizedMap.get(key) || [];
 
       const entriesFiltered = (entries || []).filter(
-        (e) => !isNoKnownHcid(e.disease) && !isTravelAssociated(e.disease) && !isImportedOnly(e.evidence)
+        (e) =>
+          !isNoKnownHcid(e.disease) &&
+          !isTravelAssociated(e.disease) &&
+          !isImportedOnly(e.evidence)
       );
 
       const row = exposuresByCountry[c.id] || {};
-      const showLassa  = hasDisease(entriesFiltered, "lassa");
-      const showEbMarb = hasDisease(entriesFiltered, "ebola") || hasDisease(entriesFiltered, "marburg");
-      const showCchf   = hasDisease(entriesFiltered, "cchf");
+      const showLassa = hasDisease(entriesFiltered, "lassa");
+      const showEbMarb =
+        hasDisease(entriesFiltered, "ebola") ||
+        hasDisease(entriesFiltered, "marburg");
+      const showCchf = hasDisease(entriesFiltered, "cchf");
 
-      const ansLassa  = showLassa  ? row.lassa || "" : null;
+      const ansLassa = showLassa ? row.lassa || "" : null;
       const ansEbMarb = showEbMarb ? row.ebola_marburg || "" : null;
-      const ansCchf   = showCchf   ? row.cchf || "" : null;
+      const ansCchf = showCchf ? row.cchf || "" : null;
 
       [ansLassa, ansEbMarb, ansCchf].forEach((a) => {
         if (a !== null) {
@@ -63,14 +69,31 @@ export default function SummaryStep({
 
     let requiredGlobalQs = 2;
     let answeredGlobalQs = 0;
-    if (exposuresGlobal.q1_outbreak === "yes" || exposuresGlobal.q1_outbreak === "no") answeredGlobalQs += 1;
-    if (exposuresGlobal.q2_bleeding === "yes" || exposuresGlobal.q2_bleeding === "no") answeredGlobalQs += 1;
+    if (
+      exposuresGlobal.q1_outbreak === "yes" ||
+      exposuresGlobal.q1_outbreak === "no"
+    )
+      answeredGlobalQs += 1;
+    if (
+      exposuresGlobal.q2_bleeding === "yes" ||
+      exposuresGlobal.q2_bleeding === "no"
+    )
+      answeredGlobalQs += 1;
 
-    const allAnswered = answeredCountryQs + answeredGlobalQs === requiredCountryQs + requiredGlobalQs;
-    return { allAnswered, anyYes: anyYesLocal || exposuresGlobal.q1_outbreak === "yes" || exposuresGlobal.q2_bleeding === "yes" };
+    const allAnswered =
+      answeredCountryQs + answeredGlobalQs ===
+      requiredCountryQs + requiredGlobalQs;
+
+    return {
+      allAnswered,
+      anyYes:
+        anyYesLocal ||
+        exposuresGlobal.q1_outbreak === "yes" ||
+        exposuresGlobal.q2_bleeding === "yes",
+    };
   }, [selected, normalizedMap, exposuresByCountry, exposuresGlobal]);
 
-  // ---------- Amber pathway state ----------
+  // ----- Amber pathway state -----
   const [amberMalariaPositive, setAmberMalariaPositive] = useState("");
   const [amberAltDx, setAmberAltDx] = useState("");
   const [amberConcern72h, setAmberConcern72h] = useState("");
@@ -80,7 +103,7 @@ export default function SummaryStep({
     setAmberConcern72h("");
   };
 
-  // ---------- Shared red chain state ----------
+  // ----- Shared red chain state (pre-/post-malaria) -----
   const [preMalariaMalariaPositive, setPreMalariaMalariaPositive] = useState("");
   const [preMalariaOutbreakReturn, setPreMalariaOutbreakReturn] = useState("");
   const [preMalariaConcern72h, setPreMalariaConcern72h] = useState("");
@@ -110,15 +133,16 @@ export default function SummaryStep({
     setPreMalariaVhfPositive("");
   };
 
-  // ---------- Post-malaria red activation (for amber branch) ----------
+  // ----- Post-malaria red activation for amber branch -----
   const [postRedActive, setPostRedActive] = useState(false);
   const activatedRef = useRef(false);
-
   const isPostMalariaRed =
-    (!anyYes && allAnswered) && (
-      (amberMalariaPositive === "yes" && amberConcern72h === "yes") ||
-      (amberMalariaPositive === "no" && amberAltDx === "no" && amberConcern72h === "yes")
-    );
+    !anyYes &&
+    allAnswered &&
+    ((amberMalariaPositive === "yes" && amberConcern72h === "yes") ||
+      (amberMalariaPositive === "no" &&
+        amberAltDx === "no" &&
+        amberConcern72h === "yes"));
 
   useEffect(() => {
     if (isPostMalariaRed && !activatedRef.current) {
@@ -134,7 +158,7 @@ export default function SummaryStep({
     }
   }, [isPostMalariaRed]);
 
-  // ---------- Shared blocks ----------
+  // ----- Shared blocks -----
   const ActionsCard = () => (
     <DecisionCard tone="red" title="Immediate actions">
       <ul className="list-disc pl-5">
@@ -156,12 +180,16 @@ export default function SummaryStep({
             type="button"
             className={yesNoBtn(preMalariaVhfPositive === "yes")}
             onClick={() => setPreMalariaVhfPositive("yes")}
-          >Yes</button>
+          >
+            Yes
+          </button>
           <button
             type="button"
             className={yesNoBtn(preMalariaVhfPositive === "no")}
             onClick={() => setPreMalariaVhfPositive("no")}
-          >No</button>
+          >
+            No
+          </button>
         </div>
       </div>
 
@@ -198,12 +226,16 @@ export default function SummaryStep({
             type="button"
             className={yesNoBtn(preMalariaVhfPositive === "yes")}
             onClick={() => setPreMalariaVhfPositive("yes")}
-          >Yes</button>
+          >
+            Yes
+          </button>
           <button
             type="button"
             className={yesNoBtn(preMalariaVhfPositive === "no")}
             onClick={() => setPreMalariaVhfPositive("no")}
-          >No</button>
+          >
+            No
+          </button>
         </div>
       </div>
 
@@ -233,12 +265,16 @@ export default function SummaryStep({
             type="button"
             className={yesNoBtn(preMalariaSevere === "yes")}
             onClick={() => setPreMalariaSevere("yes")}
-          >Yes</button>
+          >
+            Yes
+          </button>
           <button
             type="button"
             className={yesNoBtn(preMalariaSevere === "no")}
             onClick={() => setPreMalariaSevere("no")}
-          >No</button>
+          >
+            No
+          </button>
         </div>
       </div>
 
@@ -254,12 +290,16 @@ export default function SummaryStep({
                 type="button"
                 className={yesNoBtn(preMalariaFitOP === "yes")}
                 onClick={() => setPreMalariaFitOP("yes")}
-              >Yes</button>
+              >
+                Yes
+              </button>
               <button
                 type="button"
                 className={yesNoBtn(preMalariaFitOP === "no")}
                 onClick={() => setPreMalariaFitOP("no")}
-              >No</button>
+              >
+                No
+              </button>
             </div>
           </div>
 
@@ -270,9 +310,9 @@ export default function SummaryStep({
     </>
   );
 
-  // --------- Render ---------
+  // ===================== RENDER =====================
 
-  // If we came from Screening red, bypass exposure completeness and show pre-malaria chain
+  // Branch 1: Came from screening-red jump
   if (fromScreeningRed) {
     return (
       <div className="space-y-6">
@@ -298,12 +338,16 @@ export default function SummaryStep({
               type="button"
               className={yesNoBtn(preMalariaMalariaPositive === "yes")}
               onClick={() => setMalariaResult("yes")}
-            >Yes</button>
+            >
+              Yes
+            </button>
             <button
               type="button"
               className={yesNoBtn(preMalariaMalariaPositive === "no")}
               onClick={() => setMalariaResult("no")}
-            >No</button>
+            >
+              No
+            </button>
           </div>
         </div>
 
@@ -317,12 +361,16 @@ export default function SummaryStep({
                   type="button"
                   className={yesNoBtn(preMalariaOutbreakReturn === "yes")}
                   onClick={() => setOutbreakReturn("yes")}
-                >Yes</button>
+                >
+                  Yes
+                </button>
                 <button
                   type="button"
                   className={yesNoBtn(preMalariaOutbreakReturn === "no")}
                   onClick={() => setOutbreakReturn("no")}
-                >No</button>
+                >
+                  No
+                </button>
               </div>
             </div>
 
@@ -336,12 +384,16 @@ export default function SummaryStep({
                       type="button"
                       className={yesNoBtn(preMalariaConcern72h === "yes")}
                       onClick={() => setConcern72h("yes")}
-                    >Yes</button>
+                    >
+                      Yes
+                    </button>
                     <button
                       type="button"
                       className={yesNoBtn(preMalariaConcern72h === "no")}
                       onClick={() => setConcern72h("no")}
-                    >No</button>
+                    >
+                      No
+                    </button>
                   </div>
                 </div>
 
@@ -368,15 +420,11 @@ export default function SummaryStep({
 
             {preMalariaOutbreakReturn === "yes" && (
               <>
-                <DecisionCard tone="amber" title="Manage as Malaria, but consider possibility of dual infection with VHF" />
-                <DecisionCard tone="red" title="Immediate actions">
-                  <ul className="list-disc pl-5">
-                    <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
-                    <li>Infection Consultant to discuss VHF test with Imported Fever Service (0844 7788990)</li>
-                    <li>If VHF testing agreed with IFS, notify local Health Protection Team</li>
-                    <li>Consider empiric antimicrobials</li>
-                  </ul>
-                </DecisionCard>
+                <DecisionCard
+                  tone="amber"
+                  title="Manage as Malaria, but consider possibility of dual infection with VHF"
+                />
+                {ActionsCard()}
                 {renderSevereChain()}
               </>
             )}
@@ -411,7 +459,7 @@ export default function SummaryStep({
     );
   }
 
-  // Normal summary (after exposures)
+  // Branch 2: Normal summary (after exposures) – block user until all answered
   if (!allAnswered) {
     return (
       <div className="space-y-6">
@@ -439,6 +487,195 @@ export default function SummaryStep({
     );
   }
 
-  // …(unchanged from your current SummaryStep: amber branch or pre-malaria red depending on anyYes)…
-  // (Keep the rest of your existing SummaryStep render here.)
+  // Branch 3: Normal summary when all answered
+  // - anyYes === false -> Amber pathway
+  // - anyYes === true  -> Pre-malaria Red pathway
+  if (!anyYes) {
+    // AMBER
+    return (
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+          Outcome of risk assessment
+        </h2>
+
+        <DecisionCard tone="amber" title="Minimal risk of VHF">
+          <ul className="list-disc pl-5">
+            <li>Urgent Malaria investigation</li>
+            <li>Urgent local investigations as normally appropriate, including blood cultures.</li>
+          </ul>
+        </DecisionCard>
+
+        {/* Is malaria positive? */}
+        <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+          <div className="text-sm mb-1">Is the malaria test result positive?</div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className={yesNoBtn(amberMalariaPositive === "yes")}
+              onClick={() => setAmberMalaria("yes")}
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              className={yesNoBtn(amberMalariaPositive === "no")}
+              onClick={() => setAmberMalaria("no")}
+            >
+              No
+            </button>
+          </div>
+        </div>
+
+        {/* AMBER → malaria YES */}
+        {amberMalariaPositive === "yes" && (
+          <>
+            <DecisionCard tone="green" title="Manage as malaria; VHF unlikely" />
+            <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+              <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className={yesNoBtn(amberConcern72h === "yes")}
+                  onClick={() => setAmberConcern72h("yes")}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  className={yesNoBtn(amberConcern72h === "no")}
+                  onClick={() => setAmberConcern72h("no")}
+                >
+                  No
+                </button>
+              </div>
+            </div>
+
+            {amberConcern72h === "yes" && (
+              <>
+                <DecisionCard tone="red" title="AT RISK OF VHF" />
+                {ActionsCard()}
+                {renderSevereChain()}
+              </>
+            )}
+
+            {amberConcern72h === "no" && (
+              <DecisionCard tone="green" title="VHF unlikely; manage locally" />
+            )}
+          </>
+        )}
+
+        {/* AMBER → malaria NO */}
+        {amberMalariaPositive === "no" && (
+          <>
+            <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+              <div className="text-sm mb-1">Alternative diagnosis established?</div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className={yesNoBtn(amberAltDx === "yes")}
+                  onClick={() => setAmberAltDx("yes")}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  className={yesNoBtn(amberAltDx === "no")}
+                  onClick={() => setAmberAltDx("no")}
+                >
+                  No
+                </button>
+              </div>
+            </div>
+
+            {amberAltDx === "yes" && (
+              <DecisionCard tone="green" title="VHF unlikely; manage locally" />
+            )}
+
+            {amberAltDx === "no" && (
+              <>
+                <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+                  <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className={yesNoBtn(amberConcern72h === "yes")}
+                      onClick={() => setAmberConcern72h("yes")}
+                    >
+                      Yes
+                    </button>
+                    <button
+                      type="button"
+                      className={yesNoBtn(amberConcern72h === "no")}
+                      onClick={() => setAmberConcern72h("no")}
+                    >
+                      No
+                    </button>
+                  </div>
+                </div>
+
+                {amberConcern72h === "yes" && (
+                  <>
+                    <DecisionCard tone="red" title="AT RISK OF VHF" />
+                    {ActionsCard()}
+                    {renderSevereChain()}
+                  </>
+                )}
+
+                {amberConcern72h === "no" && (
+                  <DecisionCard tone="green" title="VHF unlikely; manage locally" />
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onBackToExposures}
+            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
+          >
+            Back to exposures
+          </button>
+          <button
+            type="button"
+            onClick={onReset}
+            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:border-rose-400"
+          >
+            New assessment
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // anyYes === true -> PRE-MALARIA RED
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+        Outcome of risk assessment
+      </h2>
+
+      <DecisionCard tone="red" title="AT RISK OF VHF" />
+      {ActionsCard()}
+      {renderSevereChain()}
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onBackToExposures}
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
+        >
+          Back to exposures
+        </button>
+        <button
+          type="button"
+          onClick={onReset}
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:border-rose-400"
+        >
+          New assessment
+        </button>
+      </div>
+    </div>
+  );
 }
