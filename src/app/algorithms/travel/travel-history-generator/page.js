@@ -1,10 +1,11 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v4
-// - Vertical rail with nodes outside cards (arrival node + bold date above, departure node + bold date below)
-// - UK start/end nodes show overall earliest trip start and latest trip end
-// - Layovers get compact nodes + bold dates, no full card
+// Travel History Generator — v5
+// - Trip start/end inputs removed; ranges inferred from stop dates
+// - UK anchor nodes removed
+// - Timeline uses a two-column grid gutter so rail + nodes align perfectly
+// - Nodes show bold arrival (above card) and departure (below card) dates OUTSIDE the card
 // - Client-only; session storage; no PII; text summary + print-friendly timeline
 
 import { useEffect, useMemo, useState } from 'react';
@@ -30,7 +31,7 @@ const VACCINE_OPTIONS = [
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine'];
 
 // ---- Persistence ----
-const LS_KEY = 'travel-history-generator:v4';
+const LS_KEY = 'travel-history-generator:v5';
 
 // ---- Helpers ----
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -104,7 +105,7 @@ const emptyLayover = () => ({
   activities: { ateLocally: false, publicTransport: false, streetFood: false, untreatedWater: false },
 });
 
-const emptyTrip = () => ({ id: uid(), startDate: '', endDate: '', purpose: '', stops: [emptyStop()], layovers: [] });
+const emptyTrip = () => ({ id: uid(), purpose: '', stops: [emptyStop()], layovers: [] });
 
 const initialState = {
   trips: [emptyTrip()],
@@ -137,10 +138,6 @@ export default function TravelHistoryGeneratorPage() {
   useEffect(() => {
     const list = [];
     state.trips.forEach((trip, tIdx) => {
-      if (trip.startDate && trip.endDate) {
-        const s = parseDate(trip.startDate), e = parseDate(trip.endDate);
-        if (s && e && s > e) list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Start date is after end date.` });
-      }
       trip.stops.forEach((s, sIdx) => {
         if (s.arrival && s.departure) {
           const a = parseDate(s.arrival), d = parseDate(s.departure);
@@ -175,6 +172,7 @@ export default function TravelHistoryGeneratorPage() {
           departure: s.departure,
           exposures: s.exposures,
           accommodations: s.accommodations,
+          accommodationOther: s.accommodationOther,
           vaccines: s.vaccines,
           malaria: s.malaria,
         });
@@ -197,18 +195,6 @@ export default function TravelHistoryGeneratorPage() {
       if (!da && !db) return 0; if (!da) return 1; if (!db) return -1; return da - db;
     });
     return layovers;
-  }, [state.trips]);
-
-  // UK dates: earliest trip start, latest trip end
-  const ukDates = useMemo(() => {
-    const starts = state.trips.map((t) => parseDate(t.startDate)).filter(Boolean);
-    const ends = state.trips.map((t) => parseDate(t.endDate)).filter(Boolean);
-    const minStart = starts.length ? new Date(Math.min(...starts)) : null;
-    const maxEnd = ends.length ? new Date(Math.max(...ends)) : null;
-    return {
-      depart: minStart ? formatDMY(minStart.toISOString()) : '',
-      return: maxEnd ? formatDMY(maxEnd.toISOString()) : '',
-    };
   }, [state.trips]);
 
   const summaryText = useMemo(() => buildSummary(state), [state]);
@@ -276,9 +262,9 @@ export default function TravelHistoryGeneratorPage() {
         </div>
       )}
 
-      {/* Stepper */}
-      <ol className="mb-8 grid gap-4 sm:grid-cols-5">
-        {['Trip meta', 'Countries & stops', 'Layovers', 'Companions', 'Review & generate'].map((label, idx) => (
+      {/* Stepper (labels only, no Right rail risks) */}
+      <ol className="mb-8 grid gap-4 sm:grid-cols-4">
+        {['Countries & stops', 'Layovers', 'Companions', 'Review & generate'].map((label, idx) => (
           <li key={label} className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm">
             <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-white text-xs font-semibold">{idx + 1}</span>
             <span className="text-slate-800 dark:text-slate-200">{label}</span>
@@ -289,19 +275,31 @@ export default function TravelHistoryGeneratorPage() {
       {/* Trip Builder */}
       <section className="space-y-10">
         {state.trips.map((trip, tIdx) => (
-          <TripCard key={trip.id} trip={trip} index={tIdx} updateTrip={updateTrip} updateStop={updateStop} addStop={addStop} removeStop={removeStop} addLayover={addLayover} updateLayover={updateLayover} removeLayover={removeLayover} removeTrip={removeTrip} />
+          <TripCard
+            key={trip.id}
+            trip={trip}
+            index={tIdx}
+            updateTrip={updateTrip}
+            updateStop={updateStop}
+            addStop={addStop}
+            removeStop={removeStop}
+            addLayover={addLayover}
+            updateLayover={updateLayover}
+            removeLayover={removeLayover}
+            removeTrip={removeTrip}
+          />
         ))}
         <div>
           <button type="button" onClick={addTrip} className="rounded-lg px-4 py-2 bg-violet-600 text-white hover:bg-violet-700">+ Add another trip</button>
         </div>
       </section>
 
-      {/* Timeline (Vertical with outside nodes) */}
+      {/* Timeline (Vertical with outside nodes; 2-col grid gutter for perfect alignment) */}
       <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline</h2>
         </div>
-        <TimelineVertical stops={timelineStops} layovers={timelineLayovers} ukDates={ukDates} />
+        <TimelineVertical stops={timelineStops} layovers={timelineLayovers} />
       </section>
 
       {/* Text summary */}
@@ -355,15 +353,7 @@ function TripCard({ trip, index, updateTrip, updateStop, addStop, removeStop, ad
 
       {/* Trip meta */}
       <div className="mt-4 grid sm:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Trip start date</label>
-          <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.startDate} onChange={(e) => updateTrip(trip.id, { startDate: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Trip end date</label>
-          <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.endDate} onChange={(e) => updateTrip(trip.id, { endDate: e.target.value })} />
-        </div>
-        <div>
+        <div className="sm:col-span-2">
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Purpose (optional)</label>
           <input type="text" placeholder="Work, VFR, tourism, humanitarian, etc." className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.purpose} onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })} />
         </div>
@@ -694,20 +684,12 @@ function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
 }
 
 /**
- * Timeline (Vertical)
- * - Fixed left gutter with spine
- * - For each stop: Top "arrival row" (node + bold date), then card, then Bottom "departure row" (node + bold date)
- * - UK anchors use ukDates.depart and ukDates.return
- * - Layovers are compact strips with their own nodes + bold dates between relevant stops
+ * Timeline (Vertical) — two-column grid gutter approach
+ * - Grid with fixed left column (gutter) + fluid right column (content)
+ * - Absolute rail centered in gutter; nodes placed in gutter column so they share positioning context
+ * - For each stop: Arrival row (node + bold date), Card row, optional Layover rows, Departure row
  */
-function TimelineVertical({ stops, layovers, ukDates }) {
-  // Build simple sequence with UK anchors
-  const items = [
-    { type: 'anchor-start', id: 'uk-start', label: 'United Kingdom', date: ukDates?.depart || '' },
-    ...stops.map((s) => ({ type: 'stop', ...s })),
-    { type: 'anchor-end', id: 'uk-end', label: 'United Kingdom', date: ukDates?.return || '' },
-  ];
-
+function TimelineVertical({ stops, layovers }) {
   // Helper: layovers whose start falls between stop A and next stop B
   const layoversBetween = (a, b) => {
     const aEnd = parseDate(a?.departure || a?.arrival);
@@ -719,49 +701,40 @@ function TimelineVertical({ stops, layovers, ukDates }) {
     });
   };
 
-  // Shared gutter UI
-  const Spine = () => (
-    <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-slate-300 dark:bg-slate-700" aria-hidden="true" />
-  );
+  // Node component
   const Node = () => (
-    <span className="inline-block h-3 w-3 rounded-full bg-violet-600 align-middle" aria-hidden="true" />
+    <span className="inline-block h-3 w-3 rounded-full bg-violet-600" aria-hidden="true" />
   );
 
   return (
     <div className="relative">
-      <Spine />
-      <ol className="space-y-6">
-        {/* UK start anchor */}
-        <li className="relative pl-24">
-          <div className="flex items-center gap-3">
-            <div className="absolute left-8 -translate-x-1/2">
-              <Node />
-            </div>
-            {items[0].date ? <strong className="tabular-nums">{items[0].date}</strong> : <span className="text-slate-500 text-sm">Start</span>}
-          </div>
-          <div className="mt-2 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3">
-            <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">United Kingdom</div>
-          </div>
-        </li>
+      {/* Continuous rail centered in the 72px gutter */}
+      <div
+        className="absolute top-0 bottom-0 bg-slate-300 dark:bg-slate-700"
+        style={{ left: 36, width: 2, borderRadius: 2 }}
+        aria-hidden="true"
+      />
+      <ol
+        className="grid"
+        style={{ gridTemplateColumns: '72px 1fr', rowGap: '12px' }}
+      >
+        {stops.map((it, idx) => {
+          const next = stops[idx + 1];
+          const between = next ? layoversBetween(it, next) : [];
+          return (
+            <li key={it.id} className="contents">
+              {/* Arrival row: gutter node + bold date */}
+              <div className="col-[1] flex items-center justify-center">
+                <Node />
+              </div>
+              <div className="col-[2] flex items-center gap-3">
+                <strong className="tabular-nums">{formatDMY(it.arrival)}</strong>
+              </div>
 
-        {/* Iterate stops with arrival row, card, layovers, departure row */}
-        {items
-          .filter((it) => it.type === 'stop')
-          .map((it, idx, arr) => {
-            const nextStop = arr[idx + 1];
-            const between = nextStop ? layoversBetween(it, nextStop) : [];
-            return (
-              <li key={it.id} className="relative pl-24">
-                {/* Arrival row (node + bold date) */}
-                <div className="flex items-center gap-3">
-                  <div className="absolute left-8 -translate-x-1/2">
-                    <Node />
-                  </div>
-                  <strong className="tabular-nums">{formatDMY(it.arrival)}</strong>
-                </div>
-
-                {/* Stop card */}
-                <div className="mt-2 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
+              {/* Card row */}
+              <div className="col-[1]" aria-hidden="true" />
+              <div className="col-[2]">
+                <div className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate" title={it.label}>{it.label}</h3>
                   </div>
@@ -797,83 +770,71 @@ function TimelineVertical({ stops, layovers, ukDates }) {
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Layovers between this stop and the next stop */}
-                {between.length > 0 && (
-                  <div className="mt-3 space-y-3">
-                    {between.map((l) => (
-                      <div key={l.id} className="relative">
-                        {/* Layover arrival row */}
-                        <div className="flex items-center gap-3 pl-24">
-                          <div className="absolute left-8 -translate-x-1/2">
-                            <Node />
-                          </div>
-                          <strong className="tabular-nums">{formatDMY(l.start)}</strong>
-                          <span className="text-xs text-slate-500">Layover start</span>
-                        </div>
-                        {/* Layover strip */}
-                        <div className="mt-1 ml-24 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-xs text-slate-700 dark:text-slate-300">
-                          {(l.city ? `${l.city}, ` : '') + (l.country || '')}
-                          {l.leftAirport === 'yes' && l.accommodation ? ` · ${l.accommodation}` : ''}
-                        </div>
-                        {/* Layover departure row */}
-                        <div className="mt-1 flex items-center gap-3 pl-24">
-                          <div className="absolute left-8 -translate-x-1/2">
-                            <Node />
-                          </div>
-                          <strong className="tabular-nums">{formatDMY(l.end)}</strong>
-                          <span className="text-xs text-slate-500">Layover end</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Departure row (node + bold date) */}
-                <div className="mt-3 flex items-center gap-3">
-                  <div className="absolute left-8 -translate-x-1/2">
+              {/* Layovers between stops (each as mini rows with nodes + dates + strip) */}
+              {between.length > 0 && between.map((l) => (
+                <div key={l.id} className="contents">
+                  {/* Layover start */}
+                  <div className="col-[1] flex items-center justify-center">
                     <Node />
                   </div>
-                  <strong className="tabular-nums">{formatDMY(it.departure)}</strong>
-                </div>
-              </li>
-            );
-          })}
+                  <div className="col-[2] flex items-center gap-3">
+                    <strong className="tabular-nums">{formatDMY(l.start)}</strong>
+                    <span className="text-xs text-slate-500">Layover start</span>
+                  </div>
 
-        {/* UK end anchor */}
-        <li className="relative pl-24">
-          <div className="mt-1 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3">
-            <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">United Kingdom</div>
-          </div>
-          <div className="mt-2 flex items-center gap-3">
-            <div className="absolute left-8 -translate-x-1/2">
-              <Node />
-            </div>
-            {items[items.length - 1].date ? <strong className="tabular-nums">{items[items.length - 1].date}</strong> : <span className="text-slate-500 text-sm">End</span>}
-          </div>
-        </li>
+                  {/* Layover strip */}
+                  <div className="col-[1]" aria-hidden="true" />
+                  <div className="col-[2]">
+                    <div className="mt-1 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-xs text-slate-700 dark:text-slate-300">
+                      {(l.city ? `${l.city}, ` : '') + (l.country || '')}
+                      {l.leftAirport === 'yes' && l.accommodation ? ` · ${l.accommodation}` : ''}
+                    </div>
+                  </div>
+
+                  {/* Layover end */}
+                  <div className="col-[1] flex items-center justify-center">
+                    <Node />
+                  </div>
+                  <div className="col-[2] flex items-center gap-3">
+                    <strong className="tabular-nums">{formatDMY(l.end)}</strong>
+                    <span className="text-xs text-slate-500">Layover end</span>
+                  </div>
+                </div>
+              ))}
+
+              {/* Departure row: gutter node + bold date */}
+              <div className="col-[1] flex items-center justify-center">
+                <Node />
+              </div>
+              <div className="col-[2] flex items-center gap-3">
+                <strong className="tabular-nums">{formatDMY(it.departure)}</strong>
+              </div>
+            </li>
+          );
+        })}
       </ol>
     </div>
   );
 }
 
 // ---- Summary builder ----
-// Text summary uses indented bullets for exposures (with optional details)
+// Text summary uses per-trip range inferred from stop dates; exposures include details
 function buildSummary(state) {
   const lines = [];
   lines.push('Travel History Summary');
 
   state.trips.forEach((trip, idx) => {
-    const header = [];
-    if (trip.startDate || trip.endDate) {
-      const a = trip.startDate ? formatDMY(trip.startDate) : '—';
-      const b = trip.endDate ? formatDMY(trip.endDate) : '—';
-      header.push(`Trip ${idx + 1} (${a} to ${b})`);
-    } else {
-      header.push(`Trip ${idx + 1}`);
-    }
-    if (trip.purpose) header.push(`purpose: ${trip.purpose}`);
-    lines.push(header.join(' · '));
+    // Infer trip range from stops
+    const arrivals = trip.stops.map((s) => parseDate(s.arrival)).filter(Boolean);
+    const departures = trip.stops.map((s) => parseDate(s.departure)).filter(Boolean);
+    const start = arrivals.length ? formatDMY(new Date(Math.min(...arrivals)).toISOString()) : '—';
+    const end = departures.length ? formatDMY(new Date(Math.max(...departures)).toISOString()) : '—';
+
+    const headerParts = [`Trip ${idx + 1} (${start} to ${end})`];
+    if (trip.purpose) headerParts.push(`purpose: ${trip.purpose}`);
+    lines.push(headerParts.join(' · '));
 
     trip.stops.forEach((s, sIdx) => {
       const dates = [s.arrival ? formatDMY(s.arrival) : '—', s.departure ? formatDMY(s.departure) : '—'].join(' to ');
