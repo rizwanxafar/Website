@@ -12,7 +12,9 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning>
       <body>
         <NavBar />
-        <main>{children}</main>
+        <main className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 py-6">
+          {children}
+        </main>
       </body>
     </html>
   );
