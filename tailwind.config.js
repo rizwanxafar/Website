@@ -1,36 +1,42 @@
 // tailwind.config.js
+/** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: "class",
-  content: ["./src/**/*.{js,jsx,ts,tsx}", "./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
+  darkMode: ["class"], // toggled by adding/removing 'dark' on <html>
+  content: ["./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        // Roboto comes from next/font in layout.js
+        sans: ["var(--font-sans)", "system-ui", "Arial"],
+      },
       colors: {
-        primary:  "var(--color-primary)",
-        accent:   "var(--color-accent)",
-        secondary:"var(--color-secondary)",
-        midnight: "var(--color-midnight)",
+        // Semantic colors provided by CSS variables in globals.css
+        bg: "hsl(var(--bg))",
+        fg: "hsl(var(--fg))",
+        muted: "hsl(var(--muted))",
+        border: "hsl(var(--border))",
+        ring: "hsl(var(--ring))",
 
-        bg:    "var(--bg)",
-        fg:    "var(--fg)",
-        muted: "var(--muted)",
-        border:"var(--border)",
-        card:  "var(--card)",
+        // Brand palette (from your hex choices)
+        brand: "hsl(var(--brand))",
+        brandAlt: "hsl(var(--brand-alt))",
+        accent: "hsl(var(--accent))",
+        midnight: "hsl(var(--midnight))",
+
+        // Optional status colors if you use banners
+        risk: {
+          low: "hsl(var(--risk-low))",
+          med: "hsl(var(--risk-med))",
+          high: "hsl(var(--risk-high))",
+        },
       },
       borderRadius: {
-        sm: "var(--radius-sm)",
-        md: "var(--radius-md)",
-        lg: "var(--radius-lg)",
+        DEFAULT: "0.5rem", // buttons/inputs
+        card: "1rem",      // cards
       },
       boxShadow: {
-        card: "var(--shadow-card)",
-      },
-      fontFamily: {
-        sans: ["var(--font-sans)"],
-      },
-      container: {
-        center: true,
-        padding: "1rem",
-        screens: { "2xl": "72rem" },
+        card: "0 4px 12px rgba(0,0,0,0.06)",
+        overlay: "0 12px 32px rgba(0,0,0,0.18)",
       },
     },
   },
