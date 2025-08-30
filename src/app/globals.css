@@ -1,35 +1,31 @@
 /* src/app/globals.css */
 
-/* Tailwind layers */
+/* Tailwind layers must come first */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* === Brand & Theme Tokens ================================== */
-/* Your brand hex:
-   #272757 (brand), #8686AC (brandAlt), #505081 (accent), #0F0E47 (midnight) */
-
 :root {
-  /* Brand palette in HSL (easier to layer/alpha) */
-  --brand: 240 38% 25%;      /* ~#272757 */
-  --brand-alt: 240 20% 61%;  /* ~#8686AC */
-  --accent: 235 24% 40%;     /* ~#505081 */
-  --midnight: 244 76% 17%;   /* ~#0F0E47 */
+  /* Brand palette in HSL (from your hex codes) */
+  --brand: 240 38% 25%;      /* #272757 */
+  --brand-alt: 240 20% 61%;  /* #8686AC */
+  --accent: 235 24% 40%;     /* #505081 */
+  --midnight: 244 76% 17%;   /* #0F0E47 */
 
   /* Light mode surfaces & text */
-  --bg: 0 0% 100%;           /* page background */
-  --fg: 224 71% 4%;          /* main text */
-  --muted: 220 14% 96%;      /* subtle background */
-  --border: 220 14% 88%;     /* borders/dividers */
-  --ring: var(--brand);      /* focus ring color */
+  --bg: 0 0% 100%;
+  --fg: 224 71% 4%;
+  --muted: 220 14% 96%;
+  --border: 220 14% 88%;
+  --ring: var(--brand);
 
-  /* Optional: status colors for banners (tweak later) */
+  /* Risk colours */
   --risk-low: 152 60% 36%;
   --risk-med: 40 100% 45%;
   --risk-high: 0 75% 50%;
 }
 
-/* Dark mode overrides (html.dark ...) */
 .dark {
   --bg: 232 14% 10%;
   --fg: 0 0% 98%;
@@ -38,36 +34,33 @@
   --ring: var(--brand);
 }
 
-/* Base document styles */
+/* Base document */
 html, body {
   height: 100%;
   background-color: hsl(var(--bg));
   color: hsl(var(--fg));
 }
 
-/* Borders default to design token */
+/* Borders default to token */
 * {
   border-color: hsl(var(--border));
 }
 
-/* Typographic smoothing (pairs well with Roboto) */
+/* Typography smoothing */
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* === Optional helpers (visual only) ======================== */
-/* Use these classes in JSX if you want quick, consistent styling */
-
+/* === Optional helpers ==================== */
 .card {
   background-color: hsl(var(--bg));
   border: 1px solid hsl(var(--border));
-  box-shadow: var(--shadow-card, 0 4px 12px rgba(0,0,0,0.06));
-  border-radius: var(--radius-card, 1rem);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  border-radius: 1rem;
 }
 
 .btn {
-  /* If PostCSS doesn't allow @apply, remove this block and use Tailwind classes directly in JSX */
   @apply inline-flex items-center justify-center gap-2 rounded px-4 py-2 font-medium transition;
 }
 .btn-primary {
@@ -75,7 +68,6 @@ html {
   background-color: hsl(var(--brand));
 }
 .btn-primary:hover { filter: brightness(0.95); }
-
 .btn-outline {
   color: hsl(var(--brand));
   border: 1px solid hsl(var(--brand));
@@ -85,7 +77,8 @@ html {
   color: hsl(var(--fg));
   background: transparent;
 }
-/* Lucide icon sensible defaults */
+
+/* Lucide icons sane defaults */
 svg.lucide {
   width: 20px;
   height: 20px;
