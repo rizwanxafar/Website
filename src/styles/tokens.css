@@ -1,0 +1,45 @@
+/* src/styles/tokens.css */
+:root {
+  /* Brand roles */
+  --color-primary:   #272757;
+  --color-accent:    #8686AC;
+  --color-secondary: #505081;
+  --color-midnight:  #0F0E47;
+
+  /* On-color text */
+  --on-primary:   #FFFFFF;
+  --on-secondary: #FFFFFF;
+  --on-midnight:  #FFFFFF;
+  --on-accent:    #272757;
+
+  /* Surfaces (light mode) */
+  --bg:    #FFFFFF;   /* page background */
+  --fg:    #0A0A0A;   /* main text */
+  --muted: #5F6B7A;   /* secondary text */
+  --border:#E5E7EB;   /* dividers/borders */
+  --card:  #FFFFFF;   /* card background */
+
+  /* Shape + shadow + focus */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-card: 0 1px 2px rgba(0,0,0,.06);
+  --focus-ring: 0 0 0 2px rgba(39,39,87,.35);
+
+  /* Typography */
+  --font-sans: Roboto, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+
+  /* Layout */
+  --container: 72rem; /* ~5xl */
+}
+
+/* Dark mode values override the same tokens */
+.dark {
+  --bg:    #0F0E47;
+  --fg:    #F1F1F1;
+  --muted: #A0A7B0;
+  --border:#262626;
+  --card:  #121224;
+
+  --shadow-card: 0 1px 2px rgba(0,0,0,.35);
+}
