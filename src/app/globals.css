@@ -85,3 +85,10 @@ html {
   color: hsl(var(--fg));
   background: transparent;
 }
+/* Lucide icon sensible defaults */
+svg.lucide {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  stroke-width: 1.5;
+}
