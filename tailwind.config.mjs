@@ -21,16 +21,9 @@ export default {
         brandAlt: "hsl(var(--brand-alt))",
         accent: "hsl(var(--accent))",
         midnight: "hsl(var(--midnight))",
-        risk: {
-          low: "hsl(var(--risk-low))",
-          med: "hsl(var(--risk-med))",
-          high: "hsl(var(--risk-high))",
-        },
+        risk: { low: "hsl(var(--risk-low))", med: "hsl(var(--risk-med))", high: "hsl(var(--risk-high))" },
       },
-      borderRadius: {
-        DEFAULT: "0.5rem",
-        card: "1rem",
-      },
+      borderRadius: { DEFAULT: "0.5rem", card: "1rem" },
       boxShadow: {
         card: "0 4px 12px rgba(0,0,0,0.06)",
         overlay: "0 12px 32px rgba(0,0,0,0.18)",
