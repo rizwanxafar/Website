@@ -7,12 +7,13 @@ const roboto = Roboto({
   subsets: ["latin"],
   weight: ["300", "400", "500", "700"],
   display: "swap",
-  variable: "--font-sans", // <-- makes it available to Tailwind
+  variable: "--font-sans", // exposes to Tailwind
 });
 
 export const metadata = {
   title: "Your Site",
   description: "Healthcare tools",
+  metadataBase: new URL("https://example.com"),
 };
 
 export default function RootLayout({ children }) {
