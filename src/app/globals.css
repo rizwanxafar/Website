@@ -1,17 +1,20 @@
 /* src/app/globals.css */
 
-/* Tailwind layers must come first */
+/* Tailwind layers – must come first */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* === Brand & Theme Tokens ================================== */
+/* Your brand hex:
+   #272757 (brand), #8686AC (brandAlt), #505081 (accent), #0F0E47 (midnight) */
+
 :root {
   /* Brand palette in HSL (from your hex codes) */
-  --brand: 240 38% 25%;      /* #272757 */
-  --brand-alt: 240 20% 61%;  /* #8686AC */
-  --accent: 235 24% 40%;     /* #505081 */
-  --midnight: 244 76% 17%;   /* #0F0E47 */
+  --brand: 240 38% 25%;      /* ~#272757 */
+  --brand-alt: 240 20% 61%;  /* ~#8686AC */
+  --accent: 235 24% 40%;     /* ~#505081 */
+  --midnight: 244 76% 17%;   /* ~#0F0E47 */
 
   /* Light mode surfaces & text */
   --bg: 0 0% 100%;
@@ -26,6 +29,7 @@
   --risk-high: 0 75% 50%;
 }
 
+/* Dark mode overrides (html.dark) */
 .dark {
   --bg: 232 14% 10%;
   --fg: 0 0% 98%;
@@ -58,24 +62,6 @@ html {
   border: 1px solid hsl(var(--border));
   box-shadow: 0 4px 12px rgba(0,0,0,0.06);
   border-radius: 1rem;
-}
-
-.btn {
-  @apply inline-flex items-center justify-center gap-2 rounded px-4 py-2 font-medium transition;
-}
-.btn-primary {
-  color: white;
-  background-color: hsl(var(--brand));
-}
-.btn-primary:hover { filter: brightness(0.95); }
-.btn-outline {
-  color: hsl(var(--brand));
-  border: 1px solid hsl(var(--brand));
-  background: transparent;
-}
-.btn-ghost {
-  color: hsl(var(--fg));
-  background: transparent;
 }
 
 /* Lucide icons sane defaults */
