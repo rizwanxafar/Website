@@ -1,21 +1,56 @@
+// src/components/NavBar.jsx
 "use client";
 
 import Link from "next/link";
+import ThemeToggle from "./ThemeToggle";
 import { usePathname } from "next/navigation";
+
+const nav = [
+  { href: "/", label: "Home" },
+  { href: "/algorithms", label: "Algorithms" },
+  { href: "/guidelines", label: "Guidelines" },
+  { href: "/teaching", label: "Education" }, // renamed Teaching → Education
+];
 
 export default function NavBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="w-full border-b border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-950/80 backdrop-blur">
-      <div className="mx-auto max-w-6xl px-3 sm:px-4 lg:px-6 py-3 flex items-center justify-between">
+    <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur border-b border-slate-200 dark:border-slate-800">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link
           href="/"
-          className="font-semibold text-neutral-900 dark:text-neutral-100"
+          className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-semibold"
         >
-          ID Northwest
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-white">
+            ID
+          </span>
+          <span>ID North West</span>
         </Link>
+
+        <nav className="hidden md:flex items-center gap-2">
+          {nav.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                  active
+                    ? "text-violet-700 dark:text-violet-400"
+                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+        </div>
       </div>
-    </nav>
+    </header>
   );
 }
