@@ -35,7 +35,7 @@ export default function Home() {
                          text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-900
                          focus:outline-none focus:ring-2 focus:ring-cyan-400/70 focus:ring-offset-2 transition"
             >
-              All sections
+              Explore this website
             </Link>
           </div>
         </div>
@@ -51,7 +51,7 @@ export default function Home() {
               href="/algorithms"
               className="group rounded-xl border border-slate-200 dark:border-slate-800 p-5
                          bg-white dark:bg-neutral-950 hover:shadow-md transition
-                         focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400"
+                         focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
             >
               <div className="flex items-center gap-3">
                 <span className="h-10 w-10 rounded-lg bg-slate-100 dark:bg-neutral-900 flex items-center justify-center ring-1 ring-inset ring-slate-200 dark:ring-neutral-800">
@@ -69,7 +69,7 @@ export default function Home() {
               <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
                 Step-by-step pathways for common ID scenarios (sepsis, SAB, CNS infection, etc.).
               </p>
-              <span className="mt-4 inline-block text-sm font-medium text-slate-800 dark:text-slate-200 group-hover:underline">
+              <span className="mt-4 inline-block text-sm font-medium text-[hsl(var(--brand))] group-hover:underline">
                 Open →
               </span>
             </Link>
@@ -79,7 +79,7 @@ export default function Home() {
               href="/guidelines"
               className="group rounded-xl border border-slate-200 dark:border-slate-800 p-5
                          bg-white dark:bg-neutral-950 hover:shadow-md transition
-                         focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400"
+                         focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
             >
               <div className="flex items-center gap-3">
                 <span className="h-10 w-10 rounded-lg bg-slate-100 dark:bg-neutral-900 flex items-center justify-center ring-1 ring-inset ring-slate-200 dark:ring-neutral-800">
@@ -93,7 +93,7 @@ export default function Home() {
               <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
                 Curated local & national guidance, antibiotic policies, and useful references.
               </p>
-              <span className="mt-4 inline-block text-sm font-medium text-slate-800 dark:text-slate-200 group-hover:underline">
+              <span className="mt-4 inline-block text-sm font-medium text-[hsl(var(--brand))] group-hover:underline">
                 Open →
               </span>
             </Link>
@@ -103,7 +103,7 @@ export default function Home() {
               href="/teaching"
               className="group rounded-xl border border-slate-200 dark:border-slate-800 p-5
                          bg-white dark:bg-neutral-950 hover:shadow-md transition
-                         focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400"
+                         focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
             >
               <div className="flex items-center gap-3">
                 <span className="h-10 w-10 rounded-lg bg-slate-100 dark:bg-neutral-900 flex items-center justify-center ring-1 ring-inset ring-slate-200 dark:ring-neutral-800">
@@ -117,7 +117,7 @@ export default function Home() {
               <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
                 Slide decks, case discussions, and micro-teaching resources.
               </p>
-              <span className="mt-4 inline-block text-sm font-medium text-slate-800 dark:text-slate-200 group-hover:underline">
+              <span className="mt-4 inline-block text-sm font-medium text-[hsl(var(--brand))] group-hover:underline">
                 Open →
               </span>
             </Link>
