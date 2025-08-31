@@ -8,8 +8,23 @@ const nav = [
   { href: "/", label: "Home" },
   { href: "/algorithms", label: "Algorithms" },
   { href: "/guidelines", label: "Guidelines" },
-  { href: "/teaching", label: "Education" }, // renamed Teaching → Education
+  { href: "/teaching", label: "Education" },
 ];
+
+// Normalise paths: remove trailing slashes; ensure "/" stays "/"
+function normalize(p = "/") {
+  if (!p) return "/";
+  return p.length > 1 ? p.replace(/\/+$/, "") : "/";
+}
+
+function isActive(pathname, href) {
+  const path = normalize(pathname);
+  const target = normalize(href);
+  // Home is active only on exactly "/"
+  if (target === "/") return path === "/";
+  // Others are active for the base route and any subpath
+  return path === target || path.startsWith(target + "/");
+}
 
 export default function NavBar() {
   const pathname = usePathname();
@@ -32,17 +47,18 @@ export default function NavBar() {
 
         <nav className="hidden md:flex items-center gap-2">
           {nav.map((item) => {
-            const active = pathname === item.href;
+            const active = isActive(pathname, item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={`px-3 py-2 rounded-lg text-sm font-medium ${
                   !active
                     ? "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                     : ""
                 }`}
-                style={active ? { color: `hsl(var(--brand))` } : {}}
+                style={active ? { color: `hsl(var(--brand))` } : undefined}
               >
                 {item.label}
               </Link>
