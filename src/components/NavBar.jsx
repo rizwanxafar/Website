@@ -1,4 +1,3 @@
-// src/components/NavBar.jsx
 "use client";
 
 import Link from "next/link";
@@ -22,7 +21,10 @@ export default function NavBar() {
           href="/"
           className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-semibold"
         >
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-white">
+          <span
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-white"
+            style={{ backgroundColor: `hsl(var(--brand))` }}
+          >
             ID
           </span>
           <span>ID North West</span>
@@ -36,10 +38,11 @@ export default function NavBar() {
                 key={item.href}
                 href={item.href}
                 className={`px-3 py-2 rounded-lg text-sm font-medium ${
-                  active
-                    ? "text-violet-700 dark:text-violet-400"
-                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                  !active
+                    ? "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                    : ""
                 }`}
+                style={active ? { color: `hsl(var(--brand))` } : {}}
               >
                 {item.label}
               </Link>
