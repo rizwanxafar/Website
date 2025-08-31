@@ -1,9 +1,9 @@
-// src/components/NavBar.jsx
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+/* Inline SVG icon (React 19 safe) */
 function HomeIcon({ className = "w-5 h-5", strokeWidth = 1.5 }) {
   return (
     <svg
@@ -16,15 +16,10 @@ function HomeIcon({ className = "w-5 h-5", strokeWidth = 1.5 }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      {/* Roof */}
       <path d="M3 10L12 3l9 7" />
-      {/* Left wall to base */}
       <path d="M5 22V12" />
-      {/* Right wall to base */}
       <path d="M19 22V12" />
-      {/* Base line */}
       <path d="M5 22h14" />
-      {/* Door */}
       <path d="M10 22v-6h4v6" />
     </svg>
   );
@@ -36,10 +31,13 @@ export default function NavBar() {
   return (
     <nav className="w-full border-b border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-950/80 backdrop-blur">
       <div className="mx-auto max-w-6xl px-3 sm:px-4 lg:px-6 py-3 flex items-center justify-between">
-        {/* Left side: Brand with inline home icon */}
+        {/* Left side: Brand with icon */}
         <div className="flex items-center gap-2">
           <HomeIcon className="w-5 h-5 text-neutral-700 dark:text-neutral-200" />
-          <Link href="/" className="font-semibold text-neutral-900 dark:text-neutral-100">
+          <Link
+            href="/"
+            className="font-semibold text-neutral-900 dark:text-neutral-100"
+          >
             Your Site
           </Link>
         </div>
