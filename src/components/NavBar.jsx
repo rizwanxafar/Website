@@ -2,55 +2,57 @@
 "use client";
 
 import Link from "next/link";
-import ThemeToggle from "./ThemeToggle";
 import { usePathname } from "next/navigation";
-
-const nav = [
-  { href: "/", label: "Home" },
-  { href: "/algorithms", label: "Algorithms" },
-  { href: "/guidelines", label: "Guidelines" },
-  { href: "/teaching", label: "Education" }, // renamed Teaching → Education
-];
+import { Home } from "lucide-react"; // <-- Lucide icon
 
 export default function NavBar() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur border-b border-slate-200 dark:border-slate-800">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-semibold"
-        >
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-white">
-            ID
-          </span>
-          <span>ID North West</span>
-        </Link>
-
-        <nav className="hidden md:flex items-center gap-2">
-          {nav.map((item) => {
-            const active = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`px-3 py-2 rounded-lg text-sm font-medium ${
-                  active
-                    ? "text-violet-700 dark:text-violet-400"
-                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
+    <nav className="w-full border-b border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-950/80 backdrop-blur">
+      <div className="mx-auto max-w-6xl px-3 sm:px-4 lg:px-6 py-3 flex items-center justify-between">
+        {/* Left side: Brand with icon */}
         <div className="flex items-center gap-2">
-          <ThemeToggle />
+          <Home className="w-5 h-5 text-neutral-700 dark:text-neutral-200" strokeWidth={1.5} />
+          <Link href="/" className="font-semibold text-neutral-900 dark:text-neutral-100">
+            Your Site
+          </Link>
+        </div>
+
+        {/* Right side: navigation links */}
+        <div className="flex items-center gap-6">
+          <Link
+            href="/"
+            className={`${
+              pathname === "/"
+                ? "text-brand-600 dark:text-brand-400 font-medium"
+                : "text-neutral-700 dark:text-neutral-300"
+            } hover:text-brand-600 dark:hover:text-brand-400 transition`}
+          >
+            Home
+          </Link>
+          <Link
+            href="/algorithms"
+            className={`${
+              pathname?.startsWith("/algorithms")
+                ? "text-brand-600 dark:text-brand-400 font-medium"
+                : "text-neutral-700 dark:text-neutral-300"
+            } hover:text-brand-600 dark:hover:text-brand-400 transition`}
+          >
+            Algorithms
+          </Link>
+          <Link
+            href="/about"
+            className={`${
+              pathname === "/about"
+                ? "text-brand-600 dark:text-brand-400 font-medium"
+                : "text-neutral-700 dark:text-neutral-300"
+            } hover:text-brand-600 dark:hover:text-brand-400 transition`}
+          >
+            About
+          </Link>
         </div>
       </div>
-    </header>
+    </nav>
   );
 }
