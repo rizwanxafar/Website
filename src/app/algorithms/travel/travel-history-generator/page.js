@@ -1,11 +1,12 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v5
+// Travel History Generator — v5.1
 // - Trip start/end inputs removed; ranges inferred from stop dates
 // - UK anchor nodes removed
 // - Timeline uses a two-column grid gutter so rail + nodes align perfectly
-// - Nodes show bold arrival (above card) and departure (below card) dates OUTSIDE the card
+// - Rail: thin dashed, muted, behind content
+// - Nodes: 10px violet with white ring, centered exactly on the rail
 // - Client-only; session storage; no PII; text summary + print-friendly timeline
 
 import { useEffect, useMemo, useState } from 'react';
@@ -31,7 +32,7 @@ const VACCINE_OPTIONS = [
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine'];
 
 // ---- Persistence ----
-const LS_KEY = 'travel-history-generator:v5';
+const LS_KEY = 'travel-history-generator:v5.1';
 
 // ---- Helpers ----
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -262,7 +263,7 @@ export default function TravelHistoryGeneratorPage() {
         </div>
       )}
 
-      {/* Stepper (labels only, no Right rail risks) */}
+      {/* Stepper */}
       <ol className="mb-8 grid gap-4 sm:grid-cols-4">
         {['Countries & stops', 'Layovers', 'Companions', 'Review & generate'].map((label, idx) => (
           <li key={label} className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm">
@@ -686,7 +687,8 @@ function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
 /**
  * Timeline (Vertical) — two-column grid gutter approach
  * - Grid with fixed left column (gutter) + fluid right column (content)
- * - Absolute rail centered in gutter; nodes placed in gutter column so they share positioning context
+ * - Dashed rail centered in gutter, behind content
+ * - Nodes (10px, white ring) centered in gutter above the rail
  * - For each stop: Arrival row (node + bold date), Card row, optional Layover rows, Departure row
  */
 function TimelineVertical({ stops, layovers }) {
@@ -701,19 +703,36 @@ function TimelineVertical({ stops, layovers }) {
     });
   };
 
-  // Node component
+  // Node component (10px violet with white ring)
   const Node = () => (
-    <span className="inline-block h-3 w-3 rounded-full bg-violet-600" aria-hidden="true" />
+    <span
+      className="relative z-10 inline-block h-2.5 w-2.5 rounded-full bg-violet-600 ring-2 ring-white dark:ring-slate-900"
+      aria-hidden="true"
+    />
   );
 
   return (
     <div className="relative">
-      {/* Continuous rail centered in the 72px gutter */}
+      {/* Continuous dashed rail centered in the 72px gutter (36px from left).
+          Drawn with border-left so dashes look clean; behind everything. */}
       <div
-        className="absolute top-0 bottom-0 bg-slate-300 dark:bg-slate-700"
-        style={{ left: 36, width: 2, borderRadius: 2 }}
+        className="pointer-events-none absolute inset-y-0 z-0"
+        style={{
+          left: 36,                 // center of 72px gutter
+          width: 0,
+          borderLeftWidth: 2,
+          borderLeftStyle: 'dashed',
+          borderLeftColor: 'var(--rail-color, rgb(203,213,225))', // slate-300 default
+        }}
         aria-hidden="true"
       />
+      {/* dark mode rail color */}
+      <style jsx>{`
+        :global(html.dark) [style*="--rail-color"] {
+          --rail-color: rgb(71, 85, 105); /* slate-600 */
+        }
+      `}</style>
+
       <ol
         className="grid"
         style={{ gridTemplateColumns: '72px 1fr', rowGap: '12px' }}
@@ -724,7 +743,7 @@ function TimelineVertical({ stops, layovers }) {
           return (
             <li key={it.id} className="contents">
               {/* Arrival row: gutter node + bold date */}
-              <div className="col-[1] flex items-center justify-center">
+              <div className="col-[1] z-10 flex items-center justify-center">
                 <Node />
               </div>
               <div className="col-[2] flex items-center gap-3">
@@ -734,7 +753,7 @@ function TimelineVertical({ stops, layovers }) {
               {/* Card row */}
               <div className="col-[1]" aria-hidden="true" />
               <div className="col-[2]">
-                <div className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
+                <div className="relative z-0 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate" title={it.label}>{it.label}</h3>
                   </div>
@@ -776,7 +795,7 @@ function TimelineVertical({ stops, layovers }) {
               {between.length > 0 && between.map((l) => (
                 <div key={l.id} className="contents">
                   {/* Layover start */}
-                  <div className="col-[1] flex items-center justify-center">
+                  <div className="col-[1] z-10 flex items-center justify-center">
                     <Node />
                   </div>
                   <div className="col-[2] flex items-center gap-3">
@@ -794,7 +813,7 @@ function TimelineVertical({ stops, layovers }) {
                   </div>
 
                   {/* Layover end */}
-                  <div className="col-[1] flex items-center justify-center">
+                  <div className="col-[1] z-10 flex items-center justify-center">
                     <Node />
                   </div>
                   <div className="col-[2] flex items-center gap-3">
@@ -805,7 +824,7 @@ function TimelineVertical({ stops, layovers }) {
               ))}
 
               {/* Departure row: gutter node + bold date */}
-              <div className="col-[1] flex items-center justify-center">
+              <div className="col-[1] z-10 flex items-center justify-center">
                 <Node />
               </div>
               <div className="col-[2] flex items-center gap-3">
