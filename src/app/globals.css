@@ -3,4 +3,18 @@
 /* Keep Tailwind minimal so nothing conflicts */
 @import "tailwindcss";
 
-/* (Intentionally no custom variables, no @apply rules) */
+/* === Brand colour tokens (no visual change yet) =========== */
+/* Palette you provided:
+   #272757 (brand), #8686AC (brandAlt), #505081 (accent), #0F0E47 (midnight) */
+:root {
+  --brand: 240 38% 25%;      /* ~#272757 */
+  --brand-alt: 240 20% 61%;  /* ~#8686AC */
+  --accent: 235 24% 40%;     /* ~#505081 */
+  --midnight: 244 76% 17%;   /* ~#0F0E47 */
+}
+
+/* Dark mode can reuse the same tokens; we’ll adjust later if needed */
+.dark {
+  /* (no overrides for now) */
+}
+
