@@ -94,17 +94,17 @@ export default function ScreeningStep({
           </DecisionCard>
 
           <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={onEscalateToSummary}
-              className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3
-             text-sm font-medium text-white
-             bg-[hsl(var(--brand))] dark:bg-[hsl(var(--brand-alt))] hover:brightness-95
-             focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70
-             disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              Next steps
-            </button>
+  <button
+    type="button"
+    onClick={onEscalateToSummary}
+    className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-white
+               bg-[hsl(var(--brand))] dark:bg-[hsl(var(--brand-alt))] hover:brightness-95
+               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70
+               disabled:opacity-50 disabled:cursor-not-allowed transition"
+  >
+    Next steps
+  </button>
+</div>
             {/* Removed the extra "New assessment" button here */}
           </div>
         </>
