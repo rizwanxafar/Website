@@ -7,6 +7,8 @@ import useGovUkHcid from "@/hooks/useGovUkHcid";
 import ScreeningStep from "./steps/ScreeningStep";
 import SelectStep from "./steps/SelectStep";
 import ReviewStep from "./steps/ReviewStep";
+import ExposuresStep from "./steps/ExposuresStep";
+import SummaryStep from "./steps/SummaryStep";
 
 export default function CountrySelect() {
   const {
@@ -27,6 +29,7 @@ export default function CountrySelect() {
 
   const { normalizedMap, meta, refresh } = useGovUkHcid();
 
+  // --- SCREENING ---
   if (step === "screen") {
     return (
       <ScreeningStep
@@ -36,12 +39,13 @@ export default function CountrySelect() {
         setQ2Exposure={setQ2Exposure}
         onContinue={() => setStep("select")}
         onReset={resetAll}
-        // If you have an "escalate to summary" jump, pass it here (uncomment if used):
-        // onEscalateToSummary={() => setStep("review")} // or a dedicated "summary" step in your app
+        // If you support a direct jump to summary red from screening:
+        // onEscalateToSummary={() => setStep("summary")}
       />
     );
   }
 
+  // --- SELECT COUNTRIES/DATES ---
   if (step === "select") {
     return (
       <SelectStep
@@ -63,15 +67,48 @@ export default function CountrySelect() {
     );
   }
 
-  // Default: review/summary step
+  // --- COUNTRY RISK REVIEW (GREEN/AMBER/RED SUMMARY PER COUNTRY) ---
+  if (step === "review") {
+    return (
+      <ReviewStep
+        selected={selected}
+        onset={onset}
+        meta={meta}
+        normalizedMap={normalizedMap}
+        refresh={refresh}
+        onBackToSelect={() => setStep("select")}
+        onReset={resetAll}
+        // This was missing -> button did nothing
+        onContinueToExposures={() => setStep("exposures")}
+      />
+    );
+  }
+
+  // --- EXPOSURE QUESTIONS (only for red countries) ---
+  if (step === "exposures") {
+    return (
+      <ExposuresStep
+        selected={selected}
+        onset={onset}
+        normalizedMap={normalizedMap}
+        onBackToReview={() => setStep("review")}
+        onContinueToSummary={() => setStep("summary")}
+        onReset={resetAll}
+      />
+    );
+  }
+
+  // --- FINAL SUMMARY / NEXT STEPS ---
   return (
-    <ReviewStep
+    <SummaryStep
       selected={selected}
-      onset={onset}
-      meta={meta}
       normalizedMap={normalizedMap}
-      refresh={refresh}
-      onBackToSelect={() => setStep("select")}
+      // If your SummaryStep needs these, keep them; otherwise harmless to pass:
+      exposuresGlobal={{}}
+      exposuresByCountry={{}}
+      entryMode="normal"
+      onBackToExposures={() => setStep("exposures")}
+      onBackToScreen={() => setStep("screen")}
       onReset={resetAll}
     />
   );
