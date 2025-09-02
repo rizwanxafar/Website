@@ -13,7 +13,7 @@ export default function Home() {
       <section className="py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-            Welcome to the Infectious Disease Portal
+            Welcome to the Infectious Diseases Portal
           </h1>
           <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
             Practical algorithms, local guidelines, and education for ID clinicians in the North&nbsp;West.
