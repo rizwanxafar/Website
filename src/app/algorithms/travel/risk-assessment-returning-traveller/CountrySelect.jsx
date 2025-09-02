@@ -31,33 +31,41 @@ export default function CountrySelect() {
 
   const { normalizedMap, meta, refresh } = useGovUkHcid();
 
-  // --- NEW: real exposure state kept locally in this component ---
-  // Global exposures (asked outside specific countries)
+  // -------- exposures state (local here) --------
   const [exposuresGlobal, setExposuresGlobal] = useState({
     q1_outbreak: "", // "yes" | "no" | ""
     q2_bleeding: "", // "yes" | "no" | ""
   });
 
-  // Per-country exposures keyed by selected row id:
   // { [countryRowId]: { lassa?: "yes"|"no"|"", ebola_marburg?: "yes"|"no"|"", cchf?: "yes"|"no"|"" } }
   const [exposuresByCountry, setExposuresByCountry] = useState({});
 
-  // Helper setter for child to update a single country's exposure answers
-  const setCountryExposure = (countryId, patch) => {
-    setExposuresByCountry((prev) => ({
-      ...prev,
-      [countryId]: { ...(prev[countryId] || {}), ...patch },
-    }));
+  // Support BOTH call styles:
+  //   setCountryExposure(id, "lassa", "yes")
+  //   setCountryExposure(id, { lassa: "yes" })
+  const setCountryExposure = (countryId, arg2, arg3) => {
+    setExposuresByCountry((prev) => {
+      const prevRow = prev[countryId] || {};
+      if (typeof arg2 === "string" && typeof arg3 === "string") {
+        // key/value form
+        return { ...prev, [countryId]: { ...prevRow, [arg2]: arg3 } };
+      }
+      if (arg2 && typeof arg2 === "object") {
+        // patch object form
+        return { ...prev, [countryId]: { ...prevRow, ...arg2 } };
+      }
+      // nothing to change
+      return prev;
+    });
   };
 
-  // Ensure a true full reset also clears exposure state
   const handleResetAll = () => {
     resetAll();
     setExposuresGlobal({ q1_outbreak: "", q2_bleeding: "" });
     setExposuresByCountry({});
   };
 
-  // --- SCREENING ---
+  // -------- steps --------
   if (step === "screen") {
     return (
       <ScreeningStep
@@ -67,13 +75,11 @@ export default function CountrySelect() {
         setQ2Exposure={setQ2Exposure}
         onContinue={() => setStep("select")}
         onReset={handleResetAll}
-        // If you support a direct jump to summary red from screening, you can pass it here:
-        // onEscalateToSummary={() => setStep("summary")}
+        // onEscalateToSummary={() => setStep("summary")} // if used
       />
     );
   }
 
-  // --- SELECT COUNTRIES/DATES ---
   if (step === "select") {
     return (
       <SelectStep
@@ -95,7 +101,6 @@ export default function CountrySelect() {
     );
   }
 
-  // --- COUNTRY RISK REVIEW ---
   if (step === "review") {
     return (
       <ReviewStep
@@ -111,7 +116,6 @@ export default function CountrySelect() {
     );
   }
 
-  // --- EXPOSURE QUESTIONS ---
   if (step === "exposures") {
     return (
       <ExposuresStep
@@ -128,7 +132,7 @@ export default function CountrySelect() {
     );
   }
 
-  // --- FINAL SUMMARY / NEXT STEPS ---
+  // summary
   return (
     <SummaryStep
       selected={selected}
