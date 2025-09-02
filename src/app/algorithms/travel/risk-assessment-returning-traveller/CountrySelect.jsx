@@ -87,14 +87,16 @@ export default function CountrySelect() {
   // --- EXPOSURE QUESTIONS (only for red countries) ---
   if (step === "exposures") {
     return (
-      <ExposuresStep
+            <ExposuresStep
         selected={selected}
         onset={onset}
         normalizedMap={normalizedMap}
+        exposuresByCountry={{}}
+        exposuresGlobal={{}}
         onBackToReview={() => setStep("review")}
         onContinueToSummary={() => setStep("summary")}
         onReset={resetAll}
-      />
+      />  
     );
   }
 
