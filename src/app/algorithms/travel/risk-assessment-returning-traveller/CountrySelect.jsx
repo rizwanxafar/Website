@@ -1,6 +1,8 @@
 // src/app/algorithms/travel/risk-assessment-returning-traveller/CountrySelect.jsx
 "use client";
 
+import { useState } from "react";
+
 import useSessionForm from "@/hooks/useSessionForm";
 import useGovUkHcid from "@/hooks/useGovUkHcid";
 
@@ -29,6 +31,32 @@ export default function CountrySelect() {
 
   const { normalizedMap, meta, refresh } = useGovUkHcid();
 
+  // --- NEW: real exposure state kept locally in this component ---
+  // Global exposures (asked outside specific countries)
+  const [exposuresGlobal, setExposuresGlobal] = useState({
+    q1_outbreak: "", // "yes" | "no" | ""
+    q2_bleeding: "", // "yes" | "no" | ""
+  });
+
+  // Per-country exposures keyed by selected row id:
+  // { [countryRowId]: { lassa?: "yes"|"no"|"", ebola_marburg?: "yes"|"no"|"", cchf?: "yes"|"no"|"" } }
+  const [exposuresByCountry, setExposuresByCountry] = useState({});
+
+  // Helper setter for child to update a single country's exposure answers
+  const setCountryExposure = (countryId, patch) => {
+    setExposuresByCountry((prev) => ({
+      ...prev,
+      [countryId]: { ...(prev[countryId] || {}), ...patch },
+    }));
+  };
+
+  // Ensure a true full reset also clears exposure state
+  const handleResetAll = () => {
+    resetAll();
+    setExposuresGlobal({ q1_outbreak: "", q2_bleeding: "" });
+    setExposuresByCountry({});
+  };
+
   // --- SCREENING ---
   if (step === "screen") {
     return (
@@ -38,8 +66,8 @@ export default function CountrySelect() {
         q2Exposure={q2Exposure}
         setQ2Exposure={setQ2Exposure}
         onContinue={() => setStep("select")}
-        onReset={resetAll}
-        // If you support a direct jump to summary red from screening:
+        onReset={handleResetAll}
+        // If you support a direct jump to summary red from screening, you can pass it here:
         // onEscalateToSummary={() => setStep("summary")}
       />
     );
@@ -61,13 +89,13 @@ export default function CountrySelect() {
         setShowInput={setShowInput}
         inputRef={inputRef}
         onBackToScreen={() => setStep("screen")}
-        onReset={resetAll}
+        onReset={handleResetAll}
         onContinue={() => setStep("review")}
       />
     );
   }
 
-  // --- COUNTRY RISK REVIEW (GREEN/AMBER/RED SUMMARY PER COUNTRY) ---
+  // --- COUNTRY RISK REVIEW ---
   if (step === "review") {
     return (
       <ReviewStep
@@ -77,26 +105,26 @@ export default function CountrySelect() {
         normalizedMap={normalizedMap}
         refresh={refresh}
         onBackToSelect={() => setStep("select")}
-        onReset={resetAll}
-        // This was missing -> button did nothing
+        onReset={handleResetAll}
         onContinueToExposures={() => setStep("exposures")}
       />
     );
   }
 
-  // --- EXPOSURE QUESTIONS (only for red countries) ---
+  // --- EXPOSURE QUESTIONS ---
   if (step === "exposures") {
     return (
-            <ExposuresStep
+      <ExposuresStep
         selected={selected}
-        onset={onset}
         normalizedMap={normalizedMap}
-        exposuresByCountry={{}}
-        exposuresGlobal={{}}
+        exposuresGlobal={exposuresGlobal}
+        setExposuresGlobal={setExposuresGlobal}
+        exposuresByCountry={exposuresByCountry}
+        setCountryExposure={setCountryExposure}
         onBackToReview={() => setStep("review")}
         onContinueToSummary={() => setStep("summary")}
-        onReset={resetAll}
-      />  
+        onReset={handleResetAll}
+      />
     );
   }
 
@@ -105,13 +133,12 @@ export default function CountrySelect() {
     <SummaryStep
       selected={selected}
       normalizedMap={normalizedMap}
-      // If your SummaryStep needs these, keep them; otherwise harmless to pass:
-      exposuresGlobal={{}}
-      exposuresByCountry={{}}
+      exposuresGlobal={exposuresGlobal}
+      exposuresByCountry={exposuresByCountry}
       entryMode="normal"
       onBackToExposures={() => setStep("exposures")}
       onBackToScreen={() => setStep("screen")}
-      onReset={resetAll}
+      onReset={handleResetAll}
     />
   );
 }
