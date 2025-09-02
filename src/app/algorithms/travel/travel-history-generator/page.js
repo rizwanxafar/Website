@@ -1,13 +1,15 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v5.1
-// - Trip start/end inputs removed; ranges inferred from stop dates
-// - UK anchor nodes removed
-// - Timeline uses a two-column grid gutter so rail + nodes align perfectly
-// - Rail: thin dashed, muted, behind content
-// - Nodes: 10px violet with white ring, centered exactly on the rail
-// - Client-only; session storage; no PII; text summary + print-friendly timeline
+// Travel History Generator — v6.0
+// - Companions section restored
+// - Timeline: first stop per trip = “Left UK”, last stop per trip = “Arrived in the UK”
+// - Trip purpose shown under first node of each trip
+// - Exposure: Unpasteurised milk (+ details)
+// - “Other vector” duplication fixed via vectorOtherEnabled/vectorOther/vectorOtherDetails
+// - Header Print removed; “Print timeline” prints only the timeline section
+// - Dates displayed DD/MM/YYYY; dashed rail behind; centered 10px nodes with white ring
+// - Client-only; no server storage; session persistence via localStorage
 
 import { useEffect, useMemo, useState } from 'react';
 
@@ -32,7 +34,7 @@ const VACCINE_OPTIONS = [
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine'];
 
 // ---- Persistence ----
-const LS_KEY = 'travel-history-generator:v5.1';
+const LS_KEY = 'travel-history-generator:v6.0';
 
 // ---- Helpers ----
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -76,7 +78,7 @@ const emptyStop = () => ({
   exposures: {
     mosquito: false, mosquitoDetails: '',
     tick: false, tickDetails: '',
-    vectorOther: '', vectorOtherDetails: '',
+    vectorOtherEnabled: false, vectorOther: '', vectorOtherDetails: '',
     freshwater: false, freshwaterDetails: '',
     cavesMines: false, cavesMinesDetails: '',
     ruralForest: false, ruralForestDetails: '',
@@ -90,10 +92,11 @@ const emptyStop = () => ({
     untreatedWater: false, untreatedWaterDetails: '',
     undercookedFood: false, undercookedFoodDetails: '',
     undercookedSeafood: false, undercookedSeafoodDetails: '',
+    unpasteurisedMilk: false, unpasteurisedMilkDetails: '',
     healthcareFacility: false, healthcareFacilityDetails: '',
     prison: false, prisonDetails: '',
     refugeeCamp: false, refugeeCampDetails: '',
-    safariWildlife: false, safariWildlifeDetails: '', // extra exposure
+    safariWildlife: false, safariWildlifeDetails: '',
     otherText: '',
   },
 
@@ -101,8 +104,8 @@ const emptyStop = () => ({
   malaria: { took: false, drug: 'None', adherence: '' },
 });
 
-const emptyLayover = () => ({
-  id: uid(), country: '', city: '', start: '', end: '', leftAirport: 'no', accommodation: '',
+const emptyLayover = (tripId) => ({
+  id: uid(), tripId, country: '', city: '', start: '', end: '', leftAirport: 'no', accommodation: '',
   activities: { ateLocally: false, publicTransport: false, streetFood: false, untreatedWater: false },
 });
 
@@ -159,12 +162,24 @@ export default function TravelHistoryGeneratorPage() {
 
   // Derived — flattened/sorted stops & layovers for timeline
   const timelineStops = useMemo(() => {
-    const stops = [];
+    const out = [];
     state.trips.forEach((trip) => {
-      trip.stops.forEach((s) => {
+      // sort stops per trip by arrival date
+      const sorted = [...trip.stops].sort((a, b) => {
+        const da = parseDate(a.arrival), db = parseDate(b.arrival);
+        if (!da && !db) return 0; if (!da) return 1; if (!db) return -1; return da - db;
+      });
+      const first = sorted[0]?.id;
+      const last = sorted[sorted.length - 1]?.id;
+
+      sorted.forEach((s) => {
         const cityLabel = (s.cities || []).filter(Boolean).join(', ');
         const place = s.country ? (cityLabel ? `${cityLabel}, ${s.country}` : s.country) : cityLabel || '—';
-        stops.push({
+        out.push({
+          tripId: trip.id,
+          tripPurpose: trip.purpose || '',
+          isFirstInTrip: s.id === first,
+          isLastInTrip: s.id === last,
           id: s.id,
           label: place,
           country: s.country,
@@ -179,17 +194,19 @@ export default function TravelHistoryGeneratorPage() {
         });
       });
     });
-    stops.sort((a, b) => {
+
+    // Then sort globally by arrival for the visible timeline
+    out.sort((a, b) => {
       const da = parseDate(a.arrival), db = parseDate(b.arrival);
       if (!da && !db) return 0; if (!da) return 1; if (!db) return -1; return da - db;
     });
-    return stops;
+    return out;
   }, [state.trips]);
 
   const timelineLayovers = useMemo(() => {
     const layovers = [];
     state.trips.forEach((trip) => {
-      trip.layovers.forEach((l) => layovers.push({ ...l }));
+      trip.layovers.forEach((l) => layovers.push({ ...l, tripId: trip.id }));
     });
     layovers.sort((a, b) => {
       const da = parseDate(a.start), db = parseDate(b.start);
@@ -218,7 +235,7 @@ export default function TravelHistoryGeneratorPage() {
   const addStop = (tripId) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, stops: [...t.stops, emptyStop()] } : t)) }));
   const removeStop = (tripId, stopId) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, stops: t.stops.filter((s) => s.id !== stopId) } : t)) }));
 
-  const addLayover = (tripId) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, layovers: [...t.layovers, emptyLayover()] } : t)) }));
+  const addLayover = (tripId) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, layovers: [...t.layovers, emptyLayover(tripId)] } : t)) }));
   const updateLayover = (tripId, layoverId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, layovers: t.layovers.map((l) => (l.id === layoverId ? { ...l, ...patch } : l)) } : t)) }));
   const removeLayover = (tripId, layoverId) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, layovers: t.layovers.filter((l) => l.id !== layoverId) } : t)) }));
 
@@ -228,7 +245,19 @@ export default function TravelHistoryGeneratorPage() {
       setState(initialState);
     }
   };
-  const printPage = () => window.print();
+
+  const handlePrintTimeline = () => {
+    try {
+      const body = document.body;
+      body.classList.add('print-timeline-only');
+      const cleanup = () => {
+        body.classList.remove('print-timeline-only');
+        window.removeEventListener('afterprint', cleanup);
+      };
+      window.addEventListener('afterprint', cleanup);
+      window.print();
+    } catch {/* noop */}
+  };
 
   return (
     <main className="py-10 sm:py-14">
@@ -242,7 +271,7 @@ export default function TravelHistoryGeneratorPage() {
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={() => setShowAbout(true)} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400">About</button>
-          <button type="button" onClick={printPage} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400">Print / PDF</button>
+          {/* Print moved to timeline-only */}
           <button type="button" onClick={clearAll} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400">Clear all</button>
         </div>
       </header>
@@ -295,10 +324,80 @@ export default function TravelHistoryGeneratorPage() {
         </div>
       </section>
 
-      {/* Timeline (Vertical with outside nodes; 2-col grid gutter for perfect alignment) */}
+      {/* Companions */}
       <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Companions</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="sm:col-span-2">
+            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Who did you travel with?</label>
+            <div className="flex flex-wrap gap-2">
+              {['Alone', 'Family', 'Friends', 'Organised tour', 'Other'].map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setState((p) => ({ ...p, companions: { ...p.companions, group: opt } }))}
+                  className={classNames(
+                    'rounded-md px-3 py-1.5 text-sm border-2',
+                    state.companions.group === opt
+                      ? 'bg-violet-600 text-white border-violet-600'
+                      : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                  )}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+            {state.companions.group === 'Other' && (
+              <div className="mt-2">
+                <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Describe</label>
+                <input
+                  type="text"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                  value={state.companions.otherText}
+                  onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, otherText: e.target.value } }))}
+                />
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Companions well?</label>
+            <div className="flex gap-2">
+              {[
+                { val: 'yes', label: 'Yes' },
+                { val: 'no', label: 'No' },
+                { val: 'unknown', label: 'Unknown' },
+              ].map(({ val, label }) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setState((p) => ({ ...p, companions: { ...p.companions, companionsWell: val } }))}
+                  className={classNames(
+                    'rounded-md px-3 py-1.5 text-sm border-2',
+                    state.companions.companionsWell === val
+                      ? 'bg-violet-600 text-white border-violet-600'
+                      : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Timeline (Vertical with outside nodes; 2-col grid gutter for perfect alignment) */}
+      <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6 tl-printable">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline</h2>
+          <button
+            type="button"
+            onClick={handlePrintTimeline}
+            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
+          >
+            Print timeline
+          </button>
         </div>
         <TimelineVertical stops={timelineStops} layovers={timelineLayovers} />
       </section>
@@ -331,8 +430,13 @@ export default function TravelHistoryGeneratorPage() {
         @media print {
           header, .no-print { display: none !important; }
           main { padding: 0 !important; }
-          .print\\:block { display: block !important; }
-          .print\\:grid { display: grid !important; }
+        }
+        /* Print only timeline when body has .print-timeline-only */
+        @media print {
+          body.print-timeline-only * { visibility: hidden !important; }
+          body.print-timeline-only .tl-printable,
+          body.print-timeline-only .tl-printable * { visibility: visible !important; }
+          body.print-timeline-only .tl-printable { position: absolute !important; inset: 0 !important; width: 100% !important; }
         }
       `}</style>
     </main>
@@ -354,7 +458,7 @@ function TripCard({ trip, index, updateTrip, updateStop, addStop, removeStop, ad
 
       {/* Trip meta */}
       <div className="mt-4 grid sm:grid-cols-3 gap-4">
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-3">
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Purpose (optional)</label>
           <input type="text" placeholder="Work, VFR, tourism, humanitarian, etc." className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.purpose} onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })} />
         </div>
@@ -501,14 +605,31 @@ function StopCard({ stop, index, onChange, onRemove }) {
             <ExposureCheck label="Tick exposure" checked={exp.tick} details={exp.tickDetails} onToggle={(v) => onChange({ exposures: { ...exp, tick: v } })} onDetails={(v) => onChange({ exposures: { ...exp, tickDetails: v } })} />
 
             <div className="space-y-1">
-              <div className="flex items-start gap-2 py-1">
-                <input id={`vectorOther-${stop.id}`} type="checkbox" className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700" checked={!!exp.vectorOther} onChange={(e) => onChange({ exposures: { ...exp, vectorOther: e.target.checked ? exp.vectorOther || 'Other vector' : '' } })} />
-                <label htmlFor={`vectorOther-${stop.id}`} className="text-sm text-slate-700 dark:text-slate-300">Other vector</label>
-              </div>
-              {exp.vectorOther !== '' && (
+              <label className="flex items-start gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700"
+                  checked={!!exp.vectorOtherEnabled}
+                  onChange={(e) => onChange({ exposures: { ...exp, vectorOtherEnabled: e.target.checked } })}
+                />
+                <span>Other vector</span>
+              </label>
+              {exp.vectorOtherEnabled && (
                 <>
-                  <input type="text" placeholder="e.g., sandflies" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm" value={exp.vectorOther} onChange={(e) => onChange({ exposures: { ...exp, vectorOther: e.target.value } })} />
-                  <input type="text" placeholder="Details (optional)" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm" value={exp.vectorOtherDetails} onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })} />
+                  <input
+                    type="text"
+                    placeholder="Other vector (e.g., sandflies)"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm"
+                    value={exp.vectorOther}
+                    onChange={(e) => onChange({ exposures: { ...exp, vectorOther: e.target.value } })}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Details (optional)"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm"
+                    value={exp.vectorOtherDetails}
+                    onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })}
+                  />
                 </>
               )}
             </div>
@@ -539,6 +660,7 @@ function StopCard({ stop, index, onChange, onRemove }) {
             <ExposureCheck label="Drank untreated water" checked={exp.untreatedWater} details={exp.untreatedWaterDetails} onToggle={(v) => onChange({ exposures: { ...exp, untreatedWater: v } })} onDetails={(v) => onChange({ exposures: { ...exp, untreatedWaterDetails: v } })} />
             <ExposureCheck label="Undercooked food" checked={exp.undercookedFood} details={exp.undercookedFoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, undercookedFood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, undercookedFoodDetails: v } })} />
             <ExposureCheck label="Undercooked seafood" checked={exp.undercookedSeafood} details={exp.undercookedSeafoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, undercookedSeafood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, undercookedSeafoodDetails: v } })} />
+            <ExposureCheck label="Unpasteurised milk" checked={exp.unpasteurisedMilk} details={exp.unpasteurisedMilkDetails} onToggle={(v) => onChange({ exposures: { ...exp, unpasteurisedMilk: v } })} onDetails={(v) => onChange({ exposures: { ...exp, unpasteurisedMilkDetails: v } })} />
           </fieldset>
 
           {/* Institutional / Social */}
@@ -689,15 +811,19 @@ function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
  * - Grid with fixed left column (gutter) + fluid right column (content)
  * - Dashed rail centered in gutter, behind content
  * - Nodes (10px, white ring) centered in gutter above the rail
- * - For each stop: Arrival row (node + bold date), Card row, optional Layover rows, Departure row
+ * - For each stop: Arrival row (node + bold date [+ 'Left UK' if first in trip]), optional purpose row,
+ *   Card row, optional Layover rows, Departure row (+'Arrived in the UK' if last in trip)
  */
 function TimelineVertical({ stops, layovers }) {
-  // Helper: layovers whose start falls between stop A and next stop B
+  // Helper: layovers whose start falls between stop A and next stop B within the same trip
   const layoversBetween = (a, b) => {
+    if (!a || !b) return [];
+    if (a.tripId !== b.tripId) return []; // only within same trip
     const aEnd = parseDate(a?.departure || a?.arrival);
     const bStart = parseDate(b?.arrival || b?.departure);
     if (!aEnd || !bStart) return [];
     return layovers.filter((l) => {
+      if (l.tripId !== a.tripId) return false;
       const ls = parseDate(l.start);
       return !!ls && ls >= aEnd && ls <= bStart;
     });
@@ -718,11 +844,11 @@ function TimelineVertical({ stops, layovers }) {
       <div
         className="pointer-events-none absolute inset-y-0 z-0"
         style={{
-          left: 36,                 // center of 72px gutter
+          left: 36, // center of 72px gutter
           width: 0,
           borderLeftWidth: 2,
           borderLeftStyle: 'dashed',
-          borderLeftColor: 'var(--rail-color, rgb(203,213,225))', // slate-300 default
+          borderLeftColor: 'var(--rail-color, rgb(203,213,225))', // slate-300
         }}
         aria-hidden="true"
       />
@@ -742,13 +868,24 @@ function TimelineVertical({ stops, layovers }) {
           const between = next ? layoversBetween(it, next) : [];
           return (
             <li key={it.id} className="contents">
-              {/* Arrival row: gutter node + bold date */}
+              {/* Arrival row: gutter node + bold date (+ Left UK if first in trip) */}
               <div className="col-[1] z-10 flex items-center justify-center">
                 <Node />
               </div>
               <div className="col-[2] flex items-center gap-3">
                 <strong className="tabular-nums">{formatDMY(it.arrival)}</strong>
+                {it.isFirstInTrip && <span className="text-sm text-slate-600 dark:text-slate-300">— Left UK</span>}
               </div>
+
+              {/* Purpose row (only under first node of trip) */}
+              {it.isFirstInTrip && it.tripPurpose && (
+                <>
+                  <div className="col-[1]" aria-hidden="true" />
+                  <div className="col-[2] -mt-2 mb-1 text-xs text-slate-500 dark:text-slate-400">
+                    Purpose: {it.tripPurpose}
+                  </div>
+                </>
+              )}
 
               {/* Card row */}
               <div className="col-[1]" aria-hidden="true" />
@@ -823,12 +960,13 @@ function TimelineVertical({ stops, layovers }) {
                 </div>
               ))}
 
-              {/* Departure row: gutter node + bold date */}
+              {/* Departure row: gutter node + bold date (+ Arrived in the UK if last in trip) */}
               <div className="col-[1] z-10 flex items-center justify-center">
                 <Node />
               </div>
               <div className="col-[2] flex items-center gap-3">
                 <strong className="tabular-nums">{formatDMY(it.departure)}</strong>
+                {it.isLastInTrip && <span className="text-sm text-slate-600 dark:text-slate-300">— Arrived in the UK</span>}
               </div>
             </li>
           );
@@ -839,7 +977,7 @@ function TimelineVertical({ stops, layovers }) {
 }
 
 // ---- Summary builder ----
-// Text summary uses per-trip range inferred from stop dates; exposures include details
+// Text summary uses per-trip range inferred from stop dates; exposures include details; includes companions
 function buildSummary(state) {
   const lines = [];
   lines.push('Travel History Summary');
@@ -909,8 +1047,6 @@ function buildSummary(state) {
     lines.push(`Companions: ${who}; companions well: ${c.companionsWell}`);
   }
 
-  lines.push('Note: Dates appear on the rail; cards show travel details.');
-
   return lines.join('\n');
 }
 
@@ -921,22 +1057,30 @@ function exposureLabels(exp) {
 
   if (exp.mosquito) labels.push('mosquito exposure');
   if (exp.tick) labels.push('tick exposure');
-  if (exp.vectorOther) labels.push(exp.vectorOther);
+  if (exp.vectorOtherEnabled && exp.vectorOther) labels.push(exp.vectorOther);
+
   if (exp.freshwater) labels.push('freshwater contact');
   if (exp.cavesMines) labels.push('caves/mines');
   if (exp.ruralForest) labels.push('rural/forest stay');
+
   if (exp.animalContact) labels.push('animal contact');
   if (exp.animalBiteScratch) labels.push('animal bite/scratch');
   if (exp.bushmeat) labels.push('bushmeat');
   if (exp.needlesTattoos) labels.push('needles/tattoos/piercings');
+  if (exp.safariWildlife) labels.push('safari / wildlife viewing');
+
   if (exp.streetFood) labels.push('street food');
   if (exp.untreatedWater) labels.push('untreated water');
   if (exp.undercookedFood) labels.push('undercooked food');
   if (exp.undercookedSeafood) labels.push('undercooked seafood');
+  if (exp.unpasteurisedMilk) labels.push('unpasteurised milk');
+
   if (exp.healthcareFacility) labels.push('healthcare facility contact');
   if (exp.prison) labels.push('prison contact');
   if (exp.refugeeCamp) labels.push('refugee camp contact');
-  if (exp.safariWildlife) labels.push('safari / wildlife viewing');
+
+  if (exp.otherText?.trim()) labels.push(exp.otherText.trim());
+
   return labels;
 }
 
@@ -948,7 +1092,7 @@ function exposureBullets(exp) {
 
   push('mosquito exposure', exp.mosquito, exp.mosquitoDetails);
   push('tick exposure', exp.tick, exp.tickDetails);
-  if (exp.vectorOther) out.push({ label: exp.vectorOther, details: exp.vectorOtherDetails?.trim() || '' });
+  if (exp.vectorOtherEnabled && exp.vectorOther) out.push({ label: exp.vectorOther, details: exp.vectorOtherDetails?.trim() || '' });
 
   push('freshwater contact', exp.freshwater, exp.freshwaterDetails);
   push('caves/mines', exp.cavesMines, exp.cavesMinesDetails);
@@ -958,17 +1102,17 @@ function exposureBullets(exp) {
   push('animal bite/scratch', exp.animalBiteScratch, exp.animalBiteScratchDetails);
   push('bushmeat', exp.bushmeat, exp.bushmeatDetails);
   push('needles/tattoos/piercings', exp.needlesTattoos, exp.needlesTattoosDetails);
+  push('safari / wildlife viewing', exp.safariWildlife, exp.safariWildlifeDetails);
 
   push('street food', exp.streetFood, exp.streetFoodDetails);
   push('untreated water', exp.untreatedWater, exp.untreatedWaterDetails);
   push('undercooked food', exp.undercookedFood, exp.undercookedFoodDetails);
   push('undercooked seafood', exp.undercookedSeafood, exp.undercookedSeafoodDetails);
+  push('unpasteurised milk', exp.unpasteurisedMilk, exp.unpasteurisedMilkDetails);
 
   push('healthcare facility contact', exp.healthcareFacility, exp.healthcareFacilityDetails);
   push('prison contact', exp.prison, exp.prisonDetails);
   push('refugee camp contact', exp.refugeeCamp, exp.refugeeCampDetails);
-
-  push('safari / wildlife viewing', exp.safariWildlife, exp.safariWildlifeDetails);
 
   if (exp.otherText?.trim()) out.push({ label: exp.otherText.trim(), details: '' });
 
