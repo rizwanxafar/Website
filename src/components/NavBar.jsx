@@ -50,7 +50,8 @@ export default function NavBar() {
                 aria-current={active ? "page" : undefined}
                 className={`px-3 py-2 rounded-lg text-sm font-medium ${
                   active
-                    ? "text-[hsl(var(--brand))] dark:text-[hsl(var(--brand-alt))]"
+                    active
+                    ? "text-[hsl(var(--brand-alt))]"
                     : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
