@@ -620,3 +620,663 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
         set.add(value);
       } else {
         set.delete('Prefer not to say');
+        set.add(value);
+      }
+    }
+    onChange({ accommodations: Array.from(set) });
+  };
+
+  return (
+    <div
+      ref={innerRef}
+      className={classNames(
+        "rounded-lg border p-4",
+        highlighted
+          ? "border-rose-400 dark:border-rose-600 bg-rose-50/40 dark:bg-rose-900/10"
+          : "border-slate-200 dark:border-slate-800"
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Stop {index + 1}</h3>
+        <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove stop</button>
+      </div>
+
+      <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Country *</label>
+          <input list="country-options" type="text" placeholder="Start typing…" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.country} onChange={(e) => onChange({ country: e.target.value })} />
+          <datalist id="country-options">
+            {COUNTRY_STUB.map((c) => (<option key={c} value={c} />))}
+          </datalist>
+        </div>
+
+        {/* Multiple cities */}
+        <div className="lg:col-span-3">
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities (optional)</label>
+          <div className="space-y-2">
+            {(stop.cities || []).map((c, i) => (
+              <div key={i} className="flex gap-2">
+                <input type="text" placeholder="City / locality" className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={c} onChange={(e) => setCity(i, e.target.value)} />
+                <button type="button" onClick={() => removeCity(i)} className={LINKISH_SECONDARY}>Remove</button>
+              </div>
+            ))}
+            <button type="button" onClick={addCity} className={BTN_SECONDARY + " text-xs px-3 py-1.5"}>+ Add another city</button>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Arrival date *</label>
+          <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.arrival} onChange={(e) => onChange({ arrival: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Departure date *</label>
+          <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.departure} onChange={(e) => onChange({ departure: e.target.value })} />
+        </div>
+      </div>
+
+      {/* Accommodation (checkbox group) */}
+      <div className="mt-4">
+        <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Accommodation (select one or more)</label>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {ACCOMMODATION_OPTIONS.map((opt) => {
+            const checked = (stop.accommodations || []).includes(opt);
+            const id = `${stop.id}-accom-${opt.replace(/\s+/g, '-').toLowerCase()}`;
+            return (
+              <label key={opt} htmlFor={id} className="flex items-start gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
+                <input
+                  id={id}
+                  type="checkbox"
+                  className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700"
+                  checked={checked}
+                  onChange={() => toggleAccommodation(opt)}
+                />
+                <span>{opt}</span>
+              </label>
+            );
+          })}
+        </div>
+        {(stop.accommodations || []).includes('Other') && (
+          <div className="mt-2">
+            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other (describe)</label>
+            <input
+              type="text"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              value={stop.accommodationOther}
+              onChange={(e) => onChange({ accommodationOther: e.target.value })}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Exposures */}
+      <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6">
+        <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Activities / Exposures (optional)</h4>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Vector-borne */}
+          <fieldset className="space-y-2">
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Vector-borne</legend>
+            <ExposureCheck label="Mosquito bites" checked={exp.mosquito} details={exp.mosquitoDetails} onToggle={(v) => onChange({ exposures: { ...exp, mosquito: v } })} onDetails={(v) => onChange({ exposures: { ...exp, mosquitoDetails: v } })} />
+            <ExposureCheck label="Tick bites" checked={exp.tick} details={exp.tickDetails} onToggle={(v) => onChange({ exposures: { ...exp, tick: v } })} onDetails={(v) => onChange({ exposures: { ...exp, tickDetails: v } })} />
+
+            <div className="space-y-1">
+              <label className="flex items-start gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700"
+                  checked={!!exp.vectorOtherEnabled}
+                  onChange={(e) => onChange({ exposures: { ...exp, vectorOtherEnabled: e.target.checked } })}
+                />
+                <span>Other vector</span>
+              </label>
+              {exp.vectorOtherEnabled && (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Other vector (e.g., sandflies)"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm"
+                    value={exp.vectorOther}
+                    onChange={(e) => onChange({ exposures: { ...exp, vectorOther: e.target.value } })}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Details (optional)"
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm"
+                    value={exp.vectorOtherDetails}
+                    onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })}
+                  />
+                </>
+              )}
+            </div>
+          </fieldset>
+
+          {/* Water / Environment */}
+          <fieldset className="space-y-2">
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Water / Environment</legend>
+            <ExposureCheck label="Freshwater contact" checked={exp.freshwater} details={exp.freshwaterDetails} onToggle={(v) => onChange({ exposures: { ...exp, freshwater: v } })} onDetails={(v) => onChange({ exposures: { ...exp, freshwaterDetails: v } })} />
+            <ExposureCheck label="Visited caves or mines (if yes, any contact with bats or bat droppings?)" checked={exp.cavesMines} details={exp.cavesMinesDetails} onToggle={(v) => onChange({ exposures: { ...exp, cavesMines: v } })} onDetails={(v) => onChange({ exposures: { ...exp, cavesMinesDetails: v } })} />
+            <ExposureCheck label="Rural / forest stay" checked={exp.ruralForest} details={exp.ruralForestDetails} onToggle={(v) => onChange({ exposures: { ...exp, ruralForest: v } })} onDetails={(v) => onChange({ exposures: { ...exp, ruralForestDetails: v } })} />
+            <ExposureCheck label="Went hiking in forest, bush or woodlands" checked={exp.hikingWoodlands} details={exp.hikingWoodlandsDetails} onToggle={(v) => onChange({ exposures: { ...exp, hikingWoodlands: v } })} onDetails={(v) => onChange({ exposures: { ...exp, hikingWoodlandsDetails: v } })} />
+          </fieldset>
+
+          {/* Animal & Procedures */}
+          <fieldset className="space-y-2">
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Animal & Procedures</legend>
+            <ExposureCheck label="Animal contact" checked={exp.animalContact} details={exp.animalContactDetails} onToggle={(v) => onChange({ exposures: { ...exp, animalContact: v } })} onDetails={(v) => onChange({ exposures: { ...exp, animalContactDetails: v } })} />
+            <ExposureCheck label="Animal bite / scratch" checked={exp.animalBiteScratch} details={exp.animalBiteScratchDetails} onToggle={(v) => onChange({ exposures: { ...exp, animalBiteScratch: v } })} onDetails={(v) => onChange({ exposures: { ...exp, animalBiteScratchDetails: v } })} />
+            <ExposureCheck label="Bushmeat consumption" checked={exp.bushmeat} details={exp.bushmeatDetails} onToggle={(v) => onChange({ exposures: { ...exp, bushmeat: v } })} onDetails={(v) => onChange({ exposures: { ...exp, bushmeatDetails: v } })} />
+            <ExposureCheck label="Needles / tattoos / piercings" checked={exp.needlesTattoos} details={exp.needlesTattoosDetails} onToggle={(v) => onChange({ exposures: { ...exp, needlesTattoos: v } })} onDetails={(v) => onChange({ exposures: { ...exp, needlesTattoosDetails: v } })} />
+            <ExposureCheck label="Safari / wildlife viewing" checked={exp.safariWildlife} details={exp.safariWildlifeDetails} onToggle={(v) => onChange({ exposures: { ...exp, safariWildlife: v } })} onDetails={(v) => onChange({ exposures: { ...exp, safariWildlifeDetails: v } })} />
+          </fieldset>
+
+          {/* Food & Water */}
+          <fieldset className="space-y-2">
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Food & Water</legend>
+            <ExposureCheck label="Street food" checked={exp.streetFood} details={exp.streetFoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, streetFood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, streetFoodDetails: v } })} />
+            <ExposureCheck label="Drank untreated water" checked={exp.untreatedWater} details={exp.untreatedWaterDetails} onToggle={(v) => onChange({ exposures: { ...exp, untreatedWater: v } })} onDetails={(v) => onChange({ exposures: { ...exp, untreatedWaterDetails: v } })} />
+            <ExposureCheck label="Undercooked food" checked={exp.undercookedFood} details={exp.undercookedFoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, undercookedFood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, undercookedFoodDetails: v } })} />
+            <ExposureCheck label="Undercooked seafood" checked={exp.undercookedSeafood} details={exp.undercookedSeafoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, undercookedSeafood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, undercookedSeafoodDetails: v } })} />
+            <ExposureCheck label="Unpasteurised milk" checked={exp.unpasteurisedMilk} details={exp.unpasteurisedMilkDetails} onToggle={(v) => onChange({ exposures: { ...exp, unpasteurisedMilk: v } })} onDetails={(v) => onChange({ exposures: { ...exp, unpasteurisedMilkDetails: v } })} />
+          </fieldset>
+
+          {/* Institutional / Social */}
+          <fieldset className="space-y-2 md:col-span-2">
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Institutional / Social</legend>
+            <div className="grid sm:grid-cols-2 gap-2">
+              <ExposureCheck label="Attended funerals" checked={exp.funerals} details={exp.funeralsDetails} onToggle={(v) => onChange({ exposures: { ...exp, funerals: v } })} onDetails={(v) => onChange({ exposures: { ...exp, funeralsDetails: v } })} />
+              <ExposureCheck label="Sick contacts (including TB)" checked={exp.sickContacts} details={exp.sickContactsDetails} onToggle={(v) => onChange({ exposures: { ...exp, sickContacts: v } })} onDetails={(v) => onChange({ exposures: { ...exp, sickContactsDetails: v } })} />
+              <ExposureCheck label="Healthcare facility contact" checked={exp.healthcareFacility} details={exp.healthcareFacilityDetails} onToggle={(v) => onChange({ exposures: { ...exp, healthcareFacility: v } })} onDetails={(v) => onChange({ exposures: { ...exp, healthcareFacilityDetails: v } })} />
+              <ExposureCheck label="Prison contact" checked={exp.prison} details={exp.prisonDetails} onToggle={(v) => onChange({ exposures: { ...exp, prison: v } })} onDetails={(v) => onChange({ exposures: { ...exp, prisonDetails: v } })} />
+              <ExposureCheck label="Refugee camp contact" checked={exp.refugeeCamp} details={exp.refugeeCampDetails} onToggle={(v) => onChange({ exposures: { ...exp, refugeeCamp: v } })} onDetails={(v) => onChange({ exposures: { ...exp, refugeeCampDetails: v } })} />
+            </div>
+            <div className="mt-3">
+              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other exposure (free-text)</label>
+              <input type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm" value={exp.otherText} onChange={(e) => onChange({ exposures: { ...exp, otherText: e.target.value } })} />
+            </div>
+          </fieldset>
+        </div>
+      </div>
+
+      {/* Vaccines / Prophylaxis */}
+      <div className="mt-6 grid sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Pre-travel vaccinations (optional)</label>
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {VACCINE_OPTIONS.map((v) => (
+              <Checkbox key={v} label={v} checked={stop.vaccines.includes(v)} onChange={(checked) => {
+                const set = new Set(stop.vaccines);
+                if (checked) set.add(v); else set.delete(v);
+                onChange({ vaccines: Array.from(set) });
+              }} />
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Malaria prophylaxis (optional)</label>
+          <div className="mt-2 grid sm:grid-cols-3 gap-2">
+            <div className="sm:col-span-1 flex items-center gap-2">
+              <input id={`malaria-${stop.id}`} type="checkbox" className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700" checked={stop.malaria.took} onChange={(e) => onChange({ malaria: { ...stop.malaria, took: e.target.checked } })} />
+              <label htmlFor={`malaria-${stop.id}`} className="text-sm text-slate-700 dark:text-slate-300">Took prophylaxis</label>
+            </div>
+            <div>
+              <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.malaria.drug} onChange={(e) => onChange({ malaria: { ...stop.malaria, drug: e.target.value } })} disabled={!stop.malaria.took}>
+                {MALARIA_DRUGS.map((d) => (<option key={d} value={d}>{d}</option>))}
+              </select>
+            </div>
+            <div>
+              <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.malaria.adherence} onChange={(e) => onChange({ malaria: { ...stop.malaria, adherence: e.target.value } })} disabled={!stop.malaria.took}>
+                <option value="">Adherence…</option>
+                <option value="Good">Good</option>
+                <option value="Partial">Partial</option>
+                <option value="Poor">Poor</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
+  return (
+    <div
+      ref={innerRef}
+      className={classNames(
+        "rounded-lg border p-4",
+        highlighted
+          ? "border-rose-400 dark:border-rose-600 bg-rose-50/40 dark:bg-rose-900/10"
+          : "border-slate-200 dark:border-slate-800"
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Layover</h4>
+        <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove layover</button>
+      </div>
+      <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Country</label>
+          <input list="country-options" type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.country} onChange={(e) => onChange({ country: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City (optional)</label>
+          <input type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.city} onChange={(e) => onChange({ city: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Start</label>
+          <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.start} onChange={(e) => onChange({ start: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">End</label>
+          <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.end} onChange={(e) => onChange({ end: e.target.value })} />
+        </div>
+      </div>
+
+      <div className="mt-4 grid sm:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Did you leave the airport?</label>
+          <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.leftAirport} onChange={(e) => onChange({ leftAirport: e.target.value })}>
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
+        </div>
+        {layover.leftAirport === 'yes' && (
+          <>
+            <div>
+              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Accommodation (optional)</label>
+              <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.accommodation} onChange={(e) => onChange({ accommodation: e.target.value })}>
+                <option value="">Select…</option>
+                {ACCOMMODATION_OPTIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Activities (optional)</label>
+              <div className="grid grid-cols-2 gap-2">
+                <Checkbox label="Ate food locally" checked={layover.activities.ateLocally} onChange={(v) => onChange({ activities: { ...layover.activities, ateLocally: v } })} />
+                <Checkbox label="Used public transport" checked={layover.activities.publicTransport} onChange={(v) => onChange({ activities: { ...layover.activities, publicTransport: v } })} />
+                <Checkbox label="Street food" checked={layover.activities.streetFood} onChange={(v) => onChange({ activities: { ...layover.activities, streetFood: v } })} />
+                <Checkbox label="Drank untreated water" checked={layover.activities.untreatedWater} onChange={(v) => onChange({ activities: { ...layover.activities, untreatedWater: v } })} />
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Small checkbox
+function Checkbox({ label, checked, onChange }) {
+  const id = useMemo(() => uid(), []);
+  return (
+    <label htmlFor={id} className="flex items-start gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
+      <input id={id} type="checkbox" className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700" checked={!!checked} onChange={(e) => onChange(e.target.checked)} />
+      <span>{label}</span>
+    </label>
+  );
+}
+
+// Checkbox + details helper
+function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
+  const id = useMemo(() => uid(), []);
+  return (
+    <div className="space-y-1">
+      <label htmlFor={id} className="flex items-start gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
+        <input id={id} type="checkbox" className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700" checked={!!checked} onChange={(e) => onToggle(e.target.checked)} />
+        <span>{label}</span>
+      </label>
+      {checked && (
+        <input type="text" placeholder="Details (optional)" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm" value={details || ''} onChange={(e) => onDetails(e.target.value)} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Timeline (Vertical) — two-column grid gutter approach
+ * - Grid with fixed left column (gutter) + fluid right column (content)
+ * - Dashed rail centered in gutter, behind content
+ * - Nodes (10px, white ring) centered in gutter above the rail
+ * - Events merged in chronological order: stops (arrival/card/departure) and layovers (start/strip/end)
+ */
+function TimelineVertical({ stops, layovers }) {
+  // Build merged chronological events per trip
+  const events = useMemo(() => {
+    // Group by trip
+    const byTrip = new Map();
+    stops.forEach((s) => {
+      if (!byTrip.has(s.tripId)) byTrip.set(s.tripId, { stops: [], layovers: [] });
+      byTrip.get(s.tripId).stops.push(s);
+    });
+    layovers.forEach((l) => {
+      if (!byTrip.has(l.tripId)) byTrip.set(l.tripId, { stops: [], layovers: [] });
+      byTrip.get(l.tripId).layovers.push(l);
+    });
+
+    const merged = [];
+    for (const [tripId, { stops: st, layovers: ly }] of byTrip.entries()) {
+      const sortedStops = [...st].sort((a, b) => (parseDate(a.arrival) - parseDate(b.arrival)));
+      const sortedLayovers = [...ly].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
+
+      // Build unified list keyed by "lead" date
+      const items = [
+        ...sortedStops.map((s) => ({ type: 'stop', date: parseDate(s.arrival), stop: s })),
+        ...sortedLayovers.map((l) => ({ type: 'layover', date: parseDate(l.start), layover: l })),
+      ].sort((a, b) => (a.date - b.date));
+
+      merged.push(...items.map((x) => ({ ...x, tripId })));
+    }
+
+    // Sort across trips as well
+    merged.sort((a, b) => (a.date - b.date));
+    return merged;
+  }, [stops, layovers]);
+
+  // Node component (10px brand with white ring)
+  const Node = () => (
+    <span
+      className={classNames("relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900", NODE_COLOR)}
+      aria-hidden="true"
+    />
+  );
+
+  return (
+    <div className="relative">
+      {/* Continuous dashed rail centered in the 72px gutter */}
+      <div
+        className="pointer-events-none absolute inset-y-0 z-0"
+        style={{
+          left: 36, // center of 72px gutter
+          width: 0,
+          borderLeftWidth: 2,
+          borderLeftStyle: 'dashed',
+          borderLeftColor: 'var(--rail-color, rgb(203,213,225))', // slate-300
+        }}
+        aria-hidden="true"
+      />
+      {/* dark mode rail color */}
+      <style jsx>{`
+        :global(html.dark) [style*="--rail-color"] {
+          --rail-color: rgb(71, 85, 105); /* slate-600 */
+        }
+      `}</style>
+
+      <ol
+        className="grid"
+        style={{ gridTemplateColumns: '72px 1fr', rowGap: '12px' }}
+      >
+        {events.map((ev, idx) => {
+          if (ev.type === 'stop') {
+            const it = ev.stop;
+            return (
+              <li key={`stop-${it.id}-${idx}`} className="contents">
+                {/* Arrival row */}
+                <div className="col-[1] z-10 flex items-center justify-center">
+                  <Node />
+                </div>
+                <div className="col-[2] flex items-center gap-3">
+                  <strong className="tabular-nums">{formatDMY(it.arrival)}</strong>
+                  {it.isFirstInTrip && <span className="text-sm text-slate-600 dark:text-slate-300">— Left UK</span>}
+                </div>
+
+                {/* Purpose row */}
+                {it.isFirstInTrip && it.tripPurpose && (
+                  <>
+                    <div className="col-[1]" aria-hidden="true" />
+                    <div className="col-[2] -mt-2 mb-1 text-xs text-slate-500 dark:text-slate-400">
+                      Purpose: {it.tripPurpose}
+                    </div>
+                  </>
+                )}
+
+                {/* Card row */}
+                <div className="col-[1]" aria-hidden="true" />
+                <div className="col-[2]">
+                  <div className="relative z-0 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate" title={it.label}>{it.label}</h3>
+                    </div>
+
+                    {/* Details grid */}
+                    <div className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-2">
+                      <div className="text-sm">
+                        <span className="font-medium">Accommodation:</span>{' '}
+                        {it.accommodations?.length
+                          ? (it.accommodations.includes('Other') && it.accommodationOther
+                            ? [...it.accommodations.filter(a => a !== 'Other'), `Other: ${it.accommodationOther}`].join(', ')
+                            : it.accommodations.join(', ')
+                          )
+                          : '—'}
+                      </div>
+                      <div className="text-sm">
+                        <span className="font-medium">Vaccines:</span>{' '}
+                        {it.vaccines?.length ? it.vaccines.join(', ') : '—'}
+                      </div>
+                      <div className="text-sm">
+                        <span className="font-medium">Malaria prophylaxis:</span>{' '}
+                        {it.malaria?.took ? `${it.malaria.drug}${it.malaria.adherence ? ` (${it.malaria.adherence})` : ''}` : 'No'}
+                      </div>
+                      <div className="text-sm sm:col-span-2">
+                        <span className="font-medium">Exposures:</span>{' '}
+                        {exposureLabels(it.exposures).length ? (
+                          <ul className="mt-1 list-disc pl-5">
+                            {exposureLabels(it.exposures).map((e, i) => (
+                              <li key={i} className="text-sm">{e}</li>
+                            ))}
+                          </ul>
+                        ) : '—'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Departure row */}
+                <div className="col-[1] z-10 flex items-center justify-center">
+                  <Node />
+                </div>
+                <div className="col-[2] flex items-center gap-3">
+                  <strong className="tabular-nums">{formatDMY(it.departure)}</strong>
+                  {it.isLastInTrip && <span className="text-sm text-slate-600 dark:text-slate-300">— Arrived in the UK</span>}
+                </div>
+              </li>
+            );
+          } else {
+            const l = ev.layover;
+            return (
+              <li key={`layover-${l.id}-${idx}`} className="contents">
+                {/* Layover start */}
+                <div className="col-[1] z-10 flex items-center justify-center">
+                  <Node />
+                </div>
+                <div className="col-[2] flex items-center gap-3">
+                  <strong className="tabular-nums">{formatDMY(l.start)}</strong>
+                  <span className="text-xs text-slate-500">Layover start</span>
+                </div>
+
+                {/* Layover strip */}
+                <div className="col-[1]" aria-hidden="true" />
+                <div className="col-[2]">
+                  <div className="mt-1 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-xs text-slate-700 dark:text-slate-300">
+                    {(l.city ? `${l.city}, ` : '') + (l.country || '')}
+                    {l.leftAirport === 'yes' && l.accommodation ? ` · ${l.accommodation}` : ''}
+                  </div>
+                </div>
+
+                {/* Layover end */}
+                <div className="col-[1] z-10 flex items-center justify-center">
+                  <Node />
+                </div>
+                <div className="col-[2] flex items-center gap-3">
+                  <strong className="tabular-nums">{formatDMY(l.end)}</strong>
+                  <span className="text-xs text-slate-500">Layover end</span>
+                </div>
+              </li>
+            );
+          }
+        })}
+      </ol>
+    </div>
+  );
+}
+
+// ---- Summary builder ----
+function buildSummary(state) {
+  const lines = [];
+  lines.push('Travel History Summary');
+
+  state.trips.forEach((trip, idx) => {
+    // Infer trip range from stops
+    const arrivals = trip.stops.map((s) => parseDate(s.arrival)).filter(Boolean);
+    const departures = trip.stops.map((s) => parseDate(s.departure)).filter(Boolean);
+    const start = arrivals.length ? formatDMY(new Date(Math.min(...arrivals)).toISOString()) : '—';
+    const end = departures.length ? formatDMY(new Date(Math.max(...departures)).toISOString()) : '—';
+
+    const headerParts = [`Trip ${idx + 1} (${start} to ${end})`];
+    if (trip.purpose) headerParts.push(`purpose: ${trip.purpose}`);
+    lines.push(headerParts.join(' · '));
+
+    // Chronological stops
+    const sortedStops = [...trip.stops].sort((a, b) => (parseDate(a.arrival) - parseDate(b.arrival)));
+    sortedStops.forEach((s, sIdx) => {
+      const dates = [s.arrival ? formatDMY(s.arrival) : '—', s.departure ? formatDMY(s.departure) : '—'].join(' to ');
+      const cityLabel = (s.cities || []).filter(Boolean).join(', ');
+      const place = s.country ? (cityLabel ? `${cityLabel}, ${s.country}` : s.country) : cityLabel || '—';
+
+      const extras = [];
+      if (s.accommodations?.length)
+        extras.push(
+          `accommodation: ${s.accommodations.join(', ')}${s.accommodations.includes('Other') && s.accommodationOther ? ` (Other: ${s.accommodationOther})` : ''}`
+        );
+      if (s.vaccines?.length) extras.push(`vaccinations: ${s.vaccines.join(', ')}`);
+      if (s.malaria?.took)
+        extras.push(
+          `malaria prophylaxis: ${s.malaria.drug}${s.malaria.adherence ? ` (adherence: ${s.malaria.adherence})` : ''}`
+        );
+
+      lines.push(`  • Stop ${sIdx + 1}: ${place} — ${dates}${extras.length ? `; ${extras.join('; ')}` : ''}`);
+
+      // Exposures (bullets)
+      const bullets = exposureBullets(s.exposures);
+      if (bullets.length) {
+        bullets.forEach(({ label, details }) => {
+          lines.push(`      - ${label}${details ? ` — ${details}` : ''}`);
+        });
+      }
+    });
+
+    // Chronological layovers
+    const sortedLayovers = [...trip.layovers].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
+    if (sortedLayovers.length) {
+      lines.push('  • Layovers:');
+      sortedLayovers.forEach((l) => {
+        const dates = [l.start ? formatDMY(l.start) : '—', l.end ? formatDMY(l.end) : '—'].join(' to ');
+        const place = l.city ? `${l.city}, ${l.country}` : l.country || '—';
+        const parts = [`${place} — ${dates}`];
+        parts.push(`left airport: ${l.leftAirport}`);
+        if (l.leftAirport === 'yes') {
+          const acts = [];
+          if (l.activities.ateLocally) acts.push('ate locally');
+          if (l.activities.publicTransport) acts.push('public transport');
+          if (l.activities.streetFood) acts.push('street food');
+          if (l.activities.untreatedWater) acts.push('untreated water');
+          if (l.accommodation) acts.push(`accommodation: ${l.accommodation}`);
+          if (acts.length) parts.push(acts.join(', '));
+        }
+        lines.push(`    - ${parts.join('; ')}`);
+      });
+    }
+  });
+
+  if (state.companions) {
+    const c = state.companions;
+    const who = c.group === 'Other' && c.otherText ? c.otherText : c.group;
+    lines.push(`Companions: ${who}; companions well: ${c.companionsWell}`);
+  }
+
+  return lines.join('\n');
+}
+
+// Exposure labels for the visual timeline (no details)
+function exposureLabels(exp) {
+  const labels = [];
+  if (!exp) return labels;
+
+  // Vector
+  if (exp.mosquito) labels.push('mosquito bites');
+  if (exp.tick) labels.push('tick bites');
+  if (exp.vectorOtherEnabled && exp.vectorOther) labels.push(exp.vectorOther);
+
+  // Environment
+  if (exp.freshwater) labels.push('freshwater contact');
+  if (exp.cavesMines) labels.push('visited caves or mines');
+  if (exp.ruralForest) labels.push('rural / forest stay');
+  if (exp.hikingWoodlands) labels.push('hiking in forest / bush / woodlands');
+
+  // Animal & procedures
+  if (exp.animalContact) labels.push('animal contact');
+  if (exp.animalBiteScratch) labels.push('animal bite / scratch');
+  if (exp.bushmeat) labels.push('bushmeat consumption');
+  if (exp.needlesTattoos) labels.push('needles / tattoos / piercings');
+  if (exp.safariWildlife) labels.push('safari / wildlife viewing');
+
+  // Food & water
+  if (exp.streetFood) labels.push('street food');
+  if (exp.untreatedWater) labels.push('untreated water');
+  if (exp.undercookedFood) labels.push('undercooked food');
+  if (exp.undercookedSeafood) labels.push('undercooked seafood');
+  if (exp.unpasteurisedMilk) labels.push('unpasteurised milk');
+
+  // Social / institutional
+  if (exp.funerals) labels.push('attended funerals');
+  if (exp.sickContacts) labels.push('sick contacts (incl. TB)');
+  if (exp.healthcareFacility) labels.push('healthcare facility contact');
+  if (exp.prison) labels.push('prison contact');
+  if (exp.refugeeCamp) labels.push('refugee camp contact');
+
+  if (exp.otherText?.trim()) labels.push(exp.otherText.trim());
+
+  return labels;
+}
+
+// Exposure bullets for the text summary (with details)
+function exposureBullets(exp) {
+  if (!exp) return [];
+  const out = [];
+  const push = (label, flag, details) => { if (flag) out.push({ label, details: details?.trim() || '' }); };
+
+  // Vector
+  push('mosquito bites', exp.mosquito, exp.mosquitoDetails);
+  push('tick bites', exp.tick, exp.tickDetails);
+  if (exp.vectorOtherEnabled && exp.vectorOther) out.push({ label: exp.vectorOther, details: exp.vectorOtherDetails?.trim() || '' });
+
+  // Environment
+  push('freshwater contact', exp.freshwater, exp.freshwaterDetails);
+  push('visited caves or mines', exp.cavesMines, exp.cavesMinesDetails);
+  push('rural / forest stay', exp.ruralForest, exp.ruralForestDetails);
+  push('hiking in forest / bush / woodlands', exp.hikingWoodlands, exp.hikingWoodlandsDetails);
+
+  // Animal & procedures
+  push('animal contact', exp.animalContact, exp.animalContactDetails);
+  push('animal bite / scratch', exp.animalBiteScratch, exp.animalBiteScratchDetails);
+  push('bushmeat consumption', exp.bushmeat, exp.bushmeatDetails);
+  push('needles / tattoos / piercings', exp.needlesTattoos, exp.needlesTattoosDetails);
+  push('safari / wildlife viewing', exp.safariWildlife, exp.safariWildlifeDetails);
+
+  // Food & water
+  push('street food', exp.streetFood, exp.streetFoodDetails);
+  push('untreated water', exp.untreatedWater, exp.untreatedWaterDetails);
+  push('undercooked food', exp.undercookedFood, exp.undercookedFoodDetails);
+  push('undercooked seafood', exp.undercookedSeafood, exp.undercookedSeafoodDetails);
+  push('unpasteurised milk', exp.unpasteurisedMilk, exp.unpasteurisedMilkDetails);
+
+  // Social / institutional
+  push('attended funerals', exp.funerals, exp.funeralsDetails);
+  push('sick contacts (including TB)', exp.sickContacts, exp.sickContactsDetails);
+  push('healthcare facility contact', exp.healthcareFacility, exp.healthcareFacilityDetails);
+  push('prison contact', exp.prison, exp.prisonDetails);
+  push('refugee camp contact', exp.refugeeCamp, exp.refugeeCampDetails);
+
+  if (exp.otherText?.trim()) out.push({ label: exp.otherText.trim(), details: '' });
+
+  return out;
+}
