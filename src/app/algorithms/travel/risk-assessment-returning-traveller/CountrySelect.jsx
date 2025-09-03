@@ -31,7 +31,7 @@ export default function CountrySelect() {
 
   const { normalizedMap, meta, refresh } = useGovUkHcid();
 
-  // -------- exposures state (local here) --------
+  // Exposures state (local here)
   const [exposuresGlobal, setExposuresGlobal] = useState({
     q1_outbreak: "", // "yes" | "no" | ""
     q2_bleeding: "", // "yes" | "no" | ""
@@ -40,32 +40,34 @@ export default function CountrySelect() {
   // { [countryRowId]: { lassa?: "yes"|"no"|"", ebola_marburg?: "yes"|"no"|"", cchf?: "yes"|"no"|"" } }
   const [exposuresByCountry, setExposuresByCountry] = useState({});
 
-  // Support BOTH call styles:
+  // Support BOTH call styles used by ExposuresStep:
   //   setCountryExposure(id, "lassa", "yes")
   //   setCountryExposure(id, { lassa: "yes" })
   const setCountryExposure = (countryId, arg2, arg3) => {
     setExposuresByCountry((prev) => {
       const prevRow = prev[countryId] || {};
       if (typeof arg2 === "string" && typeof arg3 === "string") {
-        // key/value form
         return { ...prev, [countryId]: { ...prevRow, [arg2]: arg3 } };
       }
       if (arg2 && typeof arg2 === "object") {
-        // patch object form
         return { ...prev, [countryId]: { ...prevRow, ...arg2 } };
       }
-      // nothing to change
       return prev;
     });
   };
+
+  // Summary entry mode: "normal" (after exposures) or "screeningRed" (jump from screening red)
+  const [summaryEntry, setSummaryEntry] = useState("normal");
 
   const handleResetAll = () => {
     resetAll();
     setExposuresGlobal({ q1_outbreak: "", q2_bleeding: "" });
     setExposuresByCountry({});
+    setSummaryEntry("normal");
   };
 
-  // -------- steps --------
+  // ----- Steps -----
+
   if (step === "screen") {
     return (
       <ScreeningStep
@@ -73,9 +75,9 @@ export default function CountrySelect() {
         setQ1Fever={setQ1Fever}
         q2Exposure={q2Exposure}
         setQ2Exposure={setQ2Exposure}
-        onContinue={() => setStep("select")}
+        onContinue={() => { setSummaryEntry("normal"); setStep("select"); }}
         onReset={handleResetAll}
-        // onEscalateToSummary={() => setStep("summary")} // if used
+        onEscalateToSummary={() => { setSummaryEntry("screeningRed"); setStep("summary"); }}
       />
     );
   }
@@ -126,7 +128,7 @@ export default function CountrySelect() {
         exposuresByCountry={exposuresByCountry}
         setCountryExposure={setCountryExposure}
         onBackToReview={() => setStep("review")}
-        onContinueToSummary={() => setStep("summary")}
+        onContinueToSummary={() => { setSummaryEntry("normal"); setStep("summary"); }}
         onReset={handleResetAll}
       />
     );
@@ -139,7 +141,7 @@ export default function CountrySelect() {
       normalizedMap={normalizedMap}
       exposuresGlobal={exposuresGlobal}
       exposuresByCountry={exposuresByCountry}
-      entryMode="normal"
+      entryMode={summaryEntry}
       onBackToExposures={() => setStep("exposures")}
       onBackToScreen={() => setStep("screen")}
       onReset={handleResetAll}
