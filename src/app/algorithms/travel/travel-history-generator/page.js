@@ -941,36 +941,91 @@ function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
  */
 function TimelineVertical({ stops, layovers }) {
   // Build merged chronological events per trip
-  const events = useMemo(() => {
-    // Group by trip
-    const byTrip = new Map();
-    stops.forEach((s) => {
-      if (!byTrip.has(s.tripId)) byTrip.set(s.tripId, { stops: [], layovers: [] });
-      byTrip.get(s.tripId).stops.push(s);
-    });
-    layovers.forEach((l) => {
-      if (!byTrip.has(l.tripId)) byTrip.set(l.tripId, { stops: [], layovers: [] });
-      byTrip.get(l.tripId).layovers.push(l);
-    });
+  // inside TimelineVertical
+const events = useMemo(() => {
+  // group by trip
+  const byTrip = new Map();
+  stops.forEach((s) => {
+    if (!byTrip.has(s.tripId)) byTrip.set(s.tripId, { stops: [], layovers: [] });
+    byTrip.get(s.tripId).stops.push(s);
+  });
+  layovers.forEach((l) => {
+    if (!byTrip.has(l.tripId)) byTrip.set(l.tripId, { stops: [], layovers: [] });
+    byTrip.get(l.tripId).layovers.push(l);
+  });
 
-    const merged = [];
-    for (const [tripId, { stops: st, layovers: ly }] of byTrip.entries()) {
-      const sortedStops = [...st].sort((a, b) => (parseDate(a.arrival) - parseDate(b.arrival)));
-      const sortedLayovers = [...ly].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
+  const mergedAcrossTrips = [];
 
-      // Build unified list keyed by "lead" date
-      const items = [
-        ...sortedStops.map((s) => ({ type: 'stop', date: parseDate(s.arrival), stop: s })),
-        ...sortedLayovers.map((l) => ({ type: 'layover', date: parseDate(l.start), layover: l })),
-      ].sort((a, b) => (a.date - b.date));
+  for (const [tripId, { stops: st, layovers: ly }] of byTrip.entries()) {
+    const stopsSorted = [...st].sort((a, b) => (parseDate(a.arrival) - parseDate(b.arrival)));
+    const layoversSorted = [...ly].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
 
-      merged.push(...items.map((x) => ({ ...x, tripId })));
+    if (stopsSorted.length === 0) {
+      // no stops: just render layovers in start-time order
+      layoversSorted.forEach((l) => mergedAcrossTrips.push({ type: 'layover', date: parseDate(l.start), layover: l, tripId }));
+      continue;
     }
 
-    // Sort across trips as well
-    merged.sort((a, b) => (a.date - b.date));
-    return merged;
-  }, [stops, layovers]);
+    const firstStop = stopsSorted[0];
+    const lastStop  = stopsSorted[stopsSorted.length - 1];
+
+    const beforeFirst = [];
+    const afterLast   = [];
+    const betweenByIndex = Array.from({ length: Math.max(0, stopsSorted.length - 1) }, () => []);
+
+    // classification with same-day edges allowed
+    for (const l of layoversSorted) {
+      const sTime = parseDate(l.start);
+      const eTime = parseDate(l.end);
+
+      if (eTime && eTime <= parseDate(firstStop.arrival)) {
+        beforeFirst.push(l);
+        continue;
+      }
+      if (sTime && sTime >= parseDate(lastStop.departure)) {
+        afterLast.push(l);
+        continue;
+      }
+
+      // find i such that stops[i].departure <= l.start AND l.end <= stops[i+1].arrival
+      let placed = false;
+      for (let i = 0; i < stopsSorted.length - 1; i++) {
+        const depI   = parseDate(stopsSorted[i].departure);
+        const arrIp1 = parseDate(stopsSorted[i + 1].arrival);
+        if (depI && arrIp1 && sTime && eTime && depI <= sTime && eTime <= arrIp1) {
+          betweenByIndex[i].push(l);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        // Fallback: if dates missing, keep relative to start times
+        (sTime && sTime < parseDate(firstStop.arrival) ? beforeFirst : afterLast).push(l);
+      }
+    }
+
+    // Now emit in the exact order:
+    // - layovers before first
+    beforeFirst.sort((a, b) => (parseDate(a.end) - parseDate(b.end))); // earlier end first
+    beforeFirst.forEach((l) => mergedAcrossTrips.push({ type: 'layover', date: parseDate(l.start), layover: l, tripId }));
+
+    // - stop[0], (layovers between 0&1), stop[1], ...
+    stopsSorted.forEach((s, i) => {
+      mergedAcrossTrips.push({ type: 'stop', date: parseDate(s.arrival), stop: s, tripId });
+      if (i < betweenByIndex.length) {
+        const group = betweenByIndex[i].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
+        group.forEach((l) => mergedAcrossTrips.push({ type: 'layover', date: parseDate(l.start), layover: l, tripId }));
+      }
+    });
+
+    // - layovers after last
+    afterLast.sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
+    afterLast.forEach((l) => mergedAcrossTrips.push({ type: 'layover', date: parseDate(l.start), layover: l, tripId }));
+  }
+
+  // keep trips independent but stable overall
+  return mergedAcrossTrips;
+}, [stops, layovers]);
 
   // Node component (10px brand with white ring)
   const Node = () => (
