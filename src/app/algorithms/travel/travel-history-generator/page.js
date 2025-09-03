@@ -1,15 +1,10 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v6.0
-// - Companions section restored
-// - Timeline: first stop per trip = “Left UK”, last stop per trip = “Arrived in the UK”
-// - Trip purpose shown under first node of each trip
-// - Exposure: Unpasteurised milk (+ details)
-// - “Other vector” duplication fixed via vectorOtherEnabled/vectorOther/vectorOtherDetails
-// - Header Print removed; “Print timeline” prints only the timeline section
-// - Dates displayed DD/MM/YYYY; dashed rail behind; centered 10px nodes with white ring
-// - Client-only; no server storage; session persistence via localStorage
+// Travel History Generator — v6.1 (theme-updated)
+// - Replaces all violet classes with brand/accent tokens
+// - Standardized primary & secondary button styles
+// - Dark mode uses --accent for legibility
 
 import { useEffect, useMemo, useState } from 'react';
 
@@ -33,8 +28,29 @@ const VACCINE_OPTIONS = [
 
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine'];
 
+// ---- Theme helpers ----
+const BTN_PRIMARY =
+  "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-white " +
+  "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95 " +
+  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70 " +
+  "disabled:opacity-50 disabled:cursor-not-allowed transition";
+
+const BTN_SECONDARY =
+  "rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 " +
+  "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition";
+
+const BADGE_PRIMARY =
+  "inline-flex h-6 w-6 items-center justify-center rounded-full text-white text-xs font-semibold " +
+  "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]";
+
+const LINKISH_SECONDARY =
+  "rounded-lg px-3 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 " +
+  "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition";
+
+const NODE_COLOR = "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]";
+
 // ---- Persistence ----
-const LS_KEY = 'travel-history-generator:v6.0';
+const LS_KEY = 'travel-history-generator:v6.1';
 
 // ---- Helpers ----
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -74,7 +90,7 @@ const emptyStop = () => ({
   accommodations: [], // multiple accommodation types
   accommodationOther: '',
 
-  // Exposures with per-exposure details (details shown only in text summary)
+  // Exposures with per-exposure details
   exposures: {
     mosquito: false, mosquitoDetails: '',
     tick: false, tickDetails: '',
@@ -164,7 +180,6 @@ export default function TravelHistoryGeneratorPage() {
   const timelineStops = useMemo(() => {
     const out = [];
     state.trips.forEach((trip) => {
-      // sort stops per trip by arrival date
       const sorted = [...trip.stops].sort((a, b) => {
         const da = parseDate(a.arrival), db = parseDate(b.arrival);
         if (!da && !db) return 0; if (!da) return 1; if (!db) return -1; return da - db;
@@ -195,7 +210,6 @@ export default function TravelHistoryGeneratorPage() {
       });
     });
 
-    // Then sort globally by arrival for the visible timeline
     out.sort((a, b) => {
       const da = parseDate(a.arrival), db = parseDate(b.arrival);
       if (!da && !db) return 0; if (!da) return 1; if (!db) return -1; return da - db;
@@ -270,9 +284,8 @@ export default function TravelHistoryGeneratorPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setShowAbout(true)} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400">About</button>
-          {/* Print moved to timeline-only */}
-          <button type="button" onClick={clearAll} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400">Clear all</button>
+          <button type="button" onClick={() => setShowAbout(true)} className={BTN_SECONDARY}>About</button>
+          <button type="button" onClick={clearAll} className={BTN_SECONDARY}>Clear all</button>
         </div>
       </header>
 
@@ -296,7 +309,7 @@ export default function TravelHistoryGeneratorPage() {
       <ol className="mb-8 grid gap-4 sm:grid-cols-4">
         {['Countries & stops', 'Layovers', 'Companions', 'Review & generate'].map((label, idx) => (
           <li key={label} className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-white text-xs font-semibold">{idx + 1}</span>
+            <span className={BADGE_PRIMARY}>{idx + 1}</span>
             <span className="text-slate-800 dark:text-slate-200">{label}</span>
           </li>
         ))}
@@ -320,7 +333,7 @@ export default function TravelHistoryGeneratorPage() {
           />
         ))}
         <div>
-          <button type="button" onClick={addTrip} className="rounded-lg px-4 py-2 bg-violet-600 text-white hover:bg-violet-700">+ Add another trip</button>
+          <button type="button" onClick={addTrip} className={BTN_PRIMARY}>+ Add another trip</button>
         </div>
       </section>
 
@@ -337,10 +350,10 @@ export default function TravelHistoryGeneratorPage() {
                   type="button"
                   onClick={() => setState((p) => ({ ...p, companions: { ...p.companions, group: opt } }))}
                   className={classNames(
-                    'rounded-md px-3 py-1.5 text-sm border-2',
+                    'rounded-md px-3 py-1.5 text-sm border-2 transition',
                     state.companions.group === opt
-                      ? 'bg-violet-600 text-white border-violet-600'
-                      : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                      ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent'
+                      : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
                   )}
                 >
                   {opt}
@@ -373,10 +386,10 @@ export default function TravelHistoryGeneratorPage() {
                   type="button"
                   onClick={() => setState((p) => ({ ...p, companions: { ...p.companions, companionsWell: val } }))}
                   className={classNames(
-                    'rounded-md px-3 py-1.5 text-sm border-2',
+                    'rounded-md px-3 py-1.5 text-sm border-2 transition',
                     state.companions.companionsWell === val
-                      ? 'bg-violet-600 text-white border-violet-600'
-                      : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                      ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent'
+                      : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
                   )}
                 >
                   {label}
@@ -387,14 +400,14 @@ export default function TravelHistoryGeneratorPage() {
         </div>
       </section>
 
-      {/* Timeline (Vertical with outside nodes; 2-col grid gutter for perfect alignment) */}
+      {/* Timeline */}
       <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6 tl-printable">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline</h2>
           <button
             type="button"
             onClick={handlePrintTimeline}
-            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
+            className={BTN_SECONDARY}
           >
             Print timeline
           </button>
@@ -407,7 +420,7 @@ export default function TravelHistoryGeneratorPage() {
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3">Text summary</h2>
         <textarea readOnly className="w-full min-h-[240px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={summaryText} />
         <div className="mt-3 flex gap-2">
-          <button type="button" onClick={() => navigator.clipboard.writeText(summaryText)} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400">Copy summary</button>
+          <button type="button" onClick={() => navigator.clipboard.writeText(summaryText)} className={BTN_SECONDARY}>Copy summary</button>
         </div>
       </section>
 
@@ -419,7 +432,7 @@ export default function TravelHistoryGeneratorPage() {
             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">About this tool</h3>
             <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">This generator creates a travel history summary (text + timeline). No clinical risk assessment is performed. Data is stored only in your browser for this session. Do not enter private or patient-identifiable information.</p>
             <div className="mt-4 text-right">
-              <button type="button" onClick={() => setShowAbout(false)} className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40">Close</button>
+              <button type="button" onClick={() => setShowAbout(false)} className={BTN_SECONDARY + " text-sm px-3 py-2"}>Close</button>
             </div>
           </div>
         </div>
@@ -450,9 +463,9 @@ function TripCard({ trip, index, updateTrip, updateStop, addStop, removeStop, ad
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Trip {index + 1}</h2>
         <div className="flex gap-2">
-          <button type="button" onClick={() => addStop(trip.id)} className="rounded-lg px-4 py-2 bg-violet-600 text-white hover:bg-violet-700">+ Add stop</button>
-          <button type="button" onClick={() => addLayover(trip.id)} className="rounded-lg px-4 py-2 bg-violet-600 text-white hover:bg-violet-700">+ Add layover</button>
-          <button type="button" onClick={() => removeTrip(trip.id)} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400">Remove trip</button>
+          <button type="button" onClick={() => addStop(trip.id)} className={BTN_PRIMARY}>+ Add stop</button>
+          <button type="button" onClick={() => addLayover(trip.id)} className={BTN_PRIMARY}>+ Add layover</button>
+          <button type="button" onClick={() => removeTrip(trip.id)} className={BTN_SECONDARY}>Remove trip</button>
         </div>
       </div>
 
@@ -523,7 +536,7 @@ function StopCard({ stop, index, onChange, onRemove }) {
     <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Stop {index + 1}</h3>
-        <button type="button" onClick={onRemove} className="rounded-lg px-4 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400">Remove stop</button>
+        <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove stop</button>
       </div>
 
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -542,10 +555,10 @@ function StopCard({ stop, index, onChange, onRemove }) {
             {(stop.cities || []).map((c, i) => (
               <div key={i} className="flex gap-2">
                 <input type="text" placeholder="City / locality" className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={c} onChange={(e) => setCity(i, e.target.value)} />
-                <button type="button" onClick={() => removeCity(i)} className="rounded-lg px-3 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400 text-xs">Remove</button>
+                <button type="button" onClick={() => removeCity(i)} className={LINKISH_SECONDARY}>Remove</button>
               </div>
             ))}
-            <button type="button" onClick={addCity} className="rounded-lg px-3 py-1.5 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400 text-xs">+ Add another city</button>
+            <button type="button" onClick={addCity} className={BTN_SECONDARY + " text-xs px-3 py-1.5"}>+ Add another city</button>
           </div>
         </div>
 
@@ -725,7 +738,7 @@ function LayoverCard({ layover, onChange, onRemove }) {
     <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
       <div className="flex items-start justify-between gap-3">
         <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Layover</h4>
-        <button type="button" onClick={onRemove} className="rounded-lg px-4 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400">Remove layover</button>
+        <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove layover</button>
       </div>
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
@@ -811,8 +824,6 @@ function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
  * - Grid with fixed left column (gutter) + fluid right column (content)
  * - Dashed rail centered in gutter, behind content
  * - Nodes (10px, white ring) centered in gutter above the rail
- * - For each stop: Arrival row (node + bold date [+ 'Left UK' if first in trip]), optional purpose row,
- *   Card row, optional Layover rows, Departure row (+'Arrived in the UK' if last in trip)
  */
 function TimelineVertical({ stops, layovers }) {
   // Helper: layovers whose start falls between stop A and next stop B within the same trip
@@ -829,18 +840,17 @@ function TimelineVertical({ stops, layovers }) {
     });
   };
 
-  // Node component (10px violet with white ring)
+  // Node component (10px brand with white ring)
   const Node = () => (
     <span
-      className="relative z-10 inline-block h-2.5 w-2.5 rounded-full bg-violet-600 ring-2 ring-white dark:ring-slate-900"
+      className={classNames("relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900", NODE_COLOR)}
       aria-hidden="true"
     />
   );
 
   return (
     <div className="relative">
-      {/* Continuous dashed rail centered in the 72px gutter (36px from left).
-          Drawn with border-left so dashes look clean; behind everything. */}
+      {/* Continuous dashed rail centered in the 72px gutter */}
       <div
         className="pointer-events-none absolute inset-y-0 z-0"
         style={{
@@ -868,7 +878,7 @@ function TimelineVertical({ stops, layovers }) {
           const between = next ? layoversBetween(it, next) : [];
           return (
             <li key={it.id} className="contents">
-              {/* Arrival row: gutter node + bold date (+ Left UK if first in trip) */}
+              {/* Arrival row */}
               <div className="col-[1] z-10 flex items-center justify-center">
                 <Node />
               </div>
@@ -877,7 +887,7 @@ function TimelineVertical({ stops, layovers }) {
                 {it.isFirstInTrip && <span className="text-sm text-slate-600 dark:text-slate-300">— Left UK</span>}
               </div>
 
-              {/* Purpose row (only under first node of trip) */}
+              {/* Purpose row */}
               {it.isFirstInTrip && it.tripPurpose && (
                 <>
                   <div className="col-[1]" aria-hidden="true" />
@@ -928,7 +938,7 @@ function TimelineVertical({ stops, layovers }) {
                 </div>
               </div>
 
-              {/* Layovers between stops (each as mini rows with nodes + dates + strip) */}
+              {/* Layovers */}
               {between.length > 0 && between.map((l) => (
                 <div key={l.id} className="contents">
                   {/* Layover start */}
@@ -960,7 +970,7 @@ function TimelineVertical({ stops, layovers }) {
                 </div>
               ))}
 
-              {/* Departure row: gutter node + bold date (+ Arrived in the UK if last in trip) */}
+              {/* Departure row */}
               <div className="col-[1] z-10 flex items-center justify-center">
                 <Node />
               </div>
@@ -977,7 +987,6 @@ function TimelineVertical({ stops, layovers }) {
 }
 
 // ---- Summary builder ----
-// Text summary uses per-trip range inferred from stop dates; exposures include details; includes companions
 function buildSummary(state) {
   const lines = [];
   lines.push('Travel History Summary');
@@ -1011,7 +1020,7 @@ function buildSummary(state) {
 
       lines.push(`  • Stop ${sIdx + 1}: ${place} — ${dates}${extras.length ? `; ${extras.join('; ')}` : ''}`);
 
-      // Exposures as indented bullets with optional details
+      // Exposures
       const bullets = exposureBullets(s.exposures);
       if (bullets.length) {
         bullets.forEach(({ label, details }) => {
