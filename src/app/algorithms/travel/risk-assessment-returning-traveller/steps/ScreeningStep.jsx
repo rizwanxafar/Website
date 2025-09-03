@@ -1,20 +1,36 @@
+// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/ScreeningStep.jsx
 "use client";
 
 import DecisionCard from "@/components/DecisionCard";
 
+// Primary action (Continue/Next/Add/Save/Submit)
+const btnPrimary =
+  "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 " +
+  "text-sm font-medium text-white " +
+  "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95 " +
+  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70 " +
+  "disabled:opacity-50 disabled:cursor-not-allowed transition";
+
+// Secondary/outline button
+const btnSecondary =
+  "rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 " +
+  "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]";
+
+// Yes/No pill buttons use brand when active
 const yesNoBtn = (active) =>
-  `px-3 py-1.5 text-sm font-medium rounded-md border-2 ${
-    active
-      ? "bg-violet-600 text-white border-violet-600"
-      : "bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700"
-  }`;
+  "px-3 py-1.5 text-sm font-medium rounded-md border-2 " +
+  (active
+    ? "text-white border-[hsl(var(--brand))] bg-[hsl(var(--brand))] " +
+      "dark:border-[hsl(var(--accent))] dark:bg-[hsl(var(--accent))]"
+    : "bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 " +
+      "border-slate-300 dark:border-slate-700");
 
 export default function ScreeningStep({
   q1Fever, setQ1Fever,
   q2Exposure, setQ2Exposure,
-  onContinue,       // proceed to Select
+  onContinue,            // proceed to Select
   onReset,
-  onEscalateToSummary, // jump into Summary pre-malaria red
+  onEscalateToSummary,   // optional: jump into red summary
 }) {
   const q2Available = q1Fever === "yes";
   const showGreen = q1Fever === "no";
@@ -96,10 +112,7 @@ export default function ScreeningStep({
             <button
               type="button"
               onClick={onEscalateToSummary}
-              className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-white
-                         bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95
-                         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70
-                         disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className={btnPrimary}
             >
               Next steps
             </button>
@@ -113,11 +126,7 @@ export default function ScreeningStep({
           type="button"
           onClick={onContinue}
           disabled={!canProceed}
-          className={`rounded-xl px-5 py-3 text-sm font-medium ${
-            canProceed
-              ? "text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70"
-              : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
-          }`}
+          className={btnPrimary}
         >
           Continue to travel details
         </button>
@@ -125,7 +134,7 @@ export default function ScreeningStep({
         <button
           type="button"
           onClick={() => { setQ1Fever(""); setQ2Exposure(""); }}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
+          className={btnSecondary}
         >
           Back / Edit answers
         </button>
@@ -133,7 +142,7 @@ export default function ScreeningStep({
         <button
           type="button"
           onClick={onReset}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:border-rose-400"
+          className={btnSecondary}
         >
           Reset assessment
         </button>
