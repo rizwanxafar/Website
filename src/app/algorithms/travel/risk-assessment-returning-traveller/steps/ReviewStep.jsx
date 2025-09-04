@@ -15,9 +15,8 @@ const btnPrimary =
 const btnSecondary =
   "rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 " +
   "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]";
-// -----------------------
 
-// Normalisers/helpers
+// ---- UTILITIES ----
 const norm = (s = "") =>
   String(s)
     .toLowerCase()
@@ -55,7 +54,7 @@ const hasTrueHcid = (entries = []) =>
       !isImportedOnly(e?.evidence)
   );
 
-// ---- NEW: MERS notice helpers ----
+// ---- MERS helpers ----
 const MERS_COUNTRIES = new Set(
   [
     "bahrain",
@@ -78,7 +77,7 @@ const withinMersWindow = (leaving, onset) => {
   return d !== null && d <= 14;
 };
 
-// Snapshot date formatter -> DD/MM/YYYY
+// Snapshot date -> DD/MM/YYYY
 const formatSnapshot = (iso) => {
   if (!iso) return null;
   const [y, m, d] = iso.split("-");
@@ -93,12 +92,21 @@ export default function ReviewStep({
   normalizedMap,      // Map<normalizedCountryName, [{ disease, evidence, year }...]>
   onBackToSelect,
   onReset,
+  // Compatibility: your app might already pass either of these
   onContinueToExposures,
+  onContinue,
 }) {
-  // Keep ordering by leaving date
+  // Use whichever continue handler exists (don’t break existing wiring)
+  const handleContinue =
+    typeof onContinueToExposures === "function"
+      ? onContinueToExposures
+      : typeof onContinue === "function"
+      ? onContinue
+      : null;
+
   const ordered = useMemo(() => sortByLeaving(selected || []), [selected]);
 
-  // Build country assessments (unchanged logic), with extra MERS row when applicable
+  // Build country cards (logic unchanged; adds MERS notice)
   const cards = useMemo(() => {
     return ordered.map((row) => {
       const key = norm(row.name);
@@ -126,7 +134,6 @@ export default function ReviewStep({
       }
 
       // Within 21 days: check GOV.UK entries
-      const anyTrue = hasTrueHcid(entries);
       const onlyTravelOrNone =
         entries.length === 0 ||
         entries.every((e) => isNoKnownHcid(e.disease) || isTravelAssociated(e.disease) || isImportedOnly(e.evidence));
@@ -191,7 +198,7 @@ export default function ReviewStep({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left: country cards */}
+      {/* Left: country cards (simple, like before) */}
       <div className="lg:col-span-2 space-y-4">
         {cards.length === 0 ? (
           <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
@@ -201,39 +208,30 @@ export default function ReviewStep({
           </div>
         ) : (
           cards.map((c) => (
-            <div key={c.id} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 overflow-hidden">
-              <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900/40 border-b-2 border-slate-200 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">{c.name}</h3>
-                </div>
-              </div>
-              <div className="p-4 space-y-3">
-                <DecisionCard tone={c.tone} title={c.heading}>
-                  {c.body}
-                </DecisionCard>
+            <div key={c.id} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 p-4 space-y-3">
+              <div className="font-semibold">{c.name}</div>
 
-                {/* NEW: MERS inline notice, when applicable */}
-                {c.mersNotice && (
-                  <div className="flex flex-wrap items-center gap-3 text-sm">
-                    <span className="text-slate-700 dark:text-slate-200">
-                      <strong>Risk of MERS in this country.</strong>
-                    </span>
-                    <a
-                      href="/algorithms/mers"
-                      className={btnPrimary}
-                    >
-                      Go to MERS risk assessment
-                    </a>
-                  </div>
-                )}
-              </div>
+              <DecisionCard tone={c.tone} title={c.heading}>
+                {c.body}
+              </DecisionCard>
+
+              {/* MERS inline notice, when applicable */}
+              {c.mersNotice && (
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <span className="text-slate-700 dark:text-slate-200">
+                    <strong>Risk of MERS in this country.</strong>
+                  </span>
+                  <a href="/algorithms/mers" className={btnPrimary}>
+                    Go to MERS risk assessment
+                  </a>
+                </div>
+              )}
             </div>
           ))
         )}
 
-        {/* Divider */}
-        <div className="border-t border-slate-200 dark:border-slate-800" />
-        <div className="flex gap-3">
+        {/* Nav (no extra cards) */}
+        <div className="flex gap-3 pt-2">
           <button type="button" onClick={onBackToSelect} className={btnSecondary}>
             Back to travel details
           </button>
@@ -243,7 +241,7 @@ export default function ReviewStep({
         </div>
       </div>
 
-      {/* Right: summary/outcome */}
+      {/* Right: outcome panel (same position as before) */}
       <aside className="space-y-4">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
           Outcome of risk assessment
@@ -258,19 +256,18 @@ export default function ReviewStep({
         )}
 
         {anyRed && (
-          <>
-            <DecisionCard tone="amber" title="Further assessment needed">
-              <p className="text-sm">
-                One or more countries have relevant HCIDs within the 21-day window. Continue to exposure questions.
-              </p>
-            </DecisionCard>
-            <button type="button" onClick={onContinueToExposures} className={btnPrimary}>
-              Continue to exposure questions
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={handleContinue || undefined}
+            disabled={!handleContinue}
+            className={btnPrimary}
+            title={handleContinue ? "Continue to exposure questions" : "Continue action is unavailable"}
+          >
+            Continue to exposure questions
+          </button>
         )}
 
-        {/* NEW: provenance note with formatted date + GOV.UK link */}
+        {/* Provenance note with formatted date + GOV.UK link */}
         {snapshotText && (
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Using local HCID snapshot (captured {snapshotText}). For the latest information, always check{" "}
