@@ -40,7 +40,7 @@ const sortByLeaving = (arr) =>
     return tx - ty;
   });
 
-// Risk helpers (unchanged logic)
+// Risk helpers (same logic as before)
 const txt = (s = "") => String(s).toLowerCase();
 const isNoKnownHcid = (disease = "") => txt(disease).includes("no known hcid");
 const isTravelAssociated = (disease = "") => txt(disease).includes("travel associated");
@@ -92,11 +92,11 @@ export default function ReviewStep({
   normalizedMap,      // Map<normalizedCountryName, [{ disease, evidence, year }...]>
   onBackToSelect,
   onReset,
-  // Compatibility: your app might already pass either of these
+  // Compatibility: app may pass either of these
   onContinueToExposures,
   onContinue,
 }) {
-  // Use whichever continue handler exists (don’t break existing wiring)
+  // Use whichever continue handler exists (do not break wiring)
   const handleContinue =
     typeof onContinueToExposures === "function"
       ? onContinueToExposures
@@ -106,7 +106,7 @@ export default function ReviewStep({
 
   const ordered = useMemo(() => sortByLeaving(selected || []), [selected]);
 
-  // Build country cards (logic unchanged; adds MERS notice)
+  // Build country cards (layout like before; adds inline MERS + GOV.UK line in aside)
   const cards = useMemo(() => {
     return ordered.map((row) => {
       const key = norm(row.name);
@@ -198,7 +198,7 @@ export default function ReviewStep({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left: country cards (simple, like before) */}
+      {/* Left: country cards (same simple layout as before) */}
       <div className="lg:col-span-2 space-y-4">
         {cards.length === 0 ? (
           <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
@@ -215,7 +215,7 @@ export default function ReviewStep({
                 {c.body}
               </DecisionCard>
 
-              {/* MERS inline notice, when applicable */}
+              {/* MERS inline notice (small, inline) */}
               {c.mersNotice && (
                 <div className="flex flex-wrap items-center gap-3 text-sm">
                   <span className="text-slate-700 dark:text-slate-200">
@@ -230,7 +230,7 @@ export default function ReviewStep({
           ))
         )}
 
-        {/* Nav (no extra cards) */}
+        {/* Nav */}
         <div className="flex gap-3 pt-2">
           <button type="button" onClick={onBackToSelect} className={btnSecondary}>
             Back to travel details
@@ -241,7 +241,7 @@ export default function ReviewStep({
         </div>
       </div>
 
-      {/* Right: outcome panel (same position as before) */}
+      {/* Right: outcome panel (unchanged spot) */}
       <aside className="space-y-4">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
           Outcome of risk assessment
@@ -267,7 +267,7 @@ export default function ReviewStep({
           </button>
         )}
 
-        {/* Provenance note with formatted date + GOV.UK link */}
+        {/* Provenance note with formatted date + GOV.UK link (inline text, not a card) */}
         {snapshotText && (
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Using local HCID snapshot (captured {snapshotText}). For the latest information, always check{" "}
