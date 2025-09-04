@@ -40,19 +40,11 @@ const sortByLeaving = (arr) =>
     return tx - ty;
   });
 
-// Risk helpers (same logic as before)
+// Risk helpers (unchanged logic)
 const txt = (s = "") => String(s).toLowerCase();
 const isNoKnownHcid = (disease = "") => txt(disease).includes("no known hcid");
 const isTravelAssociated = (disease = "") => txt(disease).includes("travel associated");
 const isImportedOnly = (evidence = "") => txt(evidence).includes("imported cases only");
-
-const hasTrueHcid = (entries = []) =>
-  (entries || []).some(
-    (e) =>
-      !isNoKnownHcid(e?.disease) &&
-      !isTravelAssociated(e?.disease) &&
-      !isImportedOnly(e?.evidence)
-  );
 
 // ---- MERS helpers ----
 const MERS_COUNTRIES = new Set(
@@ -106,14 +98,14 @@ export default function ReviewStep({
 
   const ordered = useMemo(() => sortByLeaving(selected || []), [selected]);
 
-  // Build country cards (layout like before; adds inline MERS + GOV.UK line in aside)
+  // Build country display models (no nested DecisionCard; inline block instead)
   const cards = useMemo(() => {
     return ordered.map((row) => {
       const key = norm(row.name);
       const entries = normalizedMap.get(key) || [];
       const diff = daysBetween(row.leaving, onset);
 
-      // Outside incubation window => GREEN
+      // Outside incubation window => GREEN presentation
       if (diff !== null && diff > 21) {
         return {
           id: row.id,
@@ -139,7 +131,6 @@ export default function ReviewStep({
         entries.every((e) => isNoKnownHcid(e.disease) || isTravelAssociated(e.disease) || isImportedOnly(e.evidence));
 
       if (onlyTravelOrNone) {
-        // GREEN (no known HCIDs; possibly travel-associated mentions)
         const hasTravelMention = entries.some((e) => isTravelAssociated(e.disease) || isImportedOnly(e.evidence));
         return {
           id: row.id,
@@ -181,7 +172,7 @@ export default function ReviewStep({
         id: row.id,
         name: row.name,
         tone: "red",
-        heading: `Consider the following`,
+        heading: "Consider the following",
         body: <ul className="list-disc pl-5 text-sm">{bullets}</ul>,
         mersNotice:
           MERS_COUNTRIES.has(norm(row.name)) && withinMersWindow(row.leaving, onset)
@@ -196,9 +187,27 @@ export default function ReviewStep({
 
   const snapshotText = formatSnapshot(meta?.snapshotDate);
 
+  // Small inline tone block (keeps the old one-card look)
+  const InlineToneBlock = ({ tone, heading, children }) => {
+    const base =
+      "rounded-lg border p-3 text-sm";
+    const byTone =
+      tone === "green"
+        ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800/50 dark:bg-emerald-900/30"
+        : tone === "red"
+        ? "border-rose-200 bg-rose-50 dark:border-rose-800/50 dark:bg-rose-900/30"
+        : "border-amber-200 bg-amber-50 dark:border-amber-800/50 dark:bg-amber-900/30";
+    return (
+      <div className={`${base} ${byTone}`}>
+        <div className="font-medium mb-1">{heading}</div>
+        {children}
+      </div>
+    );
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left: country cards (same simple layout as before) */}
+      {/* Left: country cards (single bordered card each, inline tone block inside) */}
       <div className="lg:col-span-2 space-y-4">
         {cards.length === 0 ? (
           <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
@@ -211,9 +220,9 @@ export default function ReviewStep({
             <div key={c.id} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 p-4 space-y-3">
               <div className="font-semibold">{c.name}</div>
 
-              <DecisionCard tone={c.tone} title={c.heading}>
+              <InlineToneBlock tone={c.tone} heading={c.heading}>
                 {c.body}
-              </DecisionCard>
+              </InlineToneBlock>
 
               {/* MERS inline notice (small, inline) */}
               {c.mersNotice && (
@@ -241,7 +250,7 @@ export default function ReviewStep({
         </div>
       </div>
 
-      {/* Right: outcome panel (unchanged spot) */}
+      {/* Right: outcome panel + GOV.UK snapshot as a CARD (as requested) */}
       <aside className="space-y-4">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
           Outcome of risk assessment
@@ -267,19 +276,22 @@ export default function ReviewStep({
           </button>
         )}
 
-        {/* Provenance note with formatted date + GOV.UK link (inline text, not a card) */}
+        {/* Provenance note as a card with formatted date + link */}
         {snapshotText && (
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Using local HCID snapshot (captured {snapshotText}). For the latest information, always check{" "}
-            <a
-              href="https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:no-underline text-[hsl(var(--brand))] dark:text-[hsl(var(--accent))]"
-            >
-              GOV.UK
-            </a>.
-          </p>
+          <DecisionCard tone="amber" title="Data source notice">
+            <p className="text-sm">
+              Using local HCID snapshot (captured <strong>{snapshotText}</strong>). For the latest information, always
+              check{" "}
+              <a
+                href="https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:no-underline text-[hsl(var(--brand))] dark:text-[hsl(var(--accent))]"
+              >
+                GOV.UK
+              </a>.
+            </p>
+          </DecisionCard>
         )}
       </aside>
     </div>
