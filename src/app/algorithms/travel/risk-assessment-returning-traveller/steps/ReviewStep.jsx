@@ -1,3 +1,4 @@
+// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/ReviewStep.jsx
 "use client";
 
 import DecisionCard from "@/components/DecisionCard";
@@ -9,6 +10,16 @@ function daysBetween(d1, d2) {
   } catch {
     return null;
   }
+}
+
+// Format "YYYY-MM-DD" -> "DD/MM/YYYY"
+function formatDDMMYYYY(input) {
+  if (!input || typeof input !== "string") return null;
+  // Accepts "YYYY-MM-DD" or ISO date string
+  const iso = input.length > 10 ? input.slice(0, 10) : input;
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return null;
+  return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
 }
 
 const txt = (s = "") => String(s).toLowerCase();
@@ -116,6 +127,10 @@ export default function ReviewStep({
 
   const allGreen = selected.length > 0 && !anyRed;
 
+  // Format snapshot date (if present)
+  const snapshotDisplay =
+    meta?.snapshotDate ? formatDDMMYYYY(meta.snapshotDate) : null;
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
@@ -124,7 +139,9 @@ export default function ReviewStep({
 
       {meta?.source === "fallback" && (
         <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-900/30 p-3 text-sm text-amber-800 dark:text-amber-200">
-          ⚠ Using local HCID snapshot (captured {meta.snapshotDate}). For the latest information, always check GOV.UK.
+          ⚠ Using local HCID snapshot
+          {snapshotDisplay ? ` (captured ${snapshotDisplay})` : ""}.
+          {" "}For the latest information, always check GOV.UK.
         </div>
       )}
 
