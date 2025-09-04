@@ -1,11 +1,12 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v7 (chronological layovers, strict overlap validation, auto-scroll, exposure tweaks)
+// Travel History Generator — v8
 // - Theme tokens (brand/accent) applied throughout
-// - Visual timeline shows stops and layovers in strict chronological order
-// - Same-day edges allowed; otherwise overlaps are errors
-// - Auto-scrolls to newly added trip/stop/layover
+// - Trip-level vaccinations + malaria (with "Not indicated")
+// - Cities shown on their own line (country bold) in timeline and summary
+// - Layover activities: free text when left airport = yes
+// - Text summary mirrors visual chronology and uses bold labels
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -29,6 +30,8 @@ const VACCINE_OPTIONS = [
 
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine'];
 
+const MALARIA_INDICATIONS = ['Not indicated', 'Indicated'];
+
 // ---- Theme helpers ----
 const BTN_PRIMARY =
   "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-white " +
@@ -51,7 +54,7 @@ const LINKISH_SECONDARY =
 const NODE_COLOR = "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]";
 
 // ---- Persistence ----
-const LS_KEY = 'travel-history-generator:v7';
+const LS_KEY = 'travel-history-generator:v8';
 
 // ---- Helpers ----
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -100,13 +103,14 @@ const emptyStop = () => ({
     // Environment
     freshwater: false, freshwaterDetails: '',
     cavesMines: false, cavesMinesDetails: '',     // label: Visited caves or mines (...)
-    ruralForest: false, ruralForestDetails: '',   // label unchanged: Rural / forest stay
-    hikingWoodlands: false, hikingWoodlandsDetails: '', // NEW: Went hiking in forest, bush or woodlands
+    ruralForest: false, ruralForestDetails: '',   // label: Rural / forest stay
+    hikingWoodlands: false, hikingWoodlandsDetails: '', // Went hiking in forest, bush or woodlands
     // Animal / procedures
     animalContact: false, animalContactDetails: '',
     animalBiteScratch: false, animalBiteScratchDetails: '',
     bushmeat: false, bushmeatDetails: '',         // label: Bushmeat consumption
     needlesTattoos: false, needlesTattoosDetails: '',
+    safariWildlife: false, safariWildlifeDetails: '',
     // Food / water
     streetFood: false, streetFoodDetails: '',
     untreatedWater: false, untreatedWaterDetails: '',
@@ -116,32 +120,122 @@ const emptyStop = () => ({
     // Social / institutional
     funerals: false, funeralsDetails: '',         // Attended funerals
     largeGatherings: false, largeGatheringsDetails: '',
-    sickContacts: false, sickContactsDetails: '', // NEW: Sick contacts (including TB)
+    sickContacts: false, sickContactsDetails: '', // Sick contacts (including TB)
     healthcareFacility: false, healthcareFacilityDetails: '',
     prison: false, prisonDetails: '',
     refugeeCamp: false, refugeeCampDetails: '',
     // Misc
-    safariWildlife: false, safariWildlifeDetails: '',
     otherText: '',
   },
-
-  vaccines: [],
-  malaria: { took: false, drug: 'None', adherence: '' },
 });
 
 const emptyLayover = (tripId) => ({
-  id: uid(), tripId, country: '', city: '', start: '', end: '', leftAirport: 'no', accommodation: '',
-  activities: { ateLocally: false, publicTransport: false, streetFood: false, untreatedWater: false },
+  id: uid(), tripId, country: '', city: '', start: '', end: '', leftAirport: 'no',
+  activitiesText: '', // free text if leftAirport = yes
 });
 
-const emptyTrip = () => ({ id: uid(), purpose: '', stops: [emptyStop()], layovers: [] });
+const emptyTrip = () => ({
+  id: uid(),
+  purpose: '',
+  // Trip-level vaccines & malaria
+  vaccines: [],
+  malaria: { indication: 'Not indicated', took: false, drug: 'None', adherence: '' },
+  stops: [emptyStop()],
+  layovers: [],
+});
 
 const initialState = {
   trips: [emptyTrip()],
   companions: { group: 'Alone', otherText: '', companionsWell: 'unknown' }, // yes | no | unknown
 };
 
-// ---- Main Page Component ----
+// ===== Shared chronology builder (used by Timeline and Summary) =====
+function buildTripEvents(trip) {
+  // Sort stops by arrival
+  const stopsSorted = [...trip.stops].sort((a, b) => (parseDate(a.arrival) - parseDate(b.arrival)));
+  const layoversSorted = [...trip.layovers].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
+
+  const events = [];
+
+  // Trip meta event (purpose/vaccines/malaria) appears once before first stop if any field has value
+  const hasTripMeta =
+    (trip.purpose && trip.purpose.trim()) ||
+    (trip.vaccines && trip.vaccines.length) ||
+    (trip.malaria && (trip.malaria.indication !== 'Not indicated' || trip.malaria.took));
+
+  if (hasTripMeta) {
+    // timestamp: just before the first stop arrival (or earliest layover) if exists, else null
+    let anchorDate = null;
+    const firstStopArrival = stopsSorted[0] ? parseDate(stopsSorted[0].arrival) : null;
+    const firstLayStart = layoversSorted[0] ? parseDate(layoversSorted[0].start) : null;
+    if (firstStopArrival && firstLayStart) anchorDate = new Date(Math.min(firstStopArrival, firstLayStart));
+    else anchorDate = firstStopArrival || firstLayStart || null;
+
+    events.push({ type: 'tripMeta', date: anchorDate, trip });
+  }
+
+  if (stopsSorted.length === 0) {
+    // No stops: just layovers in start-time order
+    layoversSorted.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l }));
+    return events;
+  }
+
+  const firstStop = stopsSorted[0];
+  const lastStop = stopsSorted[stopsSorted.length - 1];
+
+  const beforeFirst = [];
+  const afterLast = [];
+  const betweenByIndex = Array.from({ length: Math.max(0, stopsSorted.length - 1) }, () => []);
+
+  for (const l of layoversSorted) {
+    const sTime = parseDate(l.start);
+    const eTime = parseDate(l.end);
+
+    if (eTime && eTime <= parseDate(firstStop.arrival)) {
+      beforeFirst.push(l);
+      continue;
+    }
+    if (sTime && sTime >= parseDate(lastStop.departure)) {
+      afterLast.push(l);
+      continue;
+    }
+
+    let placed = false;
+    for (let i = 0; i < stopsSorted.length - 1; i++) {
+      const depI = parseDate(stopsSorted[i].departure);
+      const arrIp1 = parseDate(stopsSorted[i + 1].arrival);
+      if (depI && arrIp1 && sTime && eTime && depI <= sTime && eTime <= arrIp1) {
+        betweenByIndex[i].push(l);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      (sTime && sTime < parseDate(firstStop.arrival) ? beforeFirst : afterLast).push(l);
+    }
+  }
+
+  // Emit: layovers before first (by end asc), then stop0, (between 0&1), stop1, ..., then layovers after last (by start asc)
+  beforeFirst.sort((a, b) => (parseDate(a.end) - parseDate(b.end)));
+  beforeFirst.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l }));
+
+  stopsSorted.forEach((s, i) => {
+    const isFirstInTrip = s.id === firstStop.id;
+    const isLastInTrip = s.id === lastStop.id;
+    events.push({ type: 'stop', date: parseDate(s.arrival), stop: { ...s, isFirstInTrip, isLastInTrip, tripPurpose: trip.purpose } });
+    if (i < betweenByIndex.length) {
+      const group = betweenByIndex[i].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
+      group.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l }));
+    }
+  });
+
+  afterLast.sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
+  afterLast.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l }));
+
+  return events;
+}
+
+// ===== Main Page Component =====
 export default function TravelHistoryGeneratorPage() {
   const [state, setState] = useState(initialState);
   const [showAbout, setShowAbout] = useState(false);
@@ -233,60 +327,24 @@ export default function TravelHistoryGeneratorPage() {
     return () => clearTimeout(t);
   }, [pendingScrollId]);
 
-  // Derived — stops with flags and layovers (for timeline & summary)
-  const stopsWithFlags = useMemo(() => {
-    const out = [];
+  // Derived: merged chronology across all trips for the timeline component
+  const mergedEventsAllTrips = useMemo(() => {
+    const merged = [];
     state.trips.forEach((trip) => {
-      const sorted = [...trip.stops].sort((a, b) => {
-        const da = parseDate(a.arrival), db = parseDate(b.arrival);
-        if (!da && !db) return 0; if (!da) return 1; if (!db) return -1; return da - db;
-      });
-      const first = sorted[0]?.id;
-      const last = sorted[sorted.length - 1]?.id;
-
-      sorted.forEach((s) => {
-        const cityLabel = (s.cities || []).filter(Boolean).join(', ');
-        const place = s.country ? (cityLabel ? `${cityLabel}, ${s.country}` : s.country) : cityLabel || '—';
-        out.push({
-          tripId: trip.id,
-          tripPurpose: trip.purpose || '',
-          isFirstInTrip: s.id === first,
-          isLastInTrip: s.id === last,
-          id: s.id,
-          label: place,
-          country: s.country,
-          cities: s.cities,
-          arrival: s.arrival,
-          departure: s.departure,
-          exposures: s.exposures,
-          accommodations: s.accommodations,
-          accommodationOther: s.accommodationOther,
-          vaccines: s.vaccines,
-          malaria: s.malaria,
-        });
-      });
+      buildTripEvents(trip).forEach((ev) => merged.push({ ...ev, tripId: trip.id }));
     });
-
-    out.sort((a, b) => {
-      const da = parseDate(a.arrival), db = parseDate(b.arrival);
-      if (!da && !db) return 0; if (!da) return 1; if (!db) return -1; return da - db;
+    // Sort by date across trips (nulls last)
+    merged.sort((a, b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return a.date - b.date;
     });
-    return out;
+    return merged;
   }, [state.trips]);
 
-  const timelineLayovers = useMemo(() => {
-    const layovers = [];
-    state.trips.forEach((trip) => {
-      trip.layovers.forEach((l) => layovers.push({ ...l, tripId: trip.id }));
-    });
-    layovers.sort((a, b) => {
-      const da = parseDate(a.start), db = parseDate(b.start);
-      if (!da && !db) return 0; if (!da) return 1; if (!db) return -1; return da - db;
-    });
-    return layovers;
-  }, [state.trips]);
-
-  const summaryText = useMemo(() => buildSummary(state), [state]);
+  // Build summary HTML & plain text using the SAME chronology
+  const { summaryHtml, summaryTextPlain } = useMemo(() => buildSummaryFromEvents(state, mergedEventsAllTrips), [state, mergedEventsAllTrips]);
 
   // Handlers
   const updateTrip = (tripId, patch) => setState((prev) => ({
@@ -353,7 +411,7 @@ export default function TravelHistoryGeneratorPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Travel History Generator</h1>
           <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl">
-            Build a clear, printable travel history. <strong>No clinical risk assessment.</strong>
+            Build a clear, printable travel history. Provide as much information as possible to generate accurate history.
           </p>
         </div>
         <div className="flex gap-2">
@@ -480,23 +538,25 @@ export default function TravelHistoryGeneratorPage() {
       <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6 tl-printable">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline</h2>
-          <button
-            type="button"
-            onClick={handlePrintTimeline}
-            className={BTN_SECONDARY}
-          >
-            Print timeline
-          </button>
+          <button type="button" onClick={handlePrintTimeline} className={BTN_SECONDARY}>Print timeline</button>
         </div>
-        <TimelineVertical stops={stopsWithFlags} layovers={timelineLayovers} />
+        <TimelineVertical events={mergedEventsAllTrips} />
       </section>
 
       {/* Text summary */}
       <section className="mt-6 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3">Text summary</h2>
-        <textarea readOnly className="w-full min-h-[240px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={summaryText} />
+        <div className="prose prose-sm dark:prose-invert max-w-none">
+          <div dangerouslySetInnerHTML={{ __html: summaryHtml }} />
+        </div>
         <div className="mt-3 flex gap-2">
-          <button type="button" onClick={() => navigator.clipboard.writeText(summaryText)} className={BTN_SECONDARY}>Copy summary</button>
+          <button
+            type="button"
+            onClick={() => navigator.clipboard.writeText(summaryTextPlain)}
+            className={BTN_SECONDARY}
+          >
+            Copy summary
+          </button>
         </div>
       </section>
 
@@ -506,9 +566,12 @@ export default function TravelHistoryGeneratorPage() {
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowAbout(false)} />
           <div className="relative z-10 w-full max-w-lg rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">About this tool</h3>
-            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">This generator creates a travel history summary (text + timeline). No clinical risk assessment is performed. Data is stored only in your browser for this session. Do not enter private or patient-identifiable information.</p>
+            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+              This generator creates a travel history summary (text + timeline). Data is stored only in your browser for this session.
+              Do not enter private or patient-identifiable information.
+            </p>
             <div className="mt-4 text-right">
-              <button type="button" onClick={() => setShowAbout(false)} className={BTN_SECONDARY + " text-sm px-3 py-2"}>Close</button>
+              <button type="button" onClick={() => setShowAbout(false)} className={LINKISH_SECONDARY + " text-sm px-3 py-2"}>Close</button>
             </div>
           </div>
         </div>
@@ -532,11 +595,21 @@ export default function TravelHistoryGeneratorPage() {
   );
 }
 
-// ---- Trip Card ----
+// ===== Trip Card =====
 function TripCard({
   trip, index, updateTrip, updateStop, addStop, removeStop, addLayover, updateLayover, removeLayover, removeTrip,
   highlight, setItemRef, innerRef
 }) {
+  // Toggle trip-level vaccine
+  const toggleTripVaccine = (v) => {
+    const set = new Set(trip.vaccines || []);
+    if (set.has(v)) set.delete(v); else set.add(v);
+    updateTrip(trip.id, { vaccines: Array.from(set) });
+  };
+
+  // Update malaria (trip-level)
+  const setMalaria = (patch) => updateTrip(trip.id, { malaria: { ...trip.malaria, ...patch } });
+
   return (
     <div ref={innerRef} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
       <div className="flex items-start justify-between gap-3">
@@ -548,11 +621,86 @@ function TripCard({
         </div>
       </div>
 
-      {/* Trip meta */}
+      {/* Trip purpose */}
       <div className="mt-4 grid sm:grid-cols-3 gap-4">
         <div className="sm:col-span-3">
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Purpose (optional)</label>
-          <input type="text" placeholder="Work, VFR, tourism, humanitarian, etc." className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.purpose} onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })} />
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Purpose</label>
+          <input
+            type="text"
+            placeholder="Work, VFR, tourism, humanitarian, etc."
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            value={trip.purpose}
+            onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })}
+          />
+        </div>
+      </div>
+
+      {/* Trip-wide Vaccines & Malaria */}
+      <div className="mt-6 grid md:grid-cols-2 gap-6">
+        {/* Vaccines */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Pre-travel vaccinations</label>
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {VACCINE_OPTIONS.map((v) => (
+              <Checkbox
+                key={v}
+                label={v}
+                checked={(trip.vaccines || []).includes(v)}
+                onChange={(checked) => toggleTripVaccine(v)}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Malaria */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Malaria prophylaxis</label>
+          <div className="mt-2 grid sm:grid-cols-3 gap-2">
+            {/* Indication */}
+            <select
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              value={trip.malaria.indication}
+              onChange={(e) => setMalaria({ indication: e.target.value })}
+            >
+              {MALARIA_INDICATIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
+            </select>
+
+            {/* Took? (enabled only if indicated) */}
+            <div className="flex items-center gap-2">
+              <input
+                id={`malaria-took-${trip.id}`}
+                type="checkbox"
+                className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700"
+                checked={trip.malaria.took}
+                onChange={(e) => setMalaria({ took: e.target.checked })}
+                disabled={trip.malaria.indication !== 'Indicated'}
+              />
+              <label htmlFor={`malaria-took-${trip.id}`} className="text-sm text-slate-700 dark:text-slate-300">Took prophylaxis</label>
+            </div>
+
+            {/* Drug */}
+            <select
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              value={trip.malaria.drug}
+              onChange={(e) => setMalaria({ drug: e.target.value })}
+              disabled={!trip.malaria.took || trip.malaria.indication !== 'Indicated'}
+            >
+              {MALARIA_DRUGS.map((d) => (<option key={d} value={d}>{d}</option>))}
+            </select>
+
+            {/* Adherence */}
+            <select
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              value={trip.malaria.adherence}
+              onChange={(e) => setMalaria({ adherence: e.target.value })}
+              disabled={!trip.malaria.took || trip.malaria.indication !== 'Indicated'}
+            >
+              <option value="">Adherence…</option>
+              <option value="Good">Good</option>
+              <option value="Partial">Partial</option>
+              <option value="Poor">Poor</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -652,7 +800,7 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
 
         {/* Multiple cities */}
         <div className="lg:col-span-3">
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities (optional)</label>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities</label>
           <div className="space-y-2">
             {(stop.cities || []).map((c, i) => (
               <div key={i} className="flex gap-2">
@@ -710,7 +858,7 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
 
       {/* Exposures */}
       <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6">
-        <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Activities / Exposures (optional)</h4>
+        <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Activities / Exposures</h4>
 
         <div className="grid md:grid-cols-2 gap-4">
           {/* Vector-borne */}
@@ -718,7 +866,6 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
             <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Vector-borne</legend>
             <ExposureCheck label="Mosquito bites" checked={exp.mosquito} details={exp.mosquitoDetails} onToggle={(v) => onChange({ exposures: { ...exp, mosquito: v } })} onDetails={(v) => onChange({ exposures: { ...exp, mosquitoDetails: v } })} />
             <ExposureCheck label="Tick bites" checked={exp.tick} details={exp.tickDetails} onToggle={(v) => onChange({ exposures: { ...exp, tick: v } })} onDetails={(v) => onChange({ exposures: { ...exp, tickDetails: v } })} />
-
             <div className="space-y-1">
               <label className="flex items-start gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
                 <input
@@ -796,44 +943,6 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
           </fieldset>
         </div>
       </div>
-
-      {/* Vaccines / Prophylaxis */}
-      <div className="mt-6 grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Pre-travel vaccinations (optional)</label>
-          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {VACCINE_OPTIONS.map((v) => (
-              <Checkbox key={v} label={v} checked={stop.vaccines.includes(v)} onChange={(checked) => {
-                const set = new Set(stop.vaccines);
-                if (checked) set.add(v); else set.delete(v);
-                onChange({ vaccines: Array.from(set) });
-              }} />
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Malaria prophylaxis (optional)</label>
-          <div className="mt-2 grid sm:grid-cols-3 gap-2">
-            <div className="sm:col-span-1 flex items-center gap-2">
-              <input id={`malaria-${stop.id}`} type="checkbox" className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700" checked={stop.malaria.took} onChange={(e) => onChange({ malaria: { ...stop.malaria, took: e.target.checked } })} />
-              <label htmlFor={`malaria-${stop.id}`} className="text-sm text-slate-700 dark:text-slate-300">Took prophylaxis</label>
-            </div>
-            <div>
-              <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.malaria.drug} onChange={(e) => onChange({ malaria: { ...stop.malaria, drug: e.target.value } })} disabled={!stop.malaria.took}>
-                {MALARIA_DRUGS.map((d) => (<option key={d} value={d}>{d}</option>))}
-              </select>
-            </div>
-            <div>
-              <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.malaria.adherence} onChange={(e) => onChange({ malaria: { ...stop.malaria, adherence: e.target.value } })} disabled={!stop.malaria.took}>
-                <option value="">Adherence…</option>
-                <option value="Good">Good</option>
-                <option value="Partial">Partial</option>
-                <option value="Poor">Poor</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -859,7 +968,7 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
           <input list="country-options" type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.country} onChange={(e) => onChange({ country: e.target.value })} />
         </div>
         <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City (optional)</label>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
           <input type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.city} onChange={(e) => onChange({ city: e.target.value })} />
         </div>
         <div>
@@ -880,25 +989,17 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
             <option value="yes">Yes</option>
           </select>
         </div>
+
         {layover.leftAirport === 'yes' && (
-          <>
-            <div>
-              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Accommodation (optional)</label>
-              <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.accommodation} onChange={(e) => onChange({ accommodation: e.target.value })}>
-                <option value="">Select…</option>
-                {ACCOMMODATION_OPTIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
-              </select>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Activities (optional)</label>
-              <div className="grid grid-cols-2 gap-2">
-                <Checkbox label="Ate food locally" checked={layover.activities.ateLocally} onChange={(v) => onChange({ activities: { ...layover.activities, ateLocally: v } })} />
-                <Checkbox label="Used public transport" checked={layover.activities.publicTransport} onChange={(v) => onChange({ activities: { ...layover.activities, publicTransport: v } })} />
-                <Checkbox label="Street food" checked={layover.activities.streetFood} onChange={(v) => onChange({ activities: { ...layover.activities, streetFood: v } })} />
-                <Checkbox label="Drank untreated water" checked={layover.activities.untreatedWater} onChange={(v) => onChange({ activities: { ...layover.activities, untreatedWater: v } })} />
-              </div>
-            </div>
-          </>
+          <div className="sm:col-span-2">
+            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Please describe any activities undertaken</label>
+            <textarea
+              rows={3}
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              value={layover.activitiesText}
+              onChange={(e) => onChange({ activitiesText: e.target.value })}
+            />
+          </div>
         )}
       </div>
     </div>
@@ -933,100 +1034,14 @@ function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
 }
 
 /**
- * Timeline (Vertical) — two-column grid gutter approach
- * - Grid with fixed left column (gutter) + fluid right column (content)
- * - Dashed rail centered in gutter, behind content
- * - Nodes (10px, white ring) centered in gutter above the rail
- * - Events merged in chronological order: stops (arrival/card/departure) and layovers (start/strip/end)
+ * Timeline (Vertical)
+ * - Two-column grid with 72px gutter
+ * - Dashed rail centered in gutter
+ * - Nodes centered over rail
+ * - Uses merged events across all trips (already ordered) to render:
+ *    tripMeta (once per trip), stop (arrival node + card + departure node), layover (start node + strip + end node)
  */
-function TimelineVertical({ stops, layovers }) {
-  // Build merged chronological events per trip
-  // inside TimelineVertical
-const events = useMemo(() => {
-  // group by trip
-  const byTrip = new Map();
-  stops.forEach((s) => {
-    if (!byTrip.has(s.tripId)) byTrip.set(s.tripId, { stops: [], layovers: [] });
-    byTrip.get(s.tripId).stops.push(s);
-  });
-  layovers.forEach((l) => {
-    if (!byTrip.has(l.tripId)) byTrip.set(l.tripId, { stops: [], layovers: [] });
-    byTrip.get(l.tripId).layovers.push(l);
-  });
-
-  const mergedAcrossTrips = [];
-
-  for (const [tripId, { stops: st, layovers: ly }] of byTrip.entries()) {
-    const stopsSorted = [...st].sort((a, b) => (parseDate(a.arrival) - parseDate(b.arrival)));
-    const layoversSorted = [...ly].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
-
-    if (stopsSorted.length === 0) {
-      // no stops: just render layovers in start-time order
-      layoversSorted.forEach((l) => mergedAcrossTrips.push({ type: 'layover', date: parseDate(l.start), layover: l, tripId }));
-      continue;
-    }
-
-    const firstStop = stopsSorted[0];
-    const lastStop  = stopsSorted[stopsSorted.length - 1];
-
-    const beforeFirst = [];
-    const afterLast   = [];
-    const betweenByIndex = Array.from({ length: Math.max(0, stopsSorted.length - 1) }, () => []);
-
-    // classification with same-day edges allowed
-    for (const l of layoversSorted) {
-      const sTime = parseDate(l.start);
-      const eTime = parseDate(l.end);
-
-      if (eTime && eTime <= parseDate(firstStop.arrival)) {
-        beforeFirst.push(l);
-        continue;
-      }
-      if (sTime && sTime >= parseDate(lastStop.departure)) {
-        afterLast.push(l);
-        continue;
-      }
-
-      // find i such that stops[i].departure <= l.start AND l.end <= stops[i+1].arrival
-      let placed = false;
-      for (let i = 0; i < stopsSorted.length - 1; i++) {
-        const depI   = parseDate(stopsSorted[i].departure);
-        const arrIp1 = parseDate(stopsSorted[i + 1].arrival);
-        if (depI && arrIp1 && sTime && eTime && depI <= sTime && eTime <= arrIp1) {
-          betweenByIndex[i].push(l);
-          placed = true;
-          break;
-        }
-      }
-      if (!placed) {
-        // Fallback: if dates missing, keep relative to start times
-        (sTime && sTime < parseDate(firstStop.arrival) ? beforeFirst : afterLast).push(l);
-      }
-    }
-
-    // Now emit in the exact order:
-    // - layovers before first
-    beforeFirst.sort((a, b) => (parseDate(a.end) - parseDate(b.end))); // earlier end first
-    beforeFirst.forEach((l) => mergedAcrossTrips.push({ type: 'layover', date: parseDate(l.start), layover: l, tripId }));
-
-    // - stop[0], (layovers between 0&1), stop[1], ...
-    stopsSorted.forEach((s, i) => {
-      mergedAcrossTrips.push({ type: 'stop', date: parseDate(s.arrival), stop: s, tripId });
-      if (i < betweenByIndex.length) {
-        const group = betweenByIndex[i].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
-        group.forEach((l) => mergedAcrossTrips.push({ type: 'layover', date: parseDate(l.start), layover: l, tripId }));
-      }
-    });
-
-    // - layovers after last
-    afterLast.sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
-    afterLast.forEach((l) => mergedAcrossTrips.push({ type: 'layover', date: parseDate(l.start), layover: l, tripId }));
-  }
-
-  // keep trips independent but stable overall
-  return mergedAcrossTrips;
-}, [stops, layovers]);
-
+function TimelineVertical({ events }) {
   // Node component (10px brand with white ring)
   const Node = () => (
     <span
@@ -1061,6 +1076,42 @@ const events = useMemo(() => {
         style={{ gridTemplateColumns: '72px 1fr', rowGap: '12px' }}
       >
         {events.map((ev, idx) => {
+          if (ev.type === 'tripMeta') {
+            const t = ev.trip;
+            const showVaccines = (t.vaccines || []).length > 0;
+            const showMalaria = t.malaria && (t.malaria.indication !== 'Not indicated' || t.malaria.took);
+
+            // Arrival-ish spacer node for the meta row
+            return (
+              <li key={`tripmeta-${t.id}-${idx}`} className="contents">
+                <div className="col-[1] z-10 flex items-center justify-center">
+                  <Node />
+                </div>
+                <div className="col-[2]">
+                  <div className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
+                    {t.purpose ? (
+                      <div className="text-sm"><span className="font-semibold">Purpose:</span> {t.purpose}</div>
+                    ) : null}
+                    {showMalaria ? (
+                      <div className="text-sm mt-1">
+                        <span className="font-semibold">Malaria prophylaxis:</span>{' '}
+                        {t.malaria.indication === 'Not indicated'
+                          ? 'Not indicated'
+                          : (t.malaria.took
+                              ? `${t.malaria.drug}${t.malaria.adherence ? ` (${t.malaria.adherence})` : ''}`
+                              : 'Not taken')}
+                      </div>
+                    ) : null}
+                    <div className="text-sm mt-1">
+                      <span className="font-semibold">Vaccinations:</span>{' '}
+                      {showVaccines ? t.vaccines.join(', ') : 'None'}
+                    </div>
+                  </div>
+                </div>
+              </li>
+            );
+          }
+
           if (ev.type === 'stop') {
             const it = ev.stop;
             return (
@@ -1074,23 +1125,21 @@ const events = useMemo(() => {
                   {it.isFirstInTrip && <span className="text-sm text-slate-600 dark:text-slate-300">— Left UK</span>}
                 </div>
 
-                {/* Purpose row */}
-                {it.isFirstInTrip && it.tripPurpose && (
-                  <>
-                    <div className="col-[1]" aria-hidden="true" />
-                    <div className="col-[2] -mt-2 mb-1 text-xs text-slate-500 dark:text-slate-400">
-                      Purpose: {it.tripPurpose}
-                    </div>
-                  </>
-                )}
+                {/* Purpose line for first stop is already shown in tripMeta (above), so no extra purpose row here */}
 
                 {/* Card row */}
                 <div className="col-[1]" aria-hidden="true" />
                 <div className="col-[2]">
                   <div className="relative z-0 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate" title={it.label}>{it.label}</h3>
-                    </div>
+                    {/* Country & Cities */}
+                    <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100" title={it.country || it.label}>
+                      {it.country || it.label || '—'}
+                    </h3>
+                    {(it.cities && it.cities.filter(Boolean).length > 0) && (
+                      <div className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">
+                        {it.cities.filter(Boolean).join(', ')}
+                      </div>
+                    )}
 
                     {/* Details grid */}
                     <div className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-2">
@@ -1102,14 +1151,6 @@ const events = useMemo(() => {
                             : it.accommodations.join(', ')
                           )
                           : '—'}
-                      </div>
-                      <div className="text-sm">
-                        <span className="font-medium">Vaccines:</span>{' '}
-                        {it.vaccines?.length ? it.vaccines.join(', ') : '—'}
-                      </div>
-                      <div className="text-sm">
-                        <span className="font-medium">Malaria prophylaxis:</span>{' '}
-                        {it.malaria?.took ? `${it.malaria.drug}${it.malaria.adherence ? ` (${it.malaria.adherence})` : ''}` : 'No'}
                       </div>
                       <div className="text-sm sm:col-span-2">
                         <span className="font-medium">Exposures:</span>{' '}
@@ -1135,120 +1176,170 @@ const events = useMemo(() => {
                 </div>
               </li>
             );
-          } else {
-            const l = ev.layover;
-            return (
-              <li key={`layover-${l.id}-${idx}`} className="contents">
-                {/* Layover start */}
-                <div className="col-[1] z-10 flex items-center justify-center">
-                  <Node />
-                </div>
-                <div className="col-[2] flex items-center gap-3">
-                  <strong className="tabular-nums">{formatDMY(l.start)}</strong>
-                  <span className="text-xs text-slate-500">Layover start</span>
-                </div>
-
-                {/* Layover strip */}
-                <div className="col-[1]" aria-hidden="true" />
-                <div className="col-[2]">
-                  <div className="mt-1 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-xs text-slate-700 dark:text-slate-300">
-                    {(l.city ? `${l.city}, ` : '') + (l.country || '')}
-                    {l.leftAirport === 'yes' && l.accommodation ? ` · ${l.accommodation}` : ''}
-                  </div>
-                </div>
-
-                {/* Layover end */}
-                <div className="col-[1] z-10 flex items-center justify-center">
-                  <Node />
-                </div>
-                <div className="col-[2] flex items-center gap-3">
-                  <strong className="tabular-nums">{formatDMY(l.end)}</strong>
-                  <span className="text-xs text-slate-500">Layover end</span>
-                </div>
-              </li>
-            );
           }
+
+          // Layover
+          const l = ev.layover;
+          return (
+            <li key={`layover-${l.id}-${idx}`} className="contents">
+              {/* Layover start */}
+              <div className="col-[1] z-10 flex items-center justify-center">
+                <Node />
+              </div>
+              <div className="col-[2] flex items-center gap-3">
+                <strong className="tabular-nums">{formatDMY(l.start)}</strong>
+                <span className="text-xs text-slate-500">Layover start</span>
+              </div>
+
+              {/* Layover strip */}
+              <div className="col-[1]" aria-hidden="true" />
+              <div className="col-[2]">
+                <div className="mt-1 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-xs text-slate-700 dark:text-slate-300">
+                  {(l.city ? `${l.city}, ` : '') + (l.country || '')}
+                  {l.leftAirport === 'yes' && l.activitiesText ? ` · ${l.activitiesText}` : ''}
+                </div>
+              </div>
+
+              {/* Layover end */}
+              <div className="col-[1] z-10 flex items-center justify-center">
+                <Node />
+              </div>
+              <div className="col-[2] flex items-center gap-3">
+                <strong className="tabular-nums">{formatDMY(l.end)}</strong>
+                <span className="text-xs text-slate-500">Layover end</span>
+              </div>
+            </li>
+          );
         })}
       </ol>
     </div>
   );
 }
 
-// ---- Summary builder ----
-function buildSummary(state) {
-  const lines = [];
-  lines.push('Travel History Summary');
+// ===== Summary builder (HTML + Plain Text) =====
+function buildSummaryFromEvents(state, mergedEventsAllTrips) {
+  const html = [];
+  const text = [];
 
-  state.trips.forEach((trip, idx) => {
-    // Infer trip range from stops
-    const arrivals = trip.stops.map((s) => parseDate(s.arrival)).filter(Boolean);
-    const departures = trip.stops.map((s) => parseDate(s.departure)).filter(Boolean);
+  html.push(`<p><strong>Travel History Summary</strong></p>`);
+  text.push(`Travel History Summary`);
+
+  // Group events back by trip for nice per-trip blocks
+  const byTrip = new Map();
+  mergedEventsAllTrips.forEach((ev) => {
+    if (!byTrip.has(ev.tripId)) byTrip.set(ev.tripId, []);
+    byTrip.get(ev.tripId).push(ev);
+  });
+
+  let tripIndex = 1;
+  for (const [tripId, events] of byTrip.entries()) {
+    // Compute inferred date range from stops
+    const stops = events.filter((e) => e.type === 'stop').map((e) => e.stop);
+    const arrivals = stops.map((s) => parseDate(s.arrival)).filter(Boolean);
+    const departures = stops.map((s) => parseDate(s.departure)).filter(Boolean);
     const start = arrivals.length ? formatDMY(new Date(Math.min(...arrivals)).toISOString()) : '—';
     const end = departures.length ? formatDMY(new Date(Math.max(...departures)).toISOString()) : '—';
 
-    const headerParts = [`Trip ${idx + 1} (${start} to ${end})`];
-    if (trip.purpose) headerParts.push(`purpose: ${trip.purpose}`);
-    lines.push(headerParts.join(' · '));
+    html.push(`<p><strong>Trip ${tripIndex} (${start} to ${end})</strong></p>`);
+    text.push(`Trip ${tripIndex} (${start} to ${end})`);
 
-    // Chronological stops
-    const sortedStops = [...trip.stops].sort((a, b) => (parseDate(a.arrival) - parseDate(b.arrival)));
-    sortedStops.forEach((s, sIdx) => {
-      const dates = [s.arrival ? formatDMY(s.arrival) : '—', s.departure ? formatDMY(s.departure) : '—'].join(' to ');
-      const cityLabel = (s.cities || []).filter(Boolean).join(', ');
-      const place = s.country ? (cityLabel ? `${cityLabel}, ${s.country}` : s.country) : cityLabel || '—';
+    // TripMeta line(s) (Purpose, Malaria, Vaccinations) if present
+    const tripMeta = events.find((e) => e.type === 'tripMeta');
+    const tripObj = state.trips.find((t) => t.id === tripId) || {};
+    const vaccines = (tripObj.vaccines || []).join(', ');
+    const malaria = tripObj.malaria || { indication: 'Not indicated', took: false, drug: 'None', adherence: '' };
 
-      const extras = [];
-      if (s.accommodations?.length)
-        extras.push(
-          `accommodation: ${s.accommodations.join(', ')}${s.accommodations.includes('Other') && s.accommodationOther ? ` (Other: ${s.accommodationOther})` : ''}`
-        );
-      if (s.vaccines?.length) extras.push(`vaccinations: ${s.vaccines.join(', ')}`);
-      if (s.malaria?.took)
-        extras.push(
-          `malaria prophylaxis: ${s.malaria.drug}${s.malaria.adherence ? ` (adherence: ${s.malaria.adherence})` : ''}`
-        );
+    // Purpose
+    if (tripObj.purpose && tripObj.purpose.trim()) {
+      html.push(`<div><strong>Purpose:</strong> ${escapeHtml(tripObj.purpose)}</div>`);
+      text.push(`Purpose: ${tripObj.purpose}`);
+    }
 
-      lines.push(`  • Stop ${sIdx + 1}: ${place} — ${dates}${extras.length ? `; ${extras.join('; ')}` : ''}`);
+    // Malaria
+    {
+      let malariaText = 'Not indicated';
+      if (malaria.indication === 'Indicated') {
+        malariaText = malaria.took
+          ? `${malaria.drug}${malaria.adherence ? ` (${malaria.adherence})` : ''}`
+          : 'Not taken';
+      }
+      html.push(`<div><strong>Malaria prophylaxis:</strong> ${escapeHtml(malariaText)}</div>`);
+      text.push(`Malaria prophylaxis: ${malariaText}`);
+    }
 
-      // Exposures (bullets)
-      const bullets = exposureBullets(s.exposures);
-      if (bullets.length) {
-        bullets.forEach(({ label, details }) => {
-          lines.push(`      - ${label}${details ? ` — ${details}` : ''}`);
-        });
+    // Vaccinations
+    html.push(`<div><strong>Vaccinations:</strong> ${vaccines ? escapeHtml(vaccines) : 'None'}</div>`);
+    text.push(`Vaccinations: ${vaccines || 'None'}`);
+
+    // Now chronological events
+    events.forEach((ev) => {
+      if (ev.type === 'stop') {
+        const s = ev.stop;
+        const dates = `${formatDMY(s.arrival) || '—'} to ${formatDMY(s.departure) || '—'}`;
+
+        // Country bold, cities next line
+        const country = escapeHtml(s.country || '—');
+        const cities = (s.cities || []).filter(Boolean).join(', ');
+        html.push(`<div class="mt-2"><strong>Stop:</strong> ${dates}</div>`);
+        text.push(`Stop: ${dates}`);
+
+        html.push(`<div><strong>${country}</strong></div>`);
+        if (cities) html.push(`<div>${escapeHtml(cities)}</div>`);
+        if (!cities) { /* no-op */ }
+
+        // Accommodation line if present
+        const accom = s.accommodations?.length
+          ? (s.accommodations.includes('Other') && s.accommodationOther
+            ? [...s.accommodations.filter(a => a !== 'Other'), `Other: ${s.accommodationOther}`].join(', ')
+            : s.accommodations.join(', '))
+          : '';
+        if (accom) {
+          html.push(`<div><strong>Accommodation:</strong> ${escapeHtml(accom)}</div>`);
+          text.push(`Accommodation: ${accom}`);
+        }
+
+        // Exposures (heading + bullets)
+        const bullets = exposureBullets(s.exposures);
+        html.push(`<div><strong>Exposures</strong></div>`);
+        text.push(`Exposures`);
+        if (bullets.length) {
+          html.push('<ul>');
+          bullets.forEach(({ label, details }) => {
+            const line = details ? `${label} — ${details}` : label;
+            html.push(`<li>${escapeHtml(line)}</li>`);
+            text.push(`- ${line}`);
+          });
+          html.push('</ul>');
+        } else {
+          html.push(`<div>—</div>`);
+          text.push('—');
+        }
+      } else if (ev.type === 'layover') {
+        const l = ev.layover;
+        const dates = `${formatDMY(l.start) || '—'} to ${formatDMY(l.end) || '—'}`;
+        const place = l.city ? `${l.city}, ${l.country}` : (l.country || '—');
+
+        const parts = [`${place} — ${dates}`, `left airport: ${l.leftAirport}`];
+        if (l.leftAirport === 'yes' && l.activitiesText) parts.push(`activities: ${l.activitiesText}`);
+
+        html.push(`<div class="mt-2"><strong>Layover:</strong> ${escapeHtml(parts.join('; '))}</div>`);
+        text.push(`Layover: ${parts.join('; ')}`);
+      } else {
+        // tripMeta already printed above for summary
       }
     });
 
-    // Chronological layovers
-    const sortedLayovers = [...trip.layovers].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
-    if (sortedLayovers.length) {
-      lines.push('  • Layovers:');
-      sortedLayovers.forEach((l) => {
-        const dates = [l.start ? formatDMY(l.start) : '—', l.end ? formatDMY(l.end) : '—'].join(' to ');
-        const place = l.city ? `${l.city}, ${l.country}` : l.country || '—';
-        const parts = [`${place} — ${dates}`];
-        parts.push(`left airport: ${l.leftAirport}`);
-        if (l.leftAirport === 'yes') {
-          const acts = [];
-          if (l.activities.ateLocally) acts.push('ate locally');
-          if (l.activities.publicTransport) acts.push('public transport');
-          if (l.activities.streetFood) acts.push('street food');
-          if (l.activities.untreatedWater) acts.push('untreated water');
-          if (l.accommodation) acts.push(`accommodation: ${l.accommodation}`);
-          if (acts.length) parts.push(acts.join(', '));
-        }
-        lines.push(`    - ${parts.join('; ')}`);
-      });
-    }
-  });
-
-  if (state.companions) {
-    const c = state.companions;
-    const who = c.group === 'Other' && c.otherText ? c.otherText : c.group;
-    lines.push(`Companions: ${who}; companions well: ${c.companionsWell}`);
+    tripIndex += 1;
   }
 
-  return lines.join('\n');
+  return { summaryHtml: html.join('\n'), summaryTextPlain: text.join('\n') };
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
 }
 
 // Exposure labels for the visual timeline (no details)
