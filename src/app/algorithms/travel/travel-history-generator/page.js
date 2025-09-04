@@ -1,12 +1,12 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v8
-// - Theme tokens (brand/accent) applied throughout
-// - Trip-level vaccinations + malaria (with "Not indicated")
-// - Cities shown on their own line (country bold) in timeline and summary
-// - Layover activities: free text when left airport = yes
-// - Text summary mirrors visual chronology and uses bold labels
+// Travel History Generator — v9
+// Changes in v9:
+// - Companions added to both visual and text summaries
+// - Stops numbered in text summary (Stop 1, Stop 2, …)
+// - Removed separate tripMeta node/card; trip meta shown under first stop’s arrival
+// - Print timeline uses display:none to avoid multi-page bloat
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -29,7 +29,6 @@ const VACCINE_OPTIONS = [
 ];
 
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine'];
-
 const MALARIA_INDICATIONS = ['Not indicated', 'Indicated'];
 
 // ---- Theme helpers ----
@@ -54,7 +53,7 @@ const LINKISH_SECONDARY =
 const NODE_COLOR = "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]";
 
 // ---- Persistence ----
-const LS_KEY = 'travel-history-generator:v8';
+const LS_KEY = 'travel-history-generator:v9';
 
 // ---- Helpers ----
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -97,18 +96,18 @@ const emptyStop = () => ({
   // Exposures with per-exposure details
   exposures: {
     // Vector
-    mosquito: false, mosquitoDetails: '',         // label: Mosquito bites
-    tick: false, tickDetails: '',                 // label: Tick bites
+    mosquito: false, mosquitoDetails: '',         // Mosquito bites
+    tick: false, tickDetails: '',                 // Tick bites
     vectorOtherEnabled: false, vectorOther: '', vectorOtherDetails: '',
     // Environment
     freshwater: false, freshwaterDetails: '',
-    cavesMines: false, cavesMinesDetails: '',     // label: Visited caves or mines (...)
-    ruralForest: false, ruralForestDetails: '',   // label: Rural / forest stay
-    hikingWoodlands: false, hikingWoodlandsDetails: '', // Went hiking in forest, bush or woodlands
+    cavesMines: false, cavesMinesDetails: '',     // Visited caves/mines
+    ruralForest: false, ruralForestDetails: '',   // Rural / forest stay
+    hikingWoodlands: false, hikingWoodlandsDetails: '', // Hiking in forest/bush/woodlands
     // Animal / procedures
     animalContact: false, animalContactDetails: '',
     animalBiteScratch: false, animalBiteScratchDetails: '',
-    bushmeat: false, bushmeatDetails: '',         // label: Bushmeat consumption
+    bushmeat: false, bushmeatDetails: '',         // Bushmeat consumption
     needlesTattoos: false, needlesTattoosDetails: '',
     safariWildlife: false, safariWildlifeDetails: '',
     // Food / water
@@ -120,7 +119,7 @@ const emptyStop = () => ({
     // Social / institutional
     funerals: false, funeralsDetails: '',         // Attended funerals
     largeGatherings: false, largeGatheringsDetails: '',
-    sickContacts: false, sickContactsDetails: '', // Sick contacts (including TB)
+    sickContacts: false, sickContactsDetails: '', // Sick contacts (incl. TB)
     healthcareFacility: false, healthcareFacilityDetails: '',
     prison: false, prisonDetails: '',
     refugeeCamp: false, refugeeCampDetails: '',
@@ -150,29 +149,12 @@ const initialState = {
 };
 
 // ===== Shared chronology builder (used by Timeline and Summary) =====
-function buildTripEvents(trip) {
+function buildTripEvents(trip, companions) {
   // Sort stops by arrival
   const stopsSorted = [...trip.stops].sort((a, b) => (parseDate(a.arrival) - parseDate(b.arrival)));
   const layoversSorted = [...trip.layovers].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
 
   const events = [];
-
-  // Trip meta event (purpose/vaccines/malaria) appears once before first stop if any field has value
-  const hasTripMeta =
-    (trip.purpose && trip.purpose.trim()) ||
-    (trip.vaccines && trip.vaccines.length) ||
-    (trip.malaria && (trip.malaria.indication !== 'Not indicated' || trip.malaria.took));
-
-  if (hasTripMeta) {
-    // timestamp: just before the first stop arrival (or earliest layover) if exists, else null
-    let anchorDate = null;
-    const firstStopArrival = stopsSorted[0] ? parseDate(stopsSorted[0].arrival) : null;
-    const firstLayStart = layoversSorted[0] ? parseDate(layoversSorted[0].start) : null;
-    if (firstStopArrival && firstLayStart) anchorDate = new Date(Math.min(firstStopArrival, firstLayStart));
-    else anchorDate = firstStopArrival || firstLayStart || null;
-
-    events.push({ type: 'tripMeta', date: anchorDate, trip });
-  }
 
   if (stopsSorted.length === 0) {
     // No stops: just layovers in start-time order
@@ -222,7 +204,19 @@ function buildTripEvents(trip) {
   stopsSorted.forEach((s, i) => {
     const isFirstInTrip = s.id === firstStop.id;
     const isLastInTrip = s.id === lastStop.id;
-    events.push({ type: 'stop', date: parseDate(s.arrival), stop: { ...s, isFirstInTrip, isLastInTrip, tripPurpose: trip.purpose } });
+    events.push({
+      type: 'stop',
+      date: parseDate(s.arrival),
+      stop: {
+        ...s,
+        isFirstInTrip,
+        isLastInTrip,
+        tripPurpose: trip.purpose,
+        tripVaccines: trip.vaccines || [],
+        tripMalaria: trip.malaria || { indication: 'Not indicated', took: false, drug: 'None', adherence: '' },
+        tripCompanions: companions || null,
+      }
+    });
     if (i < betweenByIndex.length) {
       const group = betweenByIndex[i].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
       group.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l }));
@@ -331,7 +325,7 @@ export default function TravelHistoryGeneratorPage() {
   const mergedEventsAllTrips = useMemo(() => {
     const merged = [];
     state.trips.forEach((trip) => {
-      buildTripEvents(trip).forEach((ev) => merged.push({ ...ev, tripId: trip.id }));
+      buildTripEvents(trip, state.companions).forEach((ev) => merged.push({ ...ev, tripId: trip.id }));
     });
     // Sort by date across trips (nulls last)
     merged.sort((a, b) => {
@@ -341,10 +335,13 @@ export default function TravelHistoryGeneratorPage() {
       return a.date - b.date;
     });
     return merged;
-  }, [state.trips]);
+  }, [state.trips, state.companions]);
 
   // Build summary HTML & plain text using the SAME chronology
-  const { summaryHtml, summaryTextPlain } = useMemo(() => buildSummaryFromEvents(state, mergedEventsAllTrips), [state, mergedEventsAllTrips]);
+  const { summaryHtml, summaryTextPlain } = useMemo(
+    () => buildSummaryFromEvents(state, mergedEventsAllTrips),
+    [state, mergedEventsAllTrips]
+  );
 
   // Handlers
   const updateTrip = (tripId, patch) => setState((prev) => ({
@@ -583,12 +580,10 @@ export default function TravelHistoryGeneratorPage() {
           header, .no-print { display: none !important; }
           main { padding: 0 !important; }
         }
-        /* Print only timeline when body has .print-timeline-only */
+        /* Print only the timeline section; avoid multipage bloat */
         @media print {
-          body.print-timeline-only * { visibility: hidden !important; }
-          body.print-timeline-only .tl-printable,
-          body.print-timeline-only .tl-printable * { visibility: visible !important; }
-          body.print-timeline-only .tl-printable { position: absolute !important; inset: 0 !important; width: 100% !important; }
+          body.print-timeline-only main > *:not(.tl-printable) { display: none !important; }
+          body.print-timeline-only .tl-printable { display: block !important; }
         }
       `}</style>
     </main>
@@ -646,7 +641,7 @@ function TripCard({
                 key={v}
                 label={v}
                 checked={(trip.vaccines || []).includes(v)}
-                onChange={(checked) => toggleTripVaccine(v)}
+                onChange={() => toggleTripVaccine(v)}
               />
             ))}
           </div>
@@ -1038,8 +1033,8 @@ function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
  * - Two-column grid with 72px gutter
  * - Dashed rail centered in gutter
  * - Nodes centered over rail
- * - Uses merged events across all trips (already ordered) to render:
- *    tripMeta (once per trip), stop (arrival node + card + departure node), layover (start node + strip + end node)
+ * - Renders stop (arrival node + meta text for first stop + card + departure node)
+ *   and layover (start node + strip + end node). No separate tripMeta card.
  */
 function TimelineVertical({ events }) {
   // Node component (10px brand with white ring)
@@ -1076,42 +1071,6 @@ function TimelineVertical({ events }) {
         style={{ gridTemplateColumns: '72px 1fr', rowGap: '12px' }}
       >
         {events.map((ev, idx) => {
-          if (ev.type === 'tripMeta') {
-            const t = ev.trip;
-            const showVaccines = (t.vaccines || []).length > 0;
-            const showMalaria = t.malaria && (t.malaria.indication !== 'Not indicated' || t.malaria.took);
-
-            // Arrival-ish spacer node for the meta row
-            return (
-              <li key={`tripmeta-${t.id}-${idx}`} className="contents">
-                <div className="col-[1] z-10 flex items-center justify-center">
-                  <Node />
-                </div>
-                <div className="col-[2]">
-                  <div className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
-                    {t.purpose ? (
-                      <div className="text-sm"><span className="font-semibold">Purpose:</span> {t.purpose}</div>
-                    ) : null}
-                    {showMalaria ? (
-                      <div className="text-sm mt-1">
-                        <span className="font-semibold">Malaria prophylaxis:</span>{' '}
-                        {t.malaria.indication === 'Not indicated'
-                          ? 'Not indicated'
-                          : (t.malaria.took
-                              ? `${t.malaria.drug}${t.malaria.adherence ? ` (${t.malaria.adherence})` : ''}`
-                              : 'Not taken')}
-                      </div>
-                    ) : null}
-                    <div className="text-sm mt-1">
-                      <span className="font-semibold">Vaccinations:</span>{' '}
-                      {showVaccines ? t.vaccines.join(', ') : 'None'}
-                    </div>
-                  </div>
-                </div>
-              </li>
-            );
-          }
-
           if (ev.type === 'stop') {
             const it = ev.stop;
             return (
@@ -1120,12 +1079,44 @@ function TimelineVertical({ events }) {
                 <div className="col-[1] z-10 flex items-center justify-center">
                   <Node />
                 </div>
-                <div className="col-[2] flex items-center gap-3">
-                  <strong className="tabular-nums">{formatDMY(it.arrival)}</strong>
-                  {it.isFirstInTrip && <span className="text-sm text-slate-600 dark:text-slate-300">— Left UK</span>}
-                </div>
+                <div className="col-[2]">
+                  <div className="flex items-center gap-3">
+                    <strong className="tabular-nums">{formatDMY(it.arrival)}</strong>
+                    {it.isFirstInTrip && <span className="text-sm text-slate-600 dark:text-slate-300">— Left UK</span>}
+                  </div>
 
-                {/* Purpose line for first stop is already shown in tripMeta (above), so no extra purpose row here */}
+                  {/* Trip meta + companions under first stop */}
+                  {it.isFirstInTrip && (
+                    <div className="mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">
+                      {it.tripPurpose ? <div><span className="font-semibold">Purpose:</span> {it.tripPurpose}</div> : null}
+                      <div>
+                        <span className="font-semibold">Malaria prophylaxis:</span>{' '}
+                        {it.tripMalaria?.indication === 'Not indicated'
+                          ? 'Not indicated'
+                          : (it.tripMalaria?.took
+                              ? `${it.tripMalaria.drug}${it.tripMalaria.adherence ? ` (${it.tripMalaria.adherence})` : ''}`
+                              : 'Not taken')}
+                      </div>
+                      <div>
+                        <span className="font-semibold">Vaccinations:</span>{' '}
+                        {(it.tripVaccines?.length ? it.tripVaccines.join(', ') : 'None')}
+                      </div>
+                      {it.tripCompanions && (
+                        <div>
+                          <span className="font-semibold">Companions:</span>{' '}
+                          {it.tripCompanions.group === 'Other'
+                            ? (it.tripCompanions.otherText || 'Other')
+                            : (it.tripCompanions.group || '—')}
+                          {` — Well: ${
+                            it.tripCompanions.companionsWell === 'yes' ? 'Yes'
+                            : it.tripCompanions.companionsWell === 'no' ? 'No'
+                            : 'Unknown'
+                          }`}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {/* Card row */}
                 <div className="col-[1]" aria-hidden="true" />
@@ -1243,8 +1234,6 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
     html.push(`<p><strong>Trip ${tripIndex} (${start} to ${end})</strong></p>`);
     text.push(`Trip ${tripIndex} (${start} to ${end})`);
 
-    // TripMeta line(s) (Purpose, Malaria, Vaccinations) if present
-    const tripMeta = events.find((e) => e.type === 'tripMeta');
     const tripObj = state.trips.find((t) => t.id === tripId) || {};
     const vaccines = (tripObj.vaccines || []).join(', ');
     const malaria = tripObj.malaria || { indication: 'Not indicated', took: false, drug: 'None', adherence: '' };
@@ -1271,21 +1260,31 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
     html.push(`<div><strong>Vaccinations:</strong> ${vaccines ? escapeHtml(vaccines) : 'None'}</div>`);
     text.push(`Vaccinations: ${vaccines || 'None'}`);
 
+    // Companions (global, shown per trip)
+    const cmp = state.companions || {};
+    const cmpGroup = cmp.group === 'Other' ? (cmp.otherText || 'Other') : (cmp.group || '—');
+    const cmpWell =
+      cmp.companionsWell === 'yes' ? 'Yes' :
+      cmp.companionsWell === 'no' ? 'No' : 'Unknown';
+    html.push(`<div><strong>Companions:</strong> ${escapeHtml(cmpGroup)} — Well: ${cmpWell}</div>`);
+    text.push(`Companions: ${cmpGroup} — Well: ${cmpWell}`);
+
     // Now chronological events
+    let stopCounter = 0;
     events.forEach((ev) => {
       if (ev.type === 'stop') {
+        stopCounter += 1;
         const s = ev.stop;
         const dates = `${formatDMY(s.arrival) || '—'} to ${formatDMY(s.departure) || '—'}`;
 
         // Country bold, cities next line
         const country = escapeHtml(s.country || '—');
         const cities = (s.cities || []).filter(Boolean).join(', ');
-        html.push(`<div class="mt-2"><strong>Stop:</strong> ${dates}</div>`);
-        text.push(`Stop: ${dates}`);
+        html.push(`<div class="mt-2"><strong>Stop ${stopCounter}:</strong> ${dates}</div>`);
+        text.push(`Stop ${stopCounter}: ${dates}`);
 
         html.push(`<div><strong>${country}</strong></div>`);
         if (cities) html.push(`<div>${escapeHtml(cities)}</div>`);
-        if (!cities) { /* no-op */ }
 
         // Accommodation line if present
         const accom = s.accommodations?.length
@@ -1324,8 +1323,6 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
 
         html.push(`<div class="mt-2"><strong>Layover:</strong> ${escapeHtml(parts.join('; '))}</div>`);
         text.push(`Layover: ${parts.join('; ')}`);
-      } else {
-        // tripMeta already printed above for summary
       }
     });
 
