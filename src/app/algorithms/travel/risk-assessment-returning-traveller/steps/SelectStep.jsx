@@ -5,6 +5,22 @@ import { useEffect, useMemo } from "react";
 import DecisionCard from "@/components/DecisionCard";
 import { vhfCountryNames } from "@/data/vhfCountries";
 
+// ---- THEME HELPERS ----
+// Primary action (Continue/Next/Add/Save/Submit)
+const btnPrimary =
+  "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 " +
+  "text-sm font-medium text-white " +
+  "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95 " +
+  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70 " +
+  "disabled:opacity-50 disabled:cursor-not-allowed transition";
+
+// Secondary/outline button
+const btnSecondary =
+  "rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 " +
+  "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]";
+
+// -----------------------
+
 const uid = () => Math.random().toString(36).slice(2, 9);
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -23,7 +39,7 @@ const sortByLeaving = (arr) =>
     return ta - tb;
   });
 
-// Validate there’s no overlap; same‑day handover allowed
+// Validate there’s no overlap; same-day handover allowed
 function validateNoOverlap(rows) {
   const sorted = sortByLeaving(rows);
   for (let i = 0; i < sorted.length - 1; i++) {
@@ -69,7 +85,7 @@ export default function SelectStep({
     if (showInput) setTimeout(() => inputRef?.current?.focus(), 0);
   }, [showInput, inputRef]);
 
-  // Add a country (dates are per‑row and edited after adding)
+  // Add a country (dates are per-row and edited after adding)
   const addCountry = (name) => {
     if (!name) return;
     setSelected((prev) => sortByLeaving([...prev, { id: uid(), name, arrival: "", leaving: "" }]));
@@ -133,7 +149,7 @@ export default function SelectStep({
         <button
           type="button"
           onClick={addAnother}
-          className="rounded-md border-2 border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:border-violet-500"
+          className={btnSecondary}
         >
           + Add another country
         </button>
@@ -179,7 +195,7 @@ export default function SelectStep({
         </div>
       )}
 
-      {/* Selected countries with per‑row date inputs */}
+      {/* Selected countries with per-row date inputs */}
       <div className="space-y-4">
         {selected.length === 0 ? (
           <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -248,7 +264,7 @@ export default function SelectStep({
       {!noOverlap && (
         <DecisionCard tone="red" title="Invalid dates">
           <p>
-            Overlapping dates detected. Adjust arrival/leaving dates. Same‑day transfer is allowed.
+            Overlapping dates detected. Adjust arrival/leaving dates. Same-day transfer is allowed.
           </p>
         </DecisionCard>
       )}
@@ -263,14 +279,14 @@ export default function SelectStep({
         <button
           type="button"
           onClick={onBackToScreen}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
+          className={btnSecondary}
         >
           Back
         </button>
         <button
           type="button"
           onClick={onReset}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400"
+          className={btnSecondary}
         >
           Reset
         </button>
@@ -278,11 +294,7 @@ export default function SelectStep({
           type="button"
           disabled={!canContinue}
           onClick={onContinue}
-          className={`rounded-lg px-4 py-2 ${
-            canContinue
-              ? "bg-violet-600 text-white hover:bg-violet-700"
-              : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
-          }`}
+          className={btnPrimary}
           title={
             canContinue
               ? "Continue"
