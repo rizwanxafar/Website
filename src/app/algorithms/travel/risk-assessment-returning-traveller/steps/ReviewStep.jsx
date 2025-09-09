@@ -12,38 +12,10 @@ function daysBetween(d1, d2) {
   }
 }
 
-// Format "YYYY-MM-DD" -> "DD/MM/YYYY"
-function formatDDMMYYYY(input) {
-  if (!input || typeof input !== "string") return null;
-  const iso = input.length > 10 ? input.slice(0, 10) : input;
-  const [y, m, d] = iso.split("-");
-  if (!y || !m || !d) return null;
-  return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
-}
-
 const txt = (s = "") => String(s).toLowerCase();
 const isNoKnownHcid = (disease = "") => txt(disease).includes("no known hcid");
 const isTravelAssociated = (disease = "") => txt(disease).includes("travel associated");
 const isImportedOnly = (evidence = "") => txt(evidence).includes("imported cases only");
-
-// Countries that should trigger the MERS nudge if onset ≤ 14 days after leaving
-const MERS_COUNTRIES = new Set(
-  [
-    "bahrain",
-    "jordan",
-    "iraq",
-    "iran",
-    "saudi arabia",
-    "kingdom of saudi arabia", // robustness for alternate naming
-    "kuwait",
-    "oman",
-    "qatar",
-    "united arab emirates",
-    "uae", // robustness
-    "yemen",
-    "kenya",
-  ].map((s) => s.toLowerCase())
-);
 
 export default function ReviewStep({
   selected,
@@ -61,35 +33,6 @@ export default function ReviewStep({
 
   let anyRed = false;
 
-  // Small helper to render the inline MERS notice + button when applicable
-  const renderMersNotice = (countryName, diffFromLeaving) => {
-    const nameLc = String(countryName || "").toLowerCase();
-    if (
-      diffFromLeaving !== null &&
-      diffFromLeaving <= 14 &&
-      Array.from(MERS_COUNTRIES).some((c) => nameLc.includes(c))
-    ) {
-      return (
-        <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 p-3">
-          <div className="text-sm text-slate-800 dark:text-slate-200">
-            Consider <span className="font-medium">MERS</span> risk for recent travel in {countryName}.
-          </div>
-          <a
-            href="/algorithms/respiratory/mers-risk"
-            className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3
-                       text-sm font-medium text-white
-                       bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95
-                       focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70
-                       disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            Go to MERS risk assessment
-          </a>
-        </div>
-      );
-    }
-    return null;
-  };
-
   const cards = selected.map((c, idx) => {
     const leavingDate = c.leaving ? new Date(c.leaving) : null;
     const diffFromLeaving =
@@ -99,7 +42,6 @@ export default function ReviewStep({
     const key = String(c.name || "").toLowerCase();
     const entries = normalizedMap.get(key) || [];
 
-    // GREEN: Outside 21-day window
     if (outside21) {
       return (
         <div key={c.id}>
@@ -111,12 +53,10 @@ export default function ReviewStep({
               haemorrhagic fevers.
             </p>
           </DecisionCard>
-          {renderMersNotice(c.name, diffFromLeaving)}
         </div>
       );
     }
 
-    // GREEN: “No known HCIDs”
     const hasNoKnown = entries.some((e) => isNoKnownHcid(e.disease)) || entries.length === 0;
     if (hasNoKnown) {
       return (
@@ -125,12 +65,10 @@ export default function ReviewStep({
           <DecisionCard tone="green" title={`${c.name} — No HCIDs listed`}>
             <p>No HCIDs are listed for this country on the UKHSA country-specific risk page.</p>
           </DecisionCard>
-          {renderMersNotice(c.name, diffFromLeaving)}
         </div>
       );
     }
 
-    // GREEN: Travel-associated / imported-only only
     const everyIsTravelish = entries.every(
       (e) => isTravelAssociated(e.disease) || isImportedOnly(e.evidence) || isNoKnownHcid(e.disease)
     );
@@ -151,12 +89,10 @@ export default function ReviewStep({
               </a>.
             </p>
           </DecisionCard>
-          {renderMersNotice(c.name, diffFromLeaving)}
         </div>
       );
     }
 
-    // RED: List HCIDs
     anyRed = true;
     const listed = entries.filter(
       (e) => !isNoKnownHcid(e.disease) && !isTravelAssociated(e.disease)
@@ -175,16 +111,11 @@ export default function ReviewStep({
             ))}
           </ul>
         </DecisionCard>
-        {renderMersNotice(c.name, diffFromLeaving)}
       </div>
     );
   });
 
   const allGreen = selected.length > 0 && !anyRed;
-
-  // Format snapshot date (if present)
-  const snapshotDisplay =
-    meta?.snapshotDate ? formatDDMMYYYY(meta.snapshotDate) : null;
 
   return (
     <div className="space-y-6">
@@ -194,18 +125,7 @@ export default function ReviewStep({
 
       {meta?.source === "fallback" && (
         <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-900/30 p-3 text-sm text-amber-800 dark:text-amber-200">
-          ⚠ Using local HCID snapshot
-          {snapshotDisplay ? ` (captured ${snapshotDisplay})` : ""}.
-          {" "}
-          For the latest information, always check{" "}
-          <a
-            href="https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline"
-          >
-            GOV.UK
-          </a>.
+          ⚠ Using local HCID snapshot (captured {meta.snapshotDate}). For the latest information, always check GOV.UK.
         </div>
       )}
 
@@ -236,7 +156,8 @@ export default function ReviewStep({
         <button
           type="button"
           onClick={onBackToSelect}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700
+                     hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
         >
           Back to travel details
         </button>
@@ -246,10 +167,10 @@ export default function ReviewStep({
             type="button"
             onClick={onContinueToExposures}
             className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3
-           text-sm font-medium text-white
-           bg-[hsl(var(--brand))] dark:bg-[hsl(var(--brand-alt))] hover:brightness-95
-           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70
-           disabled:opacity-50 disabled:cursor-not-allowed transition"
+                       text-sm font-medium text-white
+                       bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95
+                       focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70
+                       disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             Continue to exposure questions
           </button>
@@ -258,7 +179,8 @@ export default function ReviewStep({
         <button
           type="button"
           onClick={onReset}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:border-rose-400"
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700
+                     hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
         >
           New assessment
         </button>
