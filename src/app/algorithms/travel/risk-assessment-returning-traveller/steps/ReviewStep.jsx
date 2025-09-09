@@ -141,7 +141,7 @@ export default function ReviewStep({
           ⚠ Using local HCID snapshot
           {snapshotDisplay ? ` (captured ${snapshotDisplay})` : ""}.
           {" "}
-          For the latest information, always check{" "}
+          For the latest information, always check country specific HCID risk on {" "}
           <a
             href="https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk"
             target="_blank"
