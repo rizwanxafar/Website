@@ -1,12 +1,13 @@
+// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/ExposuresStep.jsx
 "use client";
 
 import { useMemo } from "react";
 import { EXPOSURE_QUESTIONS as Q } from "@/data/diseaseQuestions";
 
 const yesNoBtn = (active) =>
-  `px-3 py-1.5 text-sm font-medium rounded-md border-2 ${
+  `px-3 py-1.5 text-sm font-medium rounded-md border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70 ${
     active
-      ? "bg-violet-600 text-white border-violet-600"
+      ? "text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent hover:brightness-95"
       : "bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700"
   }`;
 
@@ -172,7 +173,34 @@ export default function ExposuresStep({
             >No</button>
           </div>
           <p className="mt-2 text-xs text-slate-500">
-            For current outbreak information, check WHO Disease Outbreak News and UKHSA Monthly Summaries / country-specific risk pages.
+            For current outbreak information, check{" "}
+            <a
+              href="https://www.who.int/emergencies/disease-outbreak-news"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              WHO Disease Outbreak News
+            </a>
+            ,{" "}
+            <a
+              href="https://travelhealthpro.org.uk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              TravelHealthPro
+            </a>{" "}
+            or{" "}
+            <a
+              href="https://www.promedmail.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              ProMED
+            </a>
+            .
           </p>
         </div>
 
@@ -198,7 +226,8 @@ export default function ExposuresStep({
         <button
           type="button"
           onClick={onBackToReview}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700
+                     hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
         >
           Back to country review
         </button>
@@ -206,7 +235,8 @@ export default function ExposuresStep({
         <button
           type="button"
           onClick={onReset}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-rose-500 hover:text-rose-600 dark:hover:border-rose-400"
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700
+                     hover:border-rose-500 hover:text-rose-600 dark:hover:border-rose-400"
         >
           New assessment
         </button>
@@ -215,11 +245,11 @@ export default function ExposuresStep({
           type="button"
           disabled={!allAnswered}
           onClick={onContinueToSummary}
-          className={`ml-auto rounded-lg px-4 py-2 ${
-            allAnswered
-              ? "bg-violet-600 text-white hover:bg-violet-700"
-              : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
-          }`}
+          className={`ml-auto inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3
+                      text-sm font-medium text-white
+                      bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95
+                      focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70
+                      disabled:opacity-50 disabled:cursor-not-allowed transition`}
         >
           Continue to summary
         </button>
