@@ -236,7 +236,7 @@ export default function ExposuresStep({
           type="button"
           onClick={onReset}
           className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700
-                     hover:border-rose-500 hover:text-rose-600 dark:hover:border-rose-400"
+           hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
         >
           New assessment
         </button>
