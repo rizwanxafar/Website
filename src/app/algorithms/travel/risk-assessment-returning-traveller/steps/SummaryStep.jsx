@@ -7,7 +7,7 @@ import DecisionCard from "@/components/DecisionCard";
 const yesNoBtn = (active) =>
   `px-3 py-1.5 text-sm font-medium rounded-md border-2 ${
     active
-      ? "bg-violet-600 text-white border-violet-600"
+      ? "text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-[hsl(var(--brand))] dark:border-[hsl(var(--accent))]"
       : "bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700"
   }`;
 
@@ -426,7 +426,7 @@ export default function SummaryStep({
           <button
             type="button"
             onClick={onBackToScreen}
-            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
+            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
           >
             Back to screening
           </button>
@@ -458,7 +458,7 @@ export default function SummaryStep({
           <button
             type="button"
             onClick={onBackToExposures}
-            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
+            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
           >
             Back to exposures
           </button>
@@ -631,7 +631,7 @@ export default function SummaryStep({
           <button
             type="button"
             onClick={onBackToExposures}
-            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
+            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
           >
             Back to exposures
           </button>
@@ -789,7 +789,7 @@ export default function SummaryStep({
         <button
           type="button"
           onClick={onBackToExposures}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-violet-500 dark:hover:border-violet-400"
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
         >
           Back to exposures
         </button>
