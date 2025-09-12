@@ -95,7 +95,7 @@ export default function ReviewStep({
             <span className="font-medium">Note:</span> Risk of MERS in this country (onset within 14 days of departure).
           </div>
           <a
-            href="/algorithms/respiratory/mers-risk-assessment"
+            href="/algorithms/travel/mers-risk-assessment"
             className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3
                        text-sm font-medium text-white
                        bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95
