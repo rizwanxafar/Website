@@ -541,6 +541,9 @@ export default function TravelHistoryGeneratorPage() {
       </section>
 
       {/* Timeline (wrapped in #timeline-root in Part 3) will be inserted below */}
+</main>
+  );
+}
 // ===== Trip Card =====
 function TripCard({
   trip, index, updateTrip, updateStop, addStop, removeStop, addLayover, updateLayover, removeLayover, removeTrip,
@@ -984,65 +987,7 @@ function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
     </div>
   );
 }
-      {/* ===== Timeline (Vertical) ===== */}
-      <section id="timeline-root" className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline (Vertical)</h2>
-          <button type="button" onClick={handlePrintTimeline} className={BTN_SECONDARY}>Print timeline</button>
-        </div>
-        <TimelineVertical events={mergedEventsAllTrips} />
-      </section>
-
-      {/* ===== Text summary ===== */}
-      <section className="mt-6 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3">Text summary</h2>
-        <div
-          className="prose prose-sm max-w-none dark:prose-invert"
-          // HTML version (bold title etc.)
-          dangerouslySetInnerHTML={{ __html: summaryHtml }}
-        />
-        <div className="mt-3">
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Plain text (copy/paste)</label>
-          <textarea
-            readOnly
-            className="w-full min-h-[220px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-            value={summaryTextPlain}
-          />
-          <div className="mt-3 flex gap-2">
-            <button type="button" onClick={() => navigator.clipboard.writeText(summaryTextPlain)} className={BTN_SECONDARY}>Copy summary</button>
-          </div>
-        </div>
-      </section>
-
-      {/* About modal */}
-      {showAbout && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowAbout(false)} />
-          <div className="relative z-10 w-full max-w-lg rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">About this tool</h3>
-            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-              This generator creates a travel history summary (text + timeline). Data is stored only in your browser for this session.
-              Do not enter private or patient-identifiable information.
-            </p>
-            <div className="mt-4 text-right">
-              <button type="button" onClick={() => setShowAbout(false)} className={BTN_SECONDARY}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <PrintStyles />
-      {/* Print helpers to avoid extra whitespace */}
-      <style jsx global>{`
-        @page { margin: 12mm; }
-        @media print {
-          html, body { background: white !important; }
-        }
-      `}</style>
-    </main>
-  );
-}
-
+      
 /* ===================== Timeline Vertical ===================== */
 function TimelineVertical({ events }) {
   // The rail is a two-column grid: [gutter 72px | content]
