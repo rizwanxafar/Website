@@ -1079,7 +1079,7 @@ function TimelineVertical({ events }) {
                     <strong className="tabular-nums">{formatDMY(it.arrival)}</strong>
                     {it.isFirstInTrip && (
                       <span className="text-sm text-slate-600 dark:text-slate-300">
-                        — Left UK
+                        — Departure
                       </span>
                     )}
                   </div>
@@ -1183,7 +1183,7 @@ function TimelineVertical({ events }) {
                   <strong className="tabular-nums">{formatDMY(it.departure)}</strong>
                   {it.isLastInTrip && (
                     <span className="text-sm text-slate-600 dark:text-slate-300">
-                      — Arrived in the UK
+                      — Arrival
                     </span>
                   )}
                 </div>
