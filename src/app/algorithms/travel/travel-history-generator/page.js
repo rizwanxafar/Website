@@ -392,17 +392,22 @@ export default function TravelHistoryGeneratorPage() {
   };
 
   const handlePrintTimeline = () => {
-    try {
-      const body = document.body;
-      body.classList.add('print-timeline-only');
-      const cleanup = () => {
-        body.classList.remove('print-timeline-only');
-        window.removeEventListener('afterprint', cleanup);
-      };
-      window.addEventListener('afterprint', cleanup);
+  try {
+    const body = document.body;
+    body.classList.add('print-timeline-only');
+
+    const cleanup = () => {
+      body.classList.remove('print-timeline-only');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+
+    // Give the browser a tick to apply styles before printing
+    setTimeout(() => {
       window.print();
-    } catch {/* noop */}
-  };
+    }, 100);
+  } catch {/* noop */}
+};
 
   return (
     <main className="py-10 sm:py-14">
@@ -587,12 +592,20 @@ export default function TravelHistoryGeneratorPage() {
 
   /* Print only the timeline section when the button toggles the class */
   @media print {
-    body.print-timeline-only * { display: none !important; }
-    body.print-timeline-only #timeline-section,
-    body.print-timeline-only #timeline-section * {
-      display: block !important;
-    }
+  /* Hide siblings of the timeline section, not literally everything */
+  body.print-timeline-only main > *:not(#timeline-section) { display: none !important; }
+
+  /* Ensure the timeline section renders */
+  body.print-timeline-only #timeline-section { 
+    display: block !important; 
+    visibility: visible !important;
+    position: static !important;
+    min-height: 10mm; /* guarantees it isn't collapsed */
   }
+
+  /* Children should still render normally */
+  body.print-timeline-only #timeline-section * { display: revert !important; }
+}
 
   /* --- Print fixes: ensure timeline rows render & keep colors --- */
   @media print {
