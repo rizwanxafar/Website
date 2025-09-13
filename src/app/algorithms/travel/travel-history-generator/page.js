@@ -580,16 +580,15 @@ export default function TravelHistoryGeneratorPage() {
       {/* Print styles */}
       <style jsx global>{`
         @media print {
-          header, .no-print { display: none !important; }
-          main { padding: 0 !important; }
-        }
-        /* Print only the timeline section; avoid multipage bloat */
-        @media print {
-          body.print-timeline-only main > *:not(.tl-printable) { display: none !important; }
-          body.print-timeline-only .tl-printable { display: block !important; }
-        }
-        /* --- Print fixes: ensure timeline rows render & keep colors --- */
-@media print {
+  /* Hide non-print bits and remove extra padding */
+  header, .no-print { display: none !important; }
+  main { padding: 0 !important; }
+
+  /* Print only the timeline section; avoid multipage bloat */
+  body.print-timeline-only main > *:not(.tl-printable) { display: none !important; }
+  body.print-timeline-only .tl-printable { display: block !important; }
+
+  /* --- Print fixes: ensure timeline rows render & keep colors --- */
   /* Override Tailwind's `display: contents` which is unreliable in print */
   .tl-printable .contents { display: block !important; }
 
@@ -597,7 +596,7 @@ export default function TravelHistoryGeneratorPage() {
   .tl-printable ol { display: block !important; }
 
   /* Avoid items splitting across pages (if timeline is long) */
-  .tl-printable li { break-inside: avoid; }
+  .tl-printable li { break-inside: avoid; page-break-inside: avoid; }
 
   /* Preserve node/rail colors in print */
   .tl-printable, .tl-printable * {
