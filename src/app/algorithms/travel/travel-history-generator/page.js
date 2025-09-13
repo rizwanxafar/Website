@@ -582,40 +582,38 @@ export default function TravelHistoryGeneratorPage() {
         </div>
       )}
 
-      {/* Print styles */}
-      <style jsx global>{`
+{/* Print styles */}
+<style jsx global>{`
   /* Print basics */
   @media print {
     header, .no-print { display: none !important; }
     main { padding: 0 !important; }
   }
 
-  /* Print only the timeline section when the button toggles the class */
+  /* Only print the timeline section (reliable “visibility” strategy) */
   @media print {
-  /* Hide siblings of the timeline section, not literally everything */
-  body.print-timeline-only main > *:not(#timeline-section) { display: none !important; }
+    /* Hide everything for print… */
+    body.print-timeline-only * { visibility: hidden !important; }
 
-  /* Ensure the timeline section renders */
-  body.print-timeline-only #timeline-section { 
-    display: block !important; 
-    visibility: visible !important;
-    position: static !important;
-    min-height: 10mm; /* guarantees it isn't collapsed */
+    /* …except the timeline section and its children */
+    body.print-timeline-only #timeline-section,
+    body.print-timeline-only #timeline-section * {
+      visibility: visible !important;
+    }
+
+    /* Pull the timeline section to the top-left so it prints alone */
+    body.print-timeline-only #timeline-section {
+      position: absolute !important;
+      left: 0; top: 0; width: 100%;
+    }
   }
-
-  /* Children should still render normally */
-  body.print-timeline-only #timeline-section * { display: revert !important; }
-}
 
   /* --- Print fixes: ensure timeline rows render & keep colors --- */
   @media print {
-    /* Override Tailwind display:contents (unreliable in print) */
+    /* Tailwind’s display:contents is unreliable in print */
     #timeline-section .contents { display: block !important; }
 
-    /* Make the list normal flow in print */
-    #timeline-section ol { display: block !important; }
-
-    /* Avoid splitting items across pages */
+    /* Don’t let items split across pages */
     #timeline-section li { break-inside: avoid; }
 
     /* Keep rail/node colors */
@@ -625,19 +623,6 @@ export default function TravelHistoryGeneratorPage() {
       print-color-adjust: exact;
     }
   }
-  @media print {
-  #timeline-section .contents { display: block !important; }
-  #timeline-section ol { display: block !important; }
-  #timeline-section li { break-inside: avoid; }
-  #timeline-section,
-  #timeline-section * {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-}
-
-  /* Optional: slightly narrower margins for print */
-  @page { margin: 12mm; }
 `}</style>
     </main>
   );
