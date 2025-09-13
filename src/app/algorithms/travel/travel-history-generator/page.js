@@ -625,6 +625,16 @@ export default function TravelHistoryGeneratorPage() {
       print-color-adjust: exact;
     }
   }
+  @media print {
+  #timeline-section .contents { display: block !important; }
+  #timeline-section ol { display: block !important; }
+  #timeline-section li { break-inside: avoid; }
+  #timeline-section,
+  #timeline-section * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
 
   /* Optional: slightly narrower margins for print */
   @page { margin: 12mm; }
