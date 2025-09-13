@@ -589,7 +589,7 @@ export default function TravelHistoryGeneratorPage() {
   body.print-timeline-only .tl-printable { display: block !important; }
 
   /* --- Print fixes: ensure timeline rows render & keep colors --- */
-  /* Override Tailwind's `display: contents` which is unreliable in print */
+  /* Override Tailwind's display: contents which is unreliable in print */
   .tl-printable .contents { display: block !important; }
 
   /* Make the list a normal block flow for print */
