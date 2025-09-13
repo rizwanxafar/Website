@@ -1040,6 +1040,9 @@ function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
  *   and layover (start node + strip + end node). No separate tripMeta card.
  */
 function TimelineVertical({ events }) {
+  // Capitalise first letter for visual labels (local to this component)
+  const capFirst = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
   // Node component (10px brand with white ring)
   const Node = () => (
     <span
@@ -1155,13 +1158,15 @@ function TimelineVertical({ events }) {
                               : it.accommodations.join(', '))
                           : '—'}
                       </div>
+
+                      {/* Exposures with details */}
                       <div className="text-sm sm:col-span-2">
                         <span className="font-medium">Exposures:</span>{' '}
-                        {exposureLabels(it.exposures).length ? (
+                        {exposureBullets(it.exposures).length ? (
                           <ul className="mt-1 list-disc pl-5">
-                            {exposureLabels(it.exposures).map((e, i) => (
+                            {exposureBullets(it.exposures).map(({ label, details }, i) => (
                               <li key={i} className="text-sm">
-                                {e}
+                                {capFirst(label)}{details ? ` — ${details}` : ''}
                               </li>
                             ))}
                           </ul>
