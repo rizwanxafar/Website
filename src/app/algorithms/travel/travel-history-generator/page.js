@@ -882,7 +882,7 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
                   />
                   <input
                     type="text"
-                    placeholder="Details (optional)"
+                    placeholder="Please provide more details."
                     className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm"
                     value={exp.vectorOtherDetails}
                     onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })}
@@ -1022,7 +1022,7 @@ function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
         <span>{label}</span>
       </label>
       {checked && (
-        <input type="text" placeholder="Details (optional)" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm" value={details || ''} onChange={(e) => onDetails(e.target.value)} />
+        <input type="text" placeholder="Please provide more details." className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm" value={details || ''} onChange={(e) => onDetails(e.target.value)} />
       )}
     </div>
   );
