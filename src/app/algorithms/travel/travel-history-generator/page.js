@@ -578,42 +578,44 @@ export default function TravelHistoryGeneratorPage() {
       )}
 
       {/* Print styles */}
-      <style jsx global>
-        /* Print basics */
-@media print {
-  header, .no-print { display: none !important; }
-  main { padding: 0 !important; }
-}
-
-/* Print only the timeline section when the button toggles the class */
-@media print {
-  body.print-timeline-only * { display: none !important; }
-  body.print-timeline-only #timeline-section,
-  body.print-timeline-only #timeline-section * {
-    display: block !important;
+      <style jsx global>{`
+  /* Print basics */
+  @media print {
+    header, .no-print { display: none !important; }
+    main { padding: 0 !important; }
   }
-}
 
-/* --- Print fixes: ensure timeline rows render & keep colors --- */
-@media print {
-  /* Override Tailwind display:contents (unreliable in print) */
-  #timeline-section .contents { display: block !important; }
-
-  /* Make the list normal flow in print */
-  #timeline-section ol { display: block !important; }
-
-  /* Avoid splitting items across pages */
-  #timeline-section li { break-inside: avoid; }
-
-  /* Keep rail/node colors */
-  #timeline-section,
-  #timeline-section * {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+  /* Print only the timeline section when the button toggles the class */
+  @media print {
+    body.print-timeline-only * { display: none !important; }
+    body.print-timeline-only #timeline-section,
+    body.print-timeline-only #timeline-section * {
+      display: block !important;
+    }
   }
-}
-        
-        </style>
+
+  /* --- Print fixes: ensure timeline rows render & keep colors --- */
+  @media print {
+    /* Override Tailwind display:contents (unreliable in print) */
+    #timeline-section .contents { display: block !important; }
+
+    /* Make the list normal flow in print */
+    #timeline-section ol { display: block !important; }
+
+    /* Avoid splitting items across pages */
+    #timeline-section li { break-inside: avoid; }
+
+    /* Keep rail/node colors */
+    #timeline-section,
+    #timeline-section * {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+
+  /* Optional: slightly narrower margins for print */
+  @page { margin: 12mm; }
+`}</style>
     </main>
   );
 }
