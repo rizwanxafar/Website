@@ -535,7 +535,7 @@ export default function TravelHistoryGeneratorPage() {
       </section>
 
       {/* Timeline */}
-      <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6 tl-printable">
+      <section id="timeline-section" className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6 tl-printable">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline</h2>
           <button type="button" onClick={handlePrintTimeline} className={BTN_SECONDARY}>Print timeline</button>
@@ -578,33 +578,42 @@ export default function TravelHistoryGeneratorPage() {
       )}
 
       {/* Print styles */}
-      <style jsx global>{`
-        @media print {
-  /* Hide non-print bits and remove extra padding */
+      <style jsx global>
+        /* Print basics */
+@media print {
   header, .no-print { display: none !important; }
   main { padding: 0 !important; }
+}
 
-  /* Print only the timeline section; avoid multipage bloat */
-  body.print-timeline-only main > *:not(.tl-printable) { display: none !important; }
-  body.print-timeline-only .tl-printable { display: block !important; }
+/* Print only the timeline section when the button toggles the class */
+@media print {
+  body.print-timeline-only * { display: none !important; }
+  body.print-timeline-only #timeline-section,
+  body.print-timeline-only #timeline-section * {
+    display: block !important;
+  }
+}
 
-  /* --- Print fixes: ensure timeline rows render & keep colors --- */
-  /* Override Tailwind's display: contents which is unreliable in print */
-  .tl-printable .contents { display: block !important; }
+/* --- Print fixes: ensure timeline rows render & keep colors --- */
+@media print {
+  /* Override Tailwind display:contents (unreliable in print) */
+  #timeline-section .contents { display: block !important; }
 
-  /* Make the list a normal block flow for print */
-  .tl-printable ol { display: block !important; }
+  /* Make the list normal flow in print */
+  #timeline-section ol { display: block !important; }
 
-  /* Avoid items splitting across pages (if timeline is long) */
-  .tl-printable li { break-inside: avoid; page-break-inside: avoid; }
+  /* Avoid splitting items across pages */
+  #timeline-section li { break-inside: avoid; }
 
-  /* Preserve node/rail colors in print */
-  .tl-printable, .tl-printable * {
+  /* Keep rail/node colors */
+  #timeline-section,
+  #timeline-section * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 }
-      `}</style>
+        
+        </style>
     </main>
   );
 }
@@ -1177,19 +1186,22 @@ function TimelineVertical({ events }) {
 
                       {/* Exposures with details */}
                       <div className="text-sm sm:col-span-2">
-                        <span className="font-medium">Exposures:</span>{' '}
-                        {exposureBullets(it.exposures).length ? (
-                          <ul className="mt-1 list-disc pl-5">
-                            {exposureBullets(it.exposures).map(({ label, details }, i) => (
-                              <li key={i} className="text-sm">
-                                {capFirst(label)}{details ? ` — ${details}` : ''}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          '—'
-                        )}
-                      </div>
+  <span className="font-medium">Exposures:</span>{' '}
+  {(() => {
+    const items = exposureBullets(it.exposures); // [{label, details}]
+    return items.length ? (
+      <ul className="mt-1 list-disc pl-5">
+        {items.map(({ label, details }, i) => (
+          <li key={i} className="text-sm">
+            {details ? `${label} — ${details}` : label}
+          </li>
+        ))}
+      </ul>
+    ) : (
+      '—'
+    );
+  })()}
+</div>
                     </div>
                   </div>
                 </div>
