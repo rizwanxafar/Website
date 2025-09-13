@@ -1043,7 +1043,10 @@ function TimelineVertical({ events }) {
   // Node component (10px brand with white ring)
   const Node = () => (
     <span
-      className={classNames("relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900", NODE_COLOR)}
+      className={classNames(
+        "relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900",
+        NODE_COLOR
+      )}
       aria-hidden="true"
     />
   );
@@ -1052,22 +1055,9 @@ function TimelineVertical({ events }) {
     <div className="relative">
       {/* Continuous dashed rail centered in the 72px gutter */}
       <div
-        className="pointer-events-none absolute inset-y-0 z-0"
-        style={{
-          left: 36, // center of 72px gutter
-          width: 0,
-          borderLeftWidth: 2,
-          borderLeftStyle: 'dashed',
-          borderLeftColor: 'var(--rail-color, rgb(203,213,225))', // slate-300
-        }}
         aria-hidden="true"
+        className="pointer-events-none absolute left-[36px] top-0 bottom-0 z-0 border-l-2 border-dashed border-slate-300 dark:border-slate-600"
       />
-      {/* dark mode rail color */}
-      <style jsx>{`
-        :global(html.dark) [style*="--rail-color"] {
-          --rail-color: rgb(71, 85, 105); /* slate-600 */
-        }
-      `}</style>
 
       <ol
         className="grid"
@@ -1079,57 +1069,74 @@ function TimelineVertical({ events }) {
             return (
               <li key={`stop-${it.id}-${idx}`} className="contents">
                 {/* Arrival row */}
-                <div className="col-[1] z-10 flex items-center justify-center">
-                  <Node />
+                <div className="col-[1] relative h-6 z-10">
+                  <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
+                    <Node />
+                  </span>
                 </div>
-                <div className="col-[2]">
+                <div className="col-[2] h-6 flex items-center">
                   <div className="flex items-center gap-3">
                     <strong className="tabular-nums">{formatDMY(it.arrival)}</strong>
-                    {it.isFirstInTrip && <span className="text-sm text-slate-600 dark:text-slate-300">— Left UK</span>}
+                    {it.isFirstInTrip && (
+                      <span className="text-sm text-slate-600 dark:text-slate-300">
+                        — Left UK
+                      </span>
+                    )}
                   </div>
-
-                  {/* Trip meta + companions under first stop */}
-                  {it.isFirstInTrip && (
-                    <div className="mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">
-                      {it.tripPurpose ? <div><span className="font-semibold">Purpose:</span> {it.tripPurpose}</div> : null}
-                      <div>
-                        <span className="font-semibold">Malaria prophylaxis:</span>{' '}
-                        {it.tripMalaria?.indication === 'Not indicated'
-                          ? 'Not indicated'
-                          : (it.tripMalaria?.took
-                              ? `${it.tripMalaria.drug}${it.tripMalaria.adherence ? ` (${it.tripMalaria.adherence})` : ''}`
-                              : 'Not taken')}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Vaccinations:</span>{' '}
-                        {(it.tripVaccines?.length ? it.tripVaccines.join(', ') : 'None')}
-                      </div>
-                      {it.tripCompanions && (
-                        <div>
-                          <span className="font-semibold">Companions:</span>{' '}
-                          {it.tripCompanions.group === 'Other'
-                            ? (it.tripCompanions.otherText || 'Other')
-                            : (it.tripCompanions.group || '—')}
-                          {` — Well: ${
-                            it.tripCompanions.companionsWell === 'yes' ? 'Yes'
-                            : it.tripCompanions.companionsWell === 'no' ? 'No'
-                            : 'Unknown'
-                          }`}
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
+
+                {/* Trip meta + companions under first stop */}
+                {it.isFirstInTrip && (
+                  <div className="col-[2] mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">
+                    {it.tripPurpose ? (
+                      <div>
+                        <span className="font-semibold">Purpose:</span> {it.tripPurpose}
+                      </div>
+                    ) : null}
+                    <div>
+                      <span className="font-semibold">Malaria prophylaxis:</span>{' '}
+                      {it.tripMalaria?.indication === 'Not indicated'
+                        ? 'Not indicated'
+                        : (it.tripMalaria?.took
+                            ? `${it.tripMalaria.drug}${
+                                it.tripMalaria.adherence ? ` (${it.tripMalaria.adherence})` : ''
+                              }`
+                            : 'Not taken')}
+                    </div>
+                    <div>
+                      <span className="font-semibold">Vaccinations:</span>{' '}
+                      {it.tripVaccines?.length ? it.tripVaccines.join(', ') : 'None'}
+                    </div>
+                    {it.tripCompanions && (
+                      <div>
+                        <span className="font-semibold">Companions:</span>{' '}
+                        {it.tripCompanions.group === 'Other'
+                          ? (it.tripCompanions.otherText || 'Other')
+                          : (it.tripCompanions.group || '—')}
+                        {` — Well: ${
+                          it.tripCompanions.companionsWell === 'yes'
+                            ? 'Yes'
+                            : it.tripCompanions.companionsWell === 'no'
+                            ? 'No'
+                            : 'Unknown'
+                        }`}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Card row */}
                 <div className="col-[1]" aria-hidden="true" />
                 <div className="col-[2]">
                   <div className="relative z-0 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
                     {/* Country & Cities */}
-                    <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100" title={it.country || it.label}>
+                    <h3
+                      className="text-base font-semibold text-slate-900 dark:text-slate-100"
+                      title={it.country || it.label}
+                    >
                       {it.country || it.label || '—'}
                     </h3>
-                    {(it.cities && it.cities.filter(Boolean).length > 0) && (
+                    {it.cities && it.cities.filter(Boolean).length > 0 && (
                       <div className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">
                         {it.cities.filter(Boolean).join(', ')}
                       </div>
@@ -1141,9 +1148,11 @@ function TimelineVertical({ events }) {
                         <span className="font-medium">Accommodation:</span>{' '}
                         {it.accommodations?.length
                           ? (it.accommodations.includes('Other') && it.accommodationOther
-                            ? [...it.accommodations.filter(a => a !== 'Other'), `Other: ${it.accommodationOther}`].join(', ')
-                            : it.accommodations.join(', ')
-                          )
+                              ? [
+                                  ...it.accommodations.filter((a) => a !== 'Other'),
+                                  `Other: ${it.accommodationOther}`,
+                                ].join(', ')
+                              : it.accommodations.join(', '))
                           : '—'}
                       </div>
                       <div className="text-sm sm:col-span-2">
@@ -1151,22 +1160,32 @@ function TimelineVertical({ events }) {
                         {exposureLabels(it.exposures).length ? (
                           <ul className="mt-1 list-disc pl-5">
                             {exposureLabels(it.exposures).map((e, i) => (
-                              <li key={i} className="text-sm">{e}</li>
+                              <li key={i} className="text-sm">
+                                {e}
+                              </li>
                             ))}
                           </ul>
-                        ) : '—'}
+                        ) : (
+                          '—'
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Departure row */}
-                <div className="col-[1] z-10 flex items-center justify-center">
-                  <Node />
+                <div className="col-[1] relative h-6 z-10">
+                  <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
+                    <Node />
+                  </span>
                 </div>
-                <div className="col-[2] flex items-center gap-3">
+                <div className="col-[2] h-6 flex items-center gap-3">
                   <strong className="tabular-nums">{formatDMY(it.departure)}</strong>
-                  {it.isLastInTrip && <span className="text-sm text-slate-600 dark:text-slate-300">— Arrived in the UK</span>}
+                  {it.isLastInTrip && (
+                    <span className="text-sm text-slate-600 dark:text-slate-300">
+                      — Arrived in the UK
+                    </span>
+                  )}
                 </div>
               </li>
             );
@@ -1177,10 +1196,12 @@ function TimelineVertical({ events }) {
           return (
             <li key={`layover-${l.id}-${idx}`} className="contents">
               {/* Layover start */}
-              <div className="col-[1] z-10 flex items-center justify-center">
-                <Node />
+              <div className="col-[1] relative h-6 z-10">
+                <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
+                  <Node />
+                </span>
               </div>
-              <div className="col-[2] flex items-center gap-3">
+              <div className="col-[2] h-6 flex items-center gap-3">
                 <strong className="tabular-nums">{formatDMY(l.start)}</strong>
                 <span className="text-xs text-slate-500">Layover start</span>
               </div>
@@ -1195,10 +1216,12 @@ function TimelineVertical({ events }) {
               </div>
 
               {/* Layover end */}
-              <div className="col-[1] z-10 flex items-center justify-center">
-                <Node />
+              <div className="col-[1] relative h-6 z-10">
+                <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
+                  <Node />
+                </span>
               </div>
-              <div className="col-[2] flex items-center gap-3">
+              <div className="col-[2] h-6 flex items-center gap-3">
                 <strong className="tabular-nums">{formatDMY(l.end)}</strong>
                 <span className="text-xs text-slate-500">Layover end</span>
               </div>
@@ -1209,7 +1232,6 @@ function TimelineVertical({ events }) {
     </div>
   );
 }
-
 // ===== Summary builder (HTML + Plain Text) =====
 function buildSummaryFromEvents(state, mergedEventsAllTrips) {
   const html = [];
