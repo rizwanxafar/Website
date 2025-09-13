@@ -1348,38 +1348,38 @@ function exposureLabels(exp) {
   if (!exp) return labels;
 
   // Vector
-  if (exp.mosquito) labels.push('mosquito bites');
+  if (exp.mosquito) labels.push(cap('mosquito bites'));
   if (exp.tick) labels.push(cap('tick bites'));
-  if (exp.vectorOtherEnabled && exp.vectorOther) labels.push(exp.vectorOther);
+  if (exp.vectorOtherEnabled && exp.vectorOther) labels.push(cap(exp.vectorOther));
 
   // Environment
-  if (exp.freshwater) labels.push('freshwater contact');
-  if (exp.cavesMines) labels.push('visited caves or mines');
-  if (exp.ruralForest) labels.push('rural / forest stay');
-  if (exp.hikingWoodlands) labels.push('hiking in forest / bush / woodlands');
+  if (exp.freshwater) labels.push(cap('freshwater contact'));
+  if (exp.cavesMines) labels.push(cap('visited caves or mines'));
+  if (exp.ruralForest) labels.push(cap('rural / forest stay'));
+  if (exp.hikingWoodlands) labels.push(cap('hiking in forest / bush / woodlands'));
 
   // Animal & procedures
-  if (exp.animalContact) labels.push('animal contact');
-  if (exp.animalBiteScratch) labels.push('animal bite / scratch');
-  if (exp.bushmeat) labels.push('bushmeat consumption');
-  if (exp.needlesTattoos) labels.push('needles / tattoos / piercings');
-  if (exp.safariWildlife) labels.push('safari / wildlife viewing');
+  if (exp.animalContact) labels.push(cap('animal contact'));
+  if (exp.animalBiteScratch) labels.push(cap('animal bite / scratch'));
+  if (exp.bushmeat) labels.push(cap('bushmeat consumption'));
+  if (exp.needlesTattoos) labels.push(cap('needles / tattoos / piercings'));
+  if (exp.safariWildlife) labels.push(cap('safari / wildlife viewing'));
 
   // Food & water
-  if (exp.streetFood) labels.push('street food');
-  if (exp.untreatedWater) labels.push('untreated water');
-  if (exp.undercookedFood) labels.push('undercooked food');
-  if (exp.undercookedSeafood) labels.push('undercooked seafood');
-  if (exp.unpasteurisedMilk) labels.push('unpasteurised milk');
+  if (exp.streetFood) labels.push(cap('street food'));
+  if (exp.untreatedWater) labels.push(cap('untreated water'));
+  if (exp.undercookedFood) labels.push(cap('undercooked food'));
+  if (exp.undercookedSeafood) labels.push(cap('undercooked seafood'));
+  if (exp.unpasteurisedMilk) labels.push(cap('unpasteurised milk'));
 
   // Social / institutional
-  if (exp.funerals) labels.push('attended funerals');
-  if (exp.sickContacts) labels.push('sick contacts (incl. TB)');
-  if (exp.healthcareFacility) labels.push('healthcare facility contact');
-  if (exp.prison) labels.push('prison contact');
-  if (exp.refugeeCamp) labels.push('refugee camp contact');
+  if (exp.funerals) labels.push(cap('attended funerals'));
+  if (exp.sickContacts) labels.push(cap('sick contacts (incl. TB)'));
+  if (exp.healthcareFacility) labels.push(cap('healthcare facility contact'));
+  if (exp.prison) labels.push(cap('prison contact'));
+  if (exp.refugeeCamp) labels.push(cap('refugee camp contact'));
 
-  if (exp.otherText?.trim()) labels.push(exp.otherText.trim());
+  if (exp.otherText?.trim()) labels.push(cap(exp.otherText.trim()));
 
   return labels;
 }
@@ -1388,12 +1388,16 @@ function exposureLabels(exp) {
 function exposureBullets(exp) {
   if (!exp) return [];
   const out = [];
-  const push = (label, flag, details) => { if (flag) out.push({ label, details: details?.trim() || '' }); };
+  const push = (label, flag, details) => {
+  if (flag) out.push({ label: cap(label), details: details?.trim() || '' });
+  };
 
   // Vector
   push('mosquito bites', exp.mosquito, exp.mosquitoDetails);
   push('tick bites', exp.tick, exp.tickDetails);
-  if (exp.vectorOtherEnabled && exp.vectorOther) out.push({ label: exp.vectorOther, details: exp.vectorOtherDetails?.trim() || '' });
+  if (exp.vectorOtherEnabled && exp.vectorOther) {
+  out.push({ label: cap(exp.vectorOther), details: exp.vectorOtherDetails?.trim() || '' });
+  }
 
   // Environment
   push('freshwater contact', exp.freshwater, exp.freshwaterDetails);
