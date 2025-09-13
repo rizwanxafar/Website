@@ -588,6 +588,23 @@ export default function TravelHistoryGeneratorPage() {
           body.print-timeline-only main > *:not(.tl-printable) { display: none !important; }
           body.print-timeline-only .tl-printable { display: block !important; }
         }
+        /* --- Print fixes: ensure timeline rows render & keep colors --- */
+@media print {
+  /* Override Tailwind's `display: contents` which is unreliable in print */
+  .tl-printable .contents { display: block !important; }
+
+  /* Make the list a normal block flow for print */
+  .tl-printable ol { display: block !important; }
+
+  /* Avoid items splitting across pages (if timeline is long) */
+  .tl-printable li { break-inside: avoid; }
+
+  /* Preserve node/rail colors in print */
+  .tl-printable, .tl-printable * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
       `}</style>
     </main>
   );
