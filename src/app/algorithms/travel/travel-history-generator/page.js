@@ -75,6 +75,9 @@ const formatDMY = (dateStr) => {
   return `${dd}/${mm}/${yyyy}`;
 };
 
+// Capitalise first letter (leave rest as-is)
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
 // Overlap check (same-day edges allowed)
 function rangesOverlap(aStart, aEnd, bStart, bEnd) {
   if (!aStart || !aEnd || !bStart || !bEnd) return false;
@@ -1346,7 +1349,7 @@ function exposureLabels(exp) {
 
   // Vector
   if (exp.mosquito) labels.push('mosquito bites');
-  if (exp.tick) labels.push('tick bites');
+  if (exp.tick) labels.push(cap('tick bites'));
   if (exp.vectorOtherEnabled && exp.vectorOther) labels.push(exp.vectorOther);
 
   // Environment
