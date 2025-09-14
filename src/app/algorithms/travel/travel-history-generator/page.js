@@ -582,48 +582,72 @@ export default function TravelHistoryGeneratorPage() {
         </div>
       )}
 
-{/* Print styles */}
-<style jsx global>{`
-  /* Print basics */
-  @media print {
-    header, .no-print { display: none !important; }
-    main { padding: 0 !important; }
-  }
+      {/* Print styles */}
+      <style jsx global>{`
+        /* Hide header etc. when printing */
+        @media print {
+          header, .no-print { display: none !important; }
+          main { padding: 0 !important; }
+        }
 
-  /* Only print the timeline section (reliable “visibility” strategy) */
-  @media print {
-    /* Hide everything for print… */
-    body.print-timeline-only * { visibility: hidden !important; }
+        /* Print only the timeline section when Print Timeline button toggles the class */
+        @media print {
+          body.print-timeline-only * { display: none !important; }
+          body.print-timeline-only #timeline-section,
+          body.print-timeline-only #timeline-section * {
+            display: revert !important;
+            visibility: visible !important;
+          }
+        }
 
-    /* …except the timeline section and its children */
-    body.print-timeline-only #timeline-section,
-    body.print-timeline-only #timeline-section * {
-      visibility: visible !important;
-    }
+        /* --- Print as-screen grid with rail & nodes --- */
+        @media print {
+          #timeline-section { width: 100% !important; }
 
-    /* Pull the timeline section to the top-left so it prints alone */
-    body.print-timeline-only #timeline-section {
-      position: absolute !important;
-      left: 0; top: 0; width: 100%;
-    }
-  }
+          /* Keep the grid in print exactly like screen */
+          #timeline-section ol {
+            display: grid !important;
+            grid-template-columns: 72px 1fr !important;
+            row-gap: 12px !important;
+          }
 
-  /* --- Print fixes: ensure timeline rows render & keep colors --- */
-  @media print {
-    /* Tailwind’s display:contents is unreliable in print */
-    #timeline-section .contents { display: block !important; }
+          /* Preserve display:contents so rail/nodes stay aligned */
+          #timeline-section li.contents {
+            display: contents !important;
+          }
 
-    /* Don’t let items split across pages */
-    #timeline-section li { break-inside: avoid; }
+          /* Keep the small “date rows” height consistent */
+          #timeline-section .h-6 {
+            height: 24px !important;
+          }
+          #timeline-section .h-6.flex {
+            display: flex !important;
+            align-items: center !important;
+          }
 
-    /* Keep rail/node colors */
-    #timeline-section,
-    #timeline-section * {
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-  }
-`}</style>
+          /* Ensure the vertical rail prints at 36px from left */
+          #timeline-section .pointer-events-none {
+            position: absolute !important;
+            left: 36px !important;
+            top: 0 !important;
+            bottom: 0 !important;
+            border-left-width: 2px !important;
+            border-left-style: dashed !important;
+            border-left-color: rgb(203,213,225) !important; /* slate-300 */
+          }
+
+          /* Print colors exactly (rail + node ring etc.) */
+          #timeline-section, #timeline-section * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          /* Prevent cards from splitting across pages */
+          #timeline-section [class*="rounded-xl"] {
+            break-inside: avoid;
+          }
+        }
+      `}</style>
     </main>
   );
 }
