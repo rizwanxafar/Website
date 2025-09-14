@@ -401,7 +401,7 @@ const handlePrintTimeline = () => {
     }
 
     // Open a clean window for printing just the timeline
-    const printWin = window.open('', '_blank', 'noopener,noreferrer,width=1000,height=800');
+    const printWin = window.open('', '_blank', 'width=1000,height=800');
     if (!printWin) {
       alert('Popup blocked. Please allow popups and try again.');
       return;
