@@ -391,118 +391,91 @@ export default function TravelHistoryGeneratorPage() {
     }
   };
 
-  const handlePrintTimeline = () => {
+  // REPLACE your current handlePrintTimeline with this
+const handlePrintTimeline = async () => {
   try {
-    const src = document.getElementById('timeline-section');
-    if (!src) return;
+    const section = document.getElementById('timeline-section');
+    if (!section) {
+      alert('Timeline not found.');
+      return;
+    }
 
-    // 1) Open a fresh print window
-    const win = window.open('', '_blank', 'noopener,noreferrer');
-    if (!win) return;
-    const doc = win.document;
+    // 1) Grab the exact markup we want to print
+    const htmlToPrint = section.outerHTML;
 
-    // 2) Basic HTML skeleton + the timeline HTML
-    doc.open();
-    doc.write(`<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Timeline</title>
-</head>
-<body>
-  <main id="print-root" class="tl-printable">
-    ${src.innerHTML}
-  </main>
-</body>
-</html>`);
-    doc.close();
+    // 2) Open a new (non-noopener) window so we can reliably inject content
+    const printWin = window.open('', '_blank');
+    if (!printWin) return; // popup blocked
 
-    // 3) Clone styles from the current page (Tailwind <link>s + any <style> tags)
-    const cloneStyles = () => {
-      const head = document.head;
-      const nodes = head.querySelectorAll('link[rel="stylesheet"], style');
+    const doc = printWin.document;
 
-      const linkPromises = [];
-      nodes.forEach((n) => {
-        if (n.tagName === 'LINK') {
-          const link = doc.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = n.href;
-          doc.head.appendChild(link);
+    // 3) Create a full HTML skeleton (no document.write race issues)
+    doc.documentElement.innerHTML = `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <title>Timeline – Print</title>
+        </head>
+        <body></body>
+      </html>
+    `;
 
-          // Wait for each stylesheet to load before printing
-          linkPromises.push(
-            new Promise((resolve) => {
-              link.onload = resolve;
-              link.onerror = resolve; // resolve anyway to avoid hanging on failure
-            })
-          );
-        } else if (n.tagName === 'STYLE') {
-          const style = doc.createElement('style');
-          style.textContent = n.textContent || '';
-          doc.head.appendChild(style);
-        }
-      });
-
-      return Promise.all(linkPromises);
-    };
-
-    // 4) Add minimal print fixes so layout matches screen
-    const injectFixes = () => {
-      const style = doc.createElement('style');
-      style.textContent = `
-@page { size: auto; margin: 12mm; }
-html, body { height: auto; }
-body {
-  background: #fff;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-}
-
-/* Center timeline and keep a sane width on paper */
-#print-root {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 16px;
-}
-
-/* display: contents is unreliable in print */
-#print-root .contents { display: block !important; }
-
-/* Keep the 2-col timeline grid in print */
-#print-root ol {
-  display: grid !important;
-  grid-template-columns: 72px 1fr;
-  row-gap: 12px;
-}
-
-/* Avoid item splitting */
-#print-root li { break-inside: avoid; }
-
-/* Ensure utility classes for positioning still behave if the UA strips some CSS */
-#print-root .relative { position: relative; }
-#print-root .absolute { position: absolute; }
-      `;
-      doc.head.appendChild(style);
-    };
-
-    injectFixes();
-
-    // 5) Once stylesheets load, print and close
-    cloneStyles().then(() => {
-      // Give the browser a moment to layout with the cloned styles
-      setTimeout(() => {
-        win.focus();
-        win.print();
-        // Close after print (fallback timer for browsers that don’t fire afterprint)
-        const tidy = () => { win.close(); };
-        win.addEventListener('afterprint', tidy, { once: true });
-        setTimeout(tidy, 2000);
-      }, 50);
+    // 4) Copy all <link rel="stylesheet"> and <style> from the current page
+    const styleNodes = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'));
+    styleNodes.forEach((node) => {
+      const clone = node.cloneNode(true);
+      doc.head.appendChild(clone);
     });
-  } catch {
-    /* noop */
+
+    // 5) Add small print fixes so layout matches the on-screen timeline
+    const fix = doc.createElement('style');
+    fix.textContent = `
+      @page { size: auto; margin: 12mm; }
+      html, body { background: #fff; }
+      /* Center and size similar to your app card */
+      #timeline-section { max-width: 900px; margin: 0 auto; }
+      /* Make sure the grid renders in print and nodes don't collapse */
+      #timeline-section ol { display: grid !important; grid-template-columns: 72px 1fr; row-gap: 12px; }
+      /* display: contents is flaky in print; force block so each list-item becomes a real block */
+      #timeline-section .contents { display: block !important; }
+      /* Keep items together */
+      #timeline-section li { break-inside: avoid; page-break-inside: avoid; }
+      /* Ensure colors (rail, nodes) are preserved */
+      #timeline-section, #timeline-section * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    `;
+    doc.head.appendChild(fix);
+
+    // 6) Inject the timeline markup
+    doc.body.innerHTML = htmlToPrint;
+
+    // 7) Wait for styles to load (important for Tailwind and styled-jsx)
+    const links = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'));
+    await Promise.all(
+      links.map((l) => new Promise((resolve) => {
+        if (l.sheet) return resolve();
+        l.addEventListener('load', resolve, { once: true });
+        l.addEventListener('error', resolve, { once: true });
+      }))
+    );
+
+    // 8) Give the browser a tick to layout before printing
+    await new Promise((r) => setTimeout(r, 50));
+
+    printWin.focus();
+    printWin.print();
+
+    // 9) Close the window after printing (optional)
+    printWin.addEventListener('afterprint', () => {
+      try { printWin.close(); } catch {}
+    });
+  } catch (err) {
+    console.error('Print failed:', err);
+    alert('Sorry, printing failed. Check the console for details.');
   }
 };
   return (
