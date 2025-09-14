@@ -391,84 +391,120 @@ export default function TravelHistoryGeneratorPage() {
     }
   };
 
-  // REPLACE the whole handlePrintTimeline with this version
-const handlePrintTimeline = () => {
+  const handlePrintTimeline = () => {
   try {
     const src = document.getElementById('timeline-section');
-    if (!src) {
-      alert('Timeline not found.');
-      return;
-    }
+    if (!src) return;
 
-    // Open a clean window for printing just the timeline
-    const printWin = window.open('', '_blank', 'width=1000,height=800');
-    if (!printWin) {
-      alert('Popup blocked. Please allow popups and try again.');
-      return;
-    }
+    // 1) Open a fresh print window
+    const win = window.open('', '_blank', 'noopener,noreferrer');
+    if (!win) return;
+    const doc = win.document;
 
-    // Copy over the app's CSS (Tailwind + any inline styles) to the new doc
-    const copiedHeadStyles = Array.from(
-      document.querySelectorAll('link[rel="stylesheet"], style')
-    ).map((el) => el.outerHTML).join('\n');
-
-    // Build the print document
-    const html = `<!doctype html>
+    // 2) Basic HTML skeleton + the timeline HTML
+    doc.open();
+    doc.write(`<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Timeline</title>
-  ${copiedHeadStyles}
-  <style>
-    /* Keep colors in print */
-    @media print {
-      html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
-    html, body { background: #fff; }
-    body { margin: 16px; }
-    /* Avoid the display:contents print bug */
-    .contents { display: block !important; }
-    /* Give the section full width on paper */
-    #timeline-section { max-width: none !important; width: 100% !important; }
-    /* Prevent awkward page breaks inside items */
-    #timeline-section li { break-inside: avoid; }
-  </style>
 </head>
 <body>
-  ${src.outerHTML}
+  <main id="print-root" class="tl-printable">
+    ${src.innerHTML}
+  </main>
 </body>
-</html>`;
+</html>`);
+    doc.close();
 
-    // Write and print
-    printWin.document.open();
-    printWin.document.write(html);
-    printWin.document.close();
+    // 3) Clone styles from the current page (Tailwind <link>s + any <style> tags)
+    const cloneStyles = () => {
+      const head = document.head;
+      const nodes = head.querySelectorAll('link[rel="stylesheet"], style');
 
-    const doPrint = () => {
-      try {
-        printWin.focus();
-        printWin.print();
-      } catch {}
+      const linkPromises = [];
+      nodes.forEach((n) => {
+        if (n.tagName === 'LINK') {
+          const link = doc.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = n.href;
+          doc.head.appendChild(link);
+
+          // Wait for each stylesheet to load before printing
+          linkPromises.push(
+            new Promise((resolve) => {
+              link.onload = resolve;
+              link.onerror = resolve; // resolve anyway to avoid hanging on failure
+            })
+          );
+        } else if (n.tagName === 'STYLE') {
+          const style = doc.createElement('style');
+          style.textContent = n.textContent || '';
+          doc.head.appendChild(style);
+        }
+      });
+
+      return Promise.all(linkPromises);
     };
 
-    // Give styles a tick to apply, then print
-    if (printWin.document.readyState === 'complete') {
-      setTimeout(doPrint, 200);
-    } else {
-      printWin.onload = () => setTimeout(doPrint, 200);
-    }
+    // 4) Add minimal print fixes so layout matches screen
+    const injectFixes = () => {
+      const style = doc.createElement('style');
+      style.textContent = `
+@page { size: auto; margin: 12mm; }
+html, body { height: auto; }
+body {
+  background: #fff;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
 
-    // Auto-close the helper window after printing
-    printWin.addEventListener?.('afterprint', () => {
-      try { printWin.close(); } catch {}
+/* Center timeline and keep a sane width on paper */
+#print-root {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* display: contents is unreliable in print */
+#print-root .contents { display: block !important; }
+
+/* Keep the 2-col timeline grid in print */
+#print-root ol {
+  display: grid !important;
+  grid-template-columns: 72px 1fr;
+  row-gap: 12px;
+}
+
+/* Avoid item splitting */
+#print-root li { break-inside: avoid; }
+
+/* Ensure utility classes for positioning still behave if the UA strips some CSS */
+#print-root .relative { position: relative; }
+#print-root .absolute { position: absolute; }
+      `;
+      doc.head.appendChild(style);
+    };
+
+    injectFixes();
+
+    // 5) Once stylesheets load, print and close
+    cloneStyles().then(() => {
+      // Give the browser a moment to layout with the cloned styles
+      setTimeout(() => {
+        win.focus();
+        win.print();
+        // Close after print (fallback timer for browsers that don’t fire afterprint)
+        const tidy = () => { win.close(); };
+        win.addEventListener('afterprint', tidy, { once: true });
+        setTimeout(tidy, 2000);
+      }, 50);
     });
-  } catch (e) {
-    console.error(e);
-    alert('Sorry—printing failed. Check the console for details.');
+  } catch {
+    /* noop */
   }
 };
-
   return (
     <main className="py-10 sm:py-14">
       {/* Header */}
