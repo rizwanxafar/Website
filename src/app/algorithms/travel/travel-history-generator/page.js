@@ -391,22 +391,82 @@ export default function TravelHistoryGeneratorPage() {
     }
   };
 
-  const handlePrintTimeline = () => {
+  // REPLACE the whole handlePrintTimeline with this version
+const handlePrintTimeline = () => {
   try {
-    const body = document.body;
-    body.classList.add('print-timeline-only');
+    const src = document.getElementById('timeline-section');
+    if (!src) {
+      alert('Timeline not found.');
+      return;
+    }
 
-    const cleanup = () => {
-      body.classList.remove('print-timeline-only');
-      window.removeEventListener('afterprint', cleanup);
+    // Open a clean window for printing just the timeline
+    const printWin = window.open('', '_blank', 'noopener,noreferrer,width=1000,height=800');
+    if (!printWin) {
+      alert('Popup blocked. Please allow popups and try again.');
+      return;
+    }
+
+    // Copy over the app's CSS (Tailwind + any inline styles) to the new doc
+    const copiedHeadStyles = Array.from(
+      document.querySelectorAll('link[rel="stylesheet"], style')
+    ).map((el) => el.outerHTML).join('\n');
+
+    // Build the print document
+    const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Timeline</title>
+  ${copiedHeadStyles}
+  <style>
+    /* Keep colors in print */
+    @media print {
+      html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+    html, body { background: #fff; }
+    body { margin: 16px; }
+    /* Avoid the display:contents print bug */
+    .contents { display: block !important; }
+    /* Give the section full width on paper */
+    #timeline-section { max-width: none !important; width: 100% !important; }
+    /* Prevent awkward page breaks inside items */
+    #timeline-section li { break-inside: avoid; }
+  </style>
+</head>
+<body>
+  ${src.outerHTML}
+</body>
+</html>`;
+
+    // Write and print
+    printWin.document.open();
+    printWin.document.write(html);
+    printWin.document.close();
+
+    const doPrint = () => {
+      try {
+        printWin.focus();
+        printWin.print();
+      } catch {}
     };
-    window.addEventListener('afterprint', cleanup);
 
-    // Give the browser a tick to apply styles before printing
-    setTimeout(() => {
-      window.print();
-    }, 100);
-  } catch {/* noop */}
+    // Give styles a tick to apply, then print
+    if (printWin.document.readyState === 'complete') {
+      setTimeout(doPrint, 200);
+    } else {
+      printWin.onload = () => setTimeout(doPrint, 200);
+    }
+
+    // Auto-close the helper window after printing
+    printWin.addEventListener?.('afterprint', () => {
+      try { printWin.close(); } catch {}
+    });
+  } catch (e) {
+    console.error(e);
+    alert('Sorry—printing failed. Check the console for details.');
+  }
 };
 
   return (
