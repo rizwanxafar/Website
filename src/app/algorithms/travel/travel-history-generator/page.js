@@ -391,91 +391,95 @@ export default function TravelHistoryGeneratorPage() {
     }
   };
 
-  // REPLACE your current handlePrintTimeline with this
-const handlePrintTimeline = async () => {
+  const handlePrintTimeline = () => {
   try {
-    const section = document.getElementById('timeline-section');
-    if (!section) {
-      alert('Timeline not found.');
-      return;
-    }
+    const src = document.getElementById('timeline-section');
+    if (!src) { window.print(); return; }
 
-    // 1) Grab the exact markup we want to print
-    const htmlToPrint = section.outerHTML;
+    // Clone the timeline section so we only print that bit
+    const cloned = src.cloneNode(true);
 
-    // 2) Open a new (non-noopener) window so we can reliably inject content
-    const printWin = window.open('', '_blank');
-    if (!printWin) return; // popup blocked
+    // Open a clean print window
+    const win = window.open('', '_blank');
+    if (!win) return;
 
-    const doc = printWin.document;
+    // Basic HTML shell
+    win.document.open();
+    win.document.write(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Timeline print</title>
+</head>
+<body></body>
+</html>`);
+    win.document.close();
 
-    // 3) Create a full HTML skeleton (no document.write race issues)
-    doc.documentElement.innerHTML = `
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <title>Timeline – Print</title>
-        </head>
-        <body></body>
-      </html>
-    `;
+    const dstDoc = win.document;
 
-    // 4) Copy all <link rel="stylesheet"> and <style> from the current page
-    const styleNodes = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'));
-    styleNodes.forEach((node) => {
-      const clone = node.cloneNode(true);
-      doc.head.appendChild(clone);
+    // 1) Copy styles from the main app into the print window
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach((node) => {
+      dstDoc.head.appendChild(node.cloneNode(true));
     });
 
-    // 5) Add small print fixes so layout matches the on-screen timeline
-    const fix = doc.createElement('style');
-    fix.textContent = `
-      @page { size: auto; margin: 12mm; }
-      html, body { background: #fff; }
-      /* Center and size similar to your app card */
-      #timeline-section { max-width: 900px; margin: 0 auto; }
-      /* Make sure the grid renders in print and nodes don't collapse */
-      #timeline-section ol { display: grid !important; grid-template-columns: 72px 1fr; row-gap: 12px; }
-      /* display: contents is flaky in print; force block so each list-item becomes a real block */
-      #timeline-section .contents { display: block !important; }
-      /* Keep items together */
-      #timeline-section li { break-inside: avoid; page-break-inside: avoid; }
-      /* Ensure colors (rail, nodes) are preserved */
-      #timeline-section, #timeline-section * {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
+    // 2) Add small print overrides so the timeline keeps its layout
+    const styleEl = dstDoc.createElement('style');
+    styleEl.textContent = `
+@page { size: A4 portrait; margin: 12mm; }
+html, body { height: auto !important; }
+body { margin: 0; background: white; }
+#print-root {
+  width: 900px;            /* Comfortable page width */
+  margin: 0 auto;          /* Center on page */
+  padding: 16px;
+}
+#print-root .contents { display: block !important; } /* display:contents is unreliable in print */
+#print-root ol {
+  display: grid !important;
+  grid-template-columns: 72px 1fr !important;
+  row-gap: 12px !important;
+}
+#print-root li { break-inside: avoid; page-break-inside: avoid; }
+#print-root, #print-root * {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  box-sizing: border-box;
+}
+
+/* Ensure the vertical rail renders in print */
+#print-root .border-l-2 { border-left-width: 2px !important; }
+#print-root .border-dashed { border-style: dashed !important; }
+#print-root .left-\$begin:math:display$36px\\$end:math:display$ { left: 36px !important; }
+
+/* Make cards breathe a bit on paper */
+#print-root .p-6 { padding: 1.5rem !important; }
+#print-root .p-4 { padding: 1rem !important; }
+#print-root .border-2 { border-width: 2px !important; }
+
+/* Fallback: make sure grid/flex exist even if a utility gets dropped */
+@media print {
+  #print-root .grid { display: grid !important; }
+  #print-root .flex { display: flex !important; }
+}
     `;
-    doc.head.appendChild(fix);
+    dstDoc.head.appendChild(styleEl);
 
-    // 6) Inject the timeline markup
-    doc.body.innerHTML = htmlToPrint;
+    // 3) Insert the cloned timeline into a root container
+    const root = dstDoc.createElement('div');
+    root.id = 'print-root';
+    root.appendChild(cloned);
+    dstDoc.body.appendChild(root);
 
-    // 7) Wait for styles to load (important for Tailwind and styled-jsx)
-    const links = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'));
-    await Promise.all(
-      links.map((l) => new Promise((resolve) => {
-        if (l.sheet) return resolve();
-        l.addEventListener('load', resolve, { once: true });
-        l.addEventListener('error', resolve, { once: true });
-      }))
-    );
-
-    // 8) Give the browser a tick to layout before printing
-    await new Promise((r) => setTimeout(r, 50));
-
-    printWin.focus();
-    printWin.print();
-
-    // 9) Close the window after printing (optional)
-    printWin.addEventListener('afterprint', () => {
-      try { printWin.close(); } catch {}
-    });
-  } catch (err) {
-    console.error('Print failed:', err);
-    alert('Sorry, printing failed. Check the console for details.');
+    // 4) Give the browser a moment to apply CSS, then print
+    win.focus();
+    setTimeout(() => {
+      win.print();
+      win.close();
+    }, 250);
+  } catch {
+    // Fallback if anything odd happens
+    window.print();
   }
 };
   return (
