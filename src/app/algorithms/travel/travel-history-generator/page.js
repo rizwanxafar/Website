@@ -582,51 +582,38 @@ export default function TravelHistoryGeneratorPage() {
         </div>
       )}
 
-      {/* Print styles */}
+            {/* Print styles */}
       <style jsx global>{`
-        /* Hide header etc. when printing */
+        /* Normal print cleanup */
         @media print {
           header, .no-print { display: none !important; }
           main { padding: 0 !important; }
         }
 
-        /* Print only the timeline section when Print Timeline button toggles the class */
+        /* Print ONLY the timeline section when the button toggles body.print-timeline-only */
         @media print {
-          body.print-timeline-only * { display: none !important; }
-          body.print-timeline-only #timeline-section,
-          body.print-timeline-only #timeline-section * {
-            display: revert !important;
-            visibility: visible !important;
-          }
-        }
+          /* Hide all direct children of <main> except the timeline section */
+          body.print-timeline-only main > * { display: none !important; }
+          body.print-timeline-only main > #timeline-section { display: block !important; }
 
-        /* --- Print as-screen grid with rail & nodes --- */
-        @media print {
-          #timeline-section { width: 100% !important; }
-
-          /* Keep the grid in print exactly like screen */
-          #timeline-section ol {
+          /* Keep the on-screen grid layout for the timeline */
+          body.print-timeline-only #timeline-section ol {
             display: grid !important;
             grid-template-columns: 72px 1fr !important;
             row-gap: 12px !important;
           }
+          /* Keep display:contents so the rail & nodes align properly */
+          body.print-timeline-only #timeline-section li.contents { display: contents !important; }
 
-          /* Preserve display:contents so rail/nodes stay aligned */
-          #timeline-section li.contents {
-            display: contents !important;
-          }
-
-          /* Keep the small “date rows” height consistent */
-          #timeline-section .h-6 {
-            height: 24px !important;
-          }
-          #timeline-section .h-6.flex {
+          /* Make the small date rows consistent height */
+          body.print-timeline-only #timeline-section .h-6 { height: 24px !important; }
+          body.print-timeline-only #timeline-section .h-6.flex {
             display: flex !important;
             align-items: center !important;
           }
 
-          /* Ensure the vertical rail prints at 36px from left */
-          #timeline-section .pointer-events-none {
+          /* Ensure the vertical rail prints */
+          body.print-timeline-only #timeline-section .pointer-events-none {
             position: absolute !important;
             left: 36px !important;
             top: 0 !important;
@@ -636,14 +623,15 @@ export default function TravelHistoryGeneratorPage() {
             border-left-color: rgb(203,213,225) !important; /* slate-300 */
           }
 
-          /* Print colors exactly (rail + node ring etc.) */
-          #timeline-section, #timeline-section * {
+          /* Preserve colors (rail, nodes, etc.) */
+          body.print-timeline-only #timeline-section,
+          body.print-timeline-only #timeline-section * {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
 
-          /* Prevent cards from splitting across pages */
-          #timeline-section [class*="rounded-xl"] {
+          /* Avoid card splits across pages */
+          body.print-timeline-only #timeline-section [class*="rounded-xl"] {
             break-inside: avoid;
           }
         }
