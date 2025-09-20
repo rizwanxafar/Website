@@ -52,9 +52,6 @@ const LINKISH_SECONDARY =
 
 const NODE_COLOR = "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]";
 
-// ---- Persistence ----
-const LS_KEY = 'travel-history-generator:v9';
-
 // ---- Helpers ----
 const uid = () => Math.random().toString(36).slice(2, 9);
 const classNames = (...parts) => parts.filter(Boolean).join(' ');
@@ -242,21 +239,25 @@ export default function TravelHistoryGeneratorPage() {
   const itemRefs = useRef(new Map());
   const setItemRef = (id) => (el) => { if (el) itemRefs.current.set(id, el); };
 
-  // Restore
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.trips)) setState(parsed);
-      }
-    } catch {/* noop */}
-  }, []);
+  // Warn on refresh/close if there is any entered data (memory-only mode)
+useEffect(() => {
+  const hasData = state.trips.some(t => t.stops.length > 0 || t.layovers.length > 0);
 
-  // Persist
-  useEffect(() => {
-    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {/* noop */}
-  }, [state]);
+  const onBeforeUnload = (e) => {
+    if (!hasData) return;
+    e.preventDefault();
+    // Setting returnValue triggers the native "Leave site?" dialog in supported browsers
+    e.returnValue = "";
+  };
+
+  if (hasData) {
+    window.addEventListener("beforeunload", onBeforeUnload);
+  }
+
+  return () => {
+    window.removeEventListener("beforeunload", onBeforeUnload);
+  };
+}, [state.trips]);
 
   // Validation: strict overlaps, same-day edges allowed
   useEffect(() => {
@@ -386,7 +387,6 @@ export default function TravelHistoryGeneratorPage() {
 
   const clearAll = () => {
     if (confirm('Clear all data? This only affects this browser/session.')) {
-      localStorage.removeItem(LS_KEY);
       setState(initialState);
     }
   };
