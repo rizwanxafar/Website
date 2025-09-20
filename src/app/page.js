@@ -33,25 +33,30 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Solid divider band (themed, subtle) */}
-      <div
-        aria-hidden="true"
-        className="h-2 w-full bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] opacity-10"
-      />
+      {/* Sections grid with themed background + frosted cards */}
+      <section id="sections" className="relative py-16 sm:py-20">
+        {/* Themed background wash (light = brand, dark = accent) */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 opacity-10 bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]"
+        />
 
-      {/* Sections grid */}
-      <section id="sections" className="py-16 sm:py-20 border-t border-slate-200 dark:border-slate-800">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
+
             {/* Algorithms */}
             <Link
               href="/algorithms"
-              className="group rounded-xl border border-slate-200 dark:border-slate-800 p-5
-                         bg-white dark:bg-neutral-950 hover:shadow-md transition
-                         focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
+              className="group rounded-2xl p-5 border border-white/30 dark:border-white/10
+                         bg-white/60 dark:bg-neutral-900/40
+                         backdrop-blur supports-[backdrop-filter]:backdrop-blur-md
+                         hover:shadow-lg transition focus:outline-none
+                         focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
             >
               <div className="flex items-center gap-3">
-                <span className="h-10 w-10 rounded-lg bg-slate-100 dark:bg-neutral-900 flex items-center justify-center ring-1 ring-inset ring-slate-200 dark:ring-neutral-800">
+                <span className="h-10 w-10 rounded-lg bg-white/70 dark:bg-neutral-900/60
+                                  ring-1 ring-inset ring-black/5 dark:ring-white/10
+                                  flex items-center justify-center">
                   <svg
                     className="h-5 w-5 text-slate-700 dark:text-slate-300"
                     viewBox="0 0 24 24"
@@ -74,7 +79,7 @@ export default function Home() {
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                     Algorithms
                   </h3>
-                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                  <p className="mt-2 text-sm text-slate-700/90 dark:text-slate-300">
                     Step-by-step pathways for common infectious disease scenarios.
                   </p>
                 </div>
@@ -84,12 +89,16 @@ export default function Home() {
             {/* Guidelines */}
             <Link
               href="/guidelines"
-              className="group rounded-xl border border-slate-200 dark:border-slate-800 p-5
-                         bg-white dark:bg-neutral-950 hover:shadow-md transition
-                         focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
+              className="group rounded-2xl p-5 border border-white/30 dark:border-white/10
+                         bg-white/60 dark:bg-neutral-900/40
+                         backdrop-blur supports-[backdrop-filter]:backdrop-blur-md
+                         hover:shadow-lg transition focus:outline-none
+                         focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
             >
               <div className="flex items-center gap-3">
-                <span className="h-10 w-10 rounded-lg bg-slate-100 dark:bg-neutral-900 flex items-center justify-center ring-1 ring-inset ring-slate-200 dark:ring-neutral-800">
+                <span className="h-10 w-10 rounded-lg bg-white/70 dark:bg-neutral-900/60
+                                  ring-1 ring-inset ring-black/5 dark:ring-white/10
+                                  flex items-center justify-center">
                   <svg
                     className="h-5 w-5 text-slate-700 dark:text-slate-300"
                     viewBox="0 0 24 24"
@@ -108,7 +117,7 @@ export default function Home() {
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                     Guidelines
                   </h3>
-                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                  <p className="mt-2 text-sm text-slate-700/90 dark:text-slate-300">
                     Local and national guidance, antibiotic policies, and references.
                   </p>
                 </div>
@@ -118,12 +127,16 @@ export default function Home() {
             {/* Education */}
             <Link
               href="/teaching"
-              className="group rounded-xl border border-slate-200 dark:border-slate-800 p-5
-                         bg-white dark:bg-neutral-950 hover:shadow-md transition
-                         focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
+              className="group rounded-2xl p-5 border border-white/30 dark:border-white/10
+                         bg-white/60 dark:bg-neutral-900/40
+                         backdrop-blur supports-[backdrop-filter]:backdrop-blur-md
+                         hover:shadow-lg transition focus:outline-none
+                         focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
             >
               <div className="flex items-center gap-3">
-                <span className="h-10 w-10 rounded-lg bg-slate-100 dark:bg-neutral-900 flex items-center justify-center ring-1 ring-inset ring-slate-200 dark:ring-neutral-800">
+                <span className="h-10 w-10 rounded-lg bg-white/70 dark:bg-neutral-900/60
+                                  ring-1 ring-inset ring-black/5 dark:ring-white/10
+                                  flex items-center justify-center">
                   <svg
                     className="h-5 w-5 text-slate-700 dark:text-slate-300"
                     viewBox="0 0 24 24"
@@ -142,7 +155,7 @@ export default function Home() {
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                     Education
                   </h3>
-                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                  <p className="mt-2 text-sm text-slate-700/90 dark:text-slate-300">
                     Slides, case discussions, and teaching resources for clinicians.
                   </p>
                 </div>
