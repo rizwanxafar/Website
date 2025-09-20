@@ -12,30 +12,33 @@ export default function Home() {
       {/* Hero */}
       <section className="py-20 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Welcome to the Infectious Diseases Portal
-          </h1>
-          <p className="mt-6 text-lg sm:text-xl text-slate-700 dark:text-slate-300 max-w-3xl mx-auto">
-            Practical algorithms, local guidelines, and education for ID clinicians in the North&nbsp;West.
-          </p>
+          {/* Light-mode frosted hero panel; dark mode stays plain via .glass rules */}
+          <div className="glass rounded-2xl p-6 sm:p-8 max-w-3xl mx-auto">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              Welcome to the Infectious Diseases Portal
+            </h1>
+            <p className="mt-6 text-lg sm:text-xl text-slate-700 dark:text-slate-300">
+              Practical algorithms, local guidelines, and education for ID clinicians in the North&nbsp;West.
+            </p>
 
-          {/* Single CTA */}
-          <div className="mt-10">
-            <Link
-              href="/algorithms"
-              className="inline-flex items-center justify-center rounded-xl px-6 py-3.5 text-base font-medium
-                         text-white bg-[hsl(var(--brand))] hover:brightness-95
-                         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70"
-            >
-              Go to algorithms
-            </Link>
+            {/* Single CTA */}
+            <div className="mt-10">
+              <Link
+                href="/algorithms"
+                className="inline-flex items-center justify-center rounded-xl px-6 py-3.5 text-base font-medium
+                           text-white bg-[hsl(var(--brand))] hover:brightness-95
+                           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70"
+              >
+                Go to algorithms
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Sections grid with themed background (light only) + frosted cards */}
+      {/* Sections grid with themed background in light mode; dark mode plain */}
       <section id="sections" className="relative py-24 sm:py-28">
-        {/* Light mode: solid brand; Dark mode: revert to transparent (as before) */}
+        {/* Light mode: solid brand; Dark mode: transparent (no frosted background) */}
         <div
           aria-hidden="true"
           className="absolute inset-0 -z-10 bg-[hsl(var(--brand))] dark:bg-transparent"
@@ -47,8 +50,10 @@ export default function Home() {
             {/* Algorithms */}
             <Link
               href="/algorithms"
-              className="group rounded-2xl p-5 glass
-                         dark:bg-neutral-950 dark:border dark:border-slate-800
+              className="group rounded-2xl p-5
+                         glass                             /* light: frosted */
+                         dark:bg-neutral-950               /* dark: solid */
+                         dark:border dark:border-slate-800
                          hover:shadow-lg transition focus:outline-none
                          focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
             >
@@ -88,7 +93,8 @@ export default function Home() {
             {/* Guidelines */}
             <Link
               href="/guidelines"
-              className="group rounded-2xl p-5 glass
+              className="group rounded-2xl p-5
+                         glass
                          dark:bg-neutral-950 dark:border dark:border-slate-800
                          hover:shadow-lg transition focus:outline-none
                          focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
@@ -125,7 +131,8 @@ export default function Home() {
             {/* Education */}
             <Link
               href="/teaching"
-              className="group rounded-2xl p-5 glass
+              className="group rounded-2xl p-5
+                         glass
                          dark:bg-neutral-950 dark:border dark:border-slate-800
                          hover:shadow-lg transition focus:outline-none
                          focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
@@ -163,14 +170,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer contact (no divider line above) */}
+      {/* Footer contact (no divider line; light-mode frosted pill) */}
       <section className="mt-10 sm:mt-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="py-6 sm:py-8 text-sm sm:text-base flex items-center justify-center text-slate-600 dark:text-slate-300">
-            <span className="inline-flex items-center gap-2">
+          <div className="py-6 sm:py-8 text-sm sm:text-base flex items-center justify-center">
+            <span className="inline-flex items-center gap-2 glass rounded-xl px-4 py-2 dark:bg-transparent">
               <svg
                 aria-hidden="true"
-                className="h-4 w-4"
+                className="h-4 w-4 text-slate-700 dark:text-slate-300"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -181,7 +188,10 @@ export default function Home() {
                 <path d="M4 4h16v16H4z" />
                 <path d="M22 6l-10 7L2 6" />
               </svg>
-              <a href="mailto:infectionnw@gmail.com" className="font-medium hover:underline">
+              <a
+                href="mailto:infectionnw@gmail.com"
+                className="font-medium text-slate-700 hover:underline dark:text-slate-300"
+              >
                 infectionnw@gmail.com
               </a>
             </span>
