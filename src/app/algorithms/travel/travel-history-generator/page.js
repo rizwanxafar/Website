@@ -499,8 +499,8 @@ body { margin: 0; background: white; }
       </header>
 
       {/* Privacy banner */}
-<div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 p-4 text-amber-900 dark:text-amber-200 flex items-start gap-3">
-  <span aria-hidden="true" className="mt-0.5">⚠️</span>
+<div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 p-4 text-amber-900 dark:text-amber-200 flex items-center gap-3">
+  <span aria-hidden="true">⚠️</span>
   <p className="text-sm">Do not enter private or patient-identifiable information.</p>
 </div>
 
