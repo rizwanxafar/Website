@@ -34,8 +34,8 @@ export default function Home() {
       </section>
 
       {/* Sections grid with themed background + frosted cards */}
-      <section id="sections" className="relative py-16 sm:py-20">
-        {/* Themed background wash (light = brand, dark = accent) */}
+      <section id="sections" className="relative py-24 sm:py-28">
+        {/* Themed background (full width/height) */}
         <div
           aria-hidden="true"
           className="absolute inset-0 -z-10 bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]"
