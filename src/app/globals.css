@@ -35,4 +35,26 @@ html.dark .glass {
   border-color: transparent !important;
   box-shadow: none !important;
 }
+/* ---- Frosted glass: light mode ON, dark mode OFF ---- */
+
+/* Base glass (light mode) */
+.glass {
+  background-color: rgba(255, 255, 255, 0.60);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.30);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset;
+}
+
+/* Ensure Tailwind puts this after its utilities */
+@layer utilities {
+  /* Dark mode: hard disable glass everywhere */
+  html.dark .glass {
+    background-color: transparent !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+}
 
