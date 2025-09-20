@@ -27,12 +27,12 @@
   box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset;
 }
 
-/* Keep dark mode visuals as they were — no frosted effect by default */
-:root.dark .glass {
-  background-color: transparent;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  border-color: transparent;
-  box-shadow: none;
+/* Keep dark mode visuals as they were — disable glass by default */
+html.dark .glass {
+  background-color: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
