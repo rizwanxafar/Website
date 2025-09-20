@@ -38,7 +38,7 @@ export default function Home() {
         {/* Themed background wash (light = brand, dark = accent) */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 -z-10 opacity-10 bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]"
+          className="absolute inset-0 -z-10 bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]"
         />
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
