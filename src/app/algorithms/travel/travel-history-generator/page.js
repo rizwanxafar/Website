@@ -499,9 +499,10 @@ body { margin: 0; background: white; }
       </header>
 
       {/* Privacy banner */}
-      <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 p-4 text-amber-900 dark:text-amber-200">
-        <p className="text-sm"><strong>Privacy:</strong> No data is stored on our servers. This tool uses your browser storage only. Do <strong>not</strong> enter private or patient-identifiable information.</p>
-      </div>
+<div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 p-4 text-amber-900 dark:text-amber-200 flex items-start gap-3">
+  <span aria-hidden="true" className="mt-0.5">⚠️</span>
+  <p className="text-sm">Do not enter private or patient-identifiable information.</p>
+</div>
 
       {/* Validation messages */}
       {issues.length > 0 && (
@@ -513,16 +514,6 @@ body { margin: 0; background: white; }
           ))}
         </div>
       )}
-
-      {/* Stepper */}
-      <ol className="mb-8 grid gap-4 sm:grid-cols-4">
-        {['Countries & stops', 'Layovers', 'Companions', 'Review & generate'].map((label, idx) => (
-          <li key={label} className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm">
-            <span className={BADGE_PRIMARY}>{idx + 1}</span>
-            <span className="text-slate-800 dark:text-slate-200">{label}</span>
-          </li>
-        ))}
-      </ol>
 
       {/* Trip Builder */}
       <section className="space-y-10">
