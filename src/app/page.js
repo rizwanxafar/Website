@@ -10,42 +10,33 @@ export default function Home() {
   return (
     <>
       {/* Hero */}
-      <section className="py-16 sm:py-20">
+      <section className="py-20 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
             Welcome to the Infectious Diseases Portal
           </h1>
-          <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+          <p className="mt-6 text-lg sm:text-xl text-slate-700 dark:text-slate-300 max-w-3xl mx-auto">
             Practical algorithms, local guidelines, and education for ID clinicians in the North&nbsp;West.
           </p>
 
-          {/* Hero CTAs */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          {/* Single CTA */}
+          <div className="mt-10">
             <Link
               href="/algorithms"
-              className="rounded-xl px-5 py-3 text-sm font-medium text-white transition
-                         bg-[hsl(var(--brand))] hover:brightness-95 focus:outline-none
-                         focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent focus:ring-[hsl(var(--brand))]/70"
+              className="inline-flex items-center justify-center rounded-xl px-6 py-3.5 text-base font-medium
+                         text-white bg-[hsl(var(--brand))] hover:brightness-95
+                         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70"
             >
-              Explore algorithms
-            </Link>
-            <Link
-              href="#sections"
-              className="rounded-xl px-5 py-3 text-sm font-medium border border-slate-300 dark:border-slate-700
-                         text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-900
-                         focus:outline-none focus:ring-2 focus:ring-cyan-400/70 focus:ring-offset-2 transition"
-            >
-              Explore this website
+              Go to algorithms
             </Link>
           </div>
         </div>
       </section>
 
       {/* Sections grid */}
-      <section id="sections" className="py-12 sm:py-16 border-t border-slate-200 dark:border-slate-800">
+      <section id="sections" className="py-16 sm:py-20 border-t border-slate-200 dark:border-slate-800">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
-
             {/* Algorithms */}
             <Link
               href="/algorithms"
@@ -142,7 +133,7 @@ export default function Home() {
       </section>
 
       {/* Footer contact */}
-      <section className="mt-8 sm:mt-10 border-t border-slate-200 dark:border-slate-800">
+      <section className="mt-10 sm:mt-12 border-t border-slate-200 dark:border-slate-800">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="py-6 sm:py-8 text-sm sm:text-base flex items-center justify-center text-slate-600 dark:text-slate-300">
             <span className="inline-flex items-center gap-2">
