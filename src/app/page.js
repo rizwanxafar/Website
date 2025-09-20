@@ -33,12 +33,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Sections grid with themed background + frosted cards */}
+      {/* Sections grid with themed background (light only) + frosted cards */}
       <section id="sections" className="relative py-24 sm:py-28">
-        {/* Themed background (full width/height) */}
+        {/* Light mode: solid brand; Dark mode: revert to transparent (as before) */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 -z-10 bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]"
+          className="absolute inset-0 -z-10 bg-[hsl(var(--brand))] dark:bg-transparent"
         />
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -47,14 +47,13 @@ export default function Home() {
             {/* Algorithms */}
             <Link
               href="/algorithms"
-              className="group rounded-2xl p-5 border border-white/30 dark:border-white/10
-                         bg-white/60 dark:bg-neutral-900/40
-                         backdrop-blur supports-[backdrop-filter]:backdrop-blur-md
+              className="group rounded-2xl p-5 glass
+                         dark:bg-neutral-950 dark:border dark:border-slate-800
                          hover:shadow-lg transition focus:outline-none
                          focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
             >
               <div className="flex items-center gap-3">
-                <span className="h-10 w-10 rounded-lg bg-white/70 dark:bg-neutral-900/60
+                <span className="h-10 w-10 rounded-lg bg-white/70 dark:bg-neutral-900
                                   ring-1 ring-inset ring-black/5 dark:ring-white/10
                                   flex items-center justify-center">
                   <svg
@@ -89,14 +88,13 @@ export default function Home() {
             {/* Guidelines */}
             <Link
               href="/guidelines"
-              className="group rounded-2xl p-5 border border-white/30 dark:border-white/10
-                         bg-white/60 dark:bg-neutral-900/40
-                         backdrop-blur supports-[backdrop-filter]:backdrop-blur-md
+              className="group rounded-2xl p-5 glass
+                         dark:bg-neutral-950 dark:border dark:border-slate-800
                          hover:shadow-lg transition focus:outline-none
                          focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
             >
               <div className="flex items-center gap-3">
-                <span className="h-10 w-10 rounded-lg bg-white/70 dark:bg-neutral-900/60
+                <span className="h-10 w-10 rounded-lg bg-white/70 dark:bg-neutral-900
                                   ring-1 ring-inset ring-black/5 dark:ring-white/10
                                   flex items-center justify-center">
                   <svg
@@ -127,14 +125,13 @@ export default function Home() {
             {/* Education */}
             <Link
               href="/teaching"
-              className="group rounded-2xl p-5 border border-white/30 dark:border-white/10
-                         bg-white/60 dark:bg-neutral-900/40
-                         backdrop-blur supports-[backdrop-filter]:backdrop-blur-md
+              className="group rounded-2xl p-5 glass
+                         dark:bg-neutral-950 dark:border dark:border-slate-800
                          hover:shadow-lg transition focus:outline-none
                          focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
             >
               <div className="flex items-center gap-3">
-                <span className="h-10 w-10 rounded-lg bg-white/70 dark:bg-neutral-900/60
+                <span className="h-10 w-10 rounded-lg bg-white/70 dark:bg-neutral-900
                                   ring-1 ring-inset ring-black/5 dark:ring-white/10
                                   flex items-center justify-center">
                   <svg
@@ -166,8 +163,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer contact */}
-      <section className="mt-10 sm:mt-12 border-t border-slate-200 dark:border-slate-800">
+      {/* Footer contact (no divider line above) */}
+      <section className="mt-10 sm:mt-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="py-6 sm:py-8 text-sm sm:text-base flex items-center justify-center text-slate-600 dark:text-slate-300">
             <span className="inline-flex items-center gap-2">
