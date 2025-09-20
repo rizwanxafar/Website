@@ -33,6 +33,12 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Solid divider band (themed, subtle) */}
+      <div
+        aria-hidden="true"
+        className="h-2 w-full bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] opacity-10"
+      />
+
       {/* Sections grid */}
       <section id="sections" className="py-16 sm:py-20 border-t border-slate-200 dark:border-slate-800">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -64,9 +70,14 @@ export default function Home() {
                     <circle cx="18" cy="3" r="2" />
                   </svg>
                 </span>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Algorithms
-                </h3>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    Algorithms
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    Step-by-step pathways for common infectious disease scenarios.
+                  </p>
+                </div>
               </div>
             </Link>
 
@@ -93,9 +104,14 @@ export default function Home() {
                     <path d="M7 7h7M7 11h10M7 15h10" />
                   </svg>
                 </span>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Guidelines
-                </h3>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    Guidelines
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    Local and national guidance, antibiotic policies, and references.
+                  </p>
+                </div>
               </div>
             </Link>
 
@@ -122,9 +138,14 @@ export default function Home() {
                     <path d="M6 12v4c0 1.1 2.7 3 6 3s6-1.9 6-3v-4" />
                   </svg>
                 </span>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Education
-                </h3>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    Education
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    Slides, case discussions, and teaching resources for clinicians.
+                  </p>
+                </div>
               </div>
             </Link>
 
