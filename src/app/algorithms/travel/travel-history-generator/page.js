@@ -1256,11 +1256,17 @@ function TimelineVertical({ events }) {
                     <div>
   <span className="font-semibold">Vaccinations:</span>{' '}
   {(() => {
-    const base = it.tripVaccines?.length ? it.tripVaccines.join(', ') : '';
-    const other = (it.tripVaccines || []).includes('Other') && it.tripVaccinesOther
-      ? (base ? `${base}, Other: ${it.tripVaccinesOther}` : `Other: ${it.tripVaccinesOther}`)
-      : base;
-    return other || 'None';
+    const arr = Array.isArray(it.tripVaccines) ? it.tripVaccines : [];
+    const hasOther = arr.includes('Other');
+    const base = (hasOther ? arr.filter(v => v !== 'Other') : arr).join(', ');
+    const otherText = (it.tripVaccinesOther || '').trim();
+
+    // If we have Other + free text, show only "Other: <text>" (no bare "Other")
+    if (hasOther && otherText) {
+      return base ? `${base}, Other: ${otherText}` : `Other: ${otherText}`;
+    }
+    // If "Other" was ticked but no text given, keep a bare "Other"
+    return base ? (hasOther ? `${base}, Other` : base) : (hasOther ? 'Other' : 'None');
   })()}
 </div>
                     {it.tripCompanions && (
@@ -1421,45 +1427,61 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
     text.push(`Trip ${tripIndex} (${start} to ${end})`);
 
     const tripObj = state.trips.find((t) => t.id === tripId) || {};
-    const vaccinesArr = (tripObj.vaccines || []);
-let vaccinesDisplay = vaccinesArr.join(', ');
-if (vaccinesArr.includes('Other') && tripObj.vaccinesOther) {
+const vaccinesArr = Array.isArray(tripObj.vaccines) ? tripObj.vaccines : [];
+const hasOther = vaccinesArr.includes('Other');
+const baseList = hasOther ? vaccinesArr.filter(v => v !== 'Other') : vaccinesArr;
+let vaccinesDisplay = baseList.join(', ');
+
+// Handle "Other" cleanly
+const otherText = (tripObj.vaccinesOther || '').trim();
+if (hasOther && otherText) {
   vaccinesDisplay = vaccinesDisplay
-    ? `${vaccinesDisplay}, Other: ${tripObj.vaccinesOther}`
-    : `Other: ${tripObj.vaccinesOther}`;
+    ? `${vaccinesDisplay}, Other: ${otherText}`
+    : `Other: ${otherText}`;
+} else if (hasOther) {
+  vaccinesDisplay = vaccinesDisplay
+    ? `${vaccinesDisplay}, Other`
+    : 'Other';
 }
-    const malaria = tripObj.malaria || { indication: 'Not indicated', took: false, drug: 'None', adherence: '' };
 
-    // Purpose
-    if (tripObj.purpose && tripObj.purpose.trim()) {
-      html.push(`<div><strong>Purpose:</strong> ${escapeHtml(tripObj.purpose)}</div>`);
-      text.push(`Purpose: ${tripObj.purpose}`);
-    }
+const malaria = tripObj.malaria || {
+  indication: 'Not indicated',
+  took: false,
+  drug: 'None',
+  adherence: ''
+};
 
-    // Malaria
-    {
-      let malariaText = 'Not indicated';
-      if (malaria.indication === 'Indicated') {
-        malariaText = malaria.took
-          ? `${malaria.drug}${malaria.adherence ? ` (${malaria.adherence})` : ''}`
-          : 'Not taken';
-      }
-      html.push(`<div><strong>Malaria prophylaxis:</strong> ${escapeHtml(malariaText)}</div>`);
-      text.push(`Malaria prophylaxis: ${malariaText}`);
-    }
+// Purpose
+if (tripObj.purpose && tripObj.purpose.trim()) {
+  html.push(`<div><strong>Purpose:</strong> ${escapeHtml(tripObj.purpose)}</div>`);
+  text.push(`Purpose: ${tripObj.purpose}`);
+}
 
-    // Vaccinations
-    html.push(`<div><strong>Vaccinations:</strong> ${vaccinesDisplay ? escapeHtml(vaccinesDisplay) : 'None'}</div>`);
+// Malaria
+{
+  let malariaText = 'Not indicated';
+  if (malaria.indication === 'Indicated') {
+    malariaText = malaria.took
+      ? `${malaria.drug}${malaria.adherence ? ` (${malaria.adherence})` : ''}`
+      : 'Not taken';
+  }
+  html.push(`<div><strong>Malaria prophylaxis:</strong> ${escapeHtml(malariaText)}</div>`);
+  text.push(`Malaria prophylaxis: ${malariaText}`);
+}
+
+// Vaccinations
+html.push(`<div><strong>Vaccinations:</strong> ${vaccinesDisplay ? escapeHtml(vaccinesDisplay) : 'None'}</div>`);
 text.push(`Vaccinations: ${vaccinesDisplay || 'None'}`);
 
-    // Companions (global, shown per trip)
-    const cmp = state.companions || {};
-    const cmpGroup = cmp.group === 'Other' ? (cmp.otherText || 'Other') : (cmp.group || '—');
-    const cmpWell =
-      cmp.companionsWell === 'yes' ? 'Yes' :
-      cmp.companionsWell === 'no' ? 'No' : 'Unknown';
-    html.push(`<div><strong>Companions:</strong> ${escapeHtml(cmpGroup)} — Well: ${cmpWell}</div>`);
-    text.push(`Companions: ${cmpGroup} — Well: ${cmpWell}`);
+// Companions (global, shown per trip)
+const cmp = state.companions || {};
+const cmpGroup = cmp.group === 'Other' ? (cmp.otherText || 'Other') : (cmp.group || '—');
+const cmpWell =
+  cmp.companionsWell === 'yes' ? 'Yes'
+  : cmp.companionsWell === 'no' ? 'No'
+  : 'Unknown';
+html.push(`<div><strong>Companions:</strong> ${escapeHtml(cmpGroup)} — Well: ${cmpWell}</div>`);
+text.push(`Companions: ${cmpGroup} — Well: ${cmpWell}`);
 
     // Now chronological events
     let stopCounter = 0;
