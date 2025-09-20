@@ -25,7 +25,16 @@ const ACCOMMODATION_OPTIONS = [
 ];
 
 const VACCINE_OPTIONS = [
-  'Yellow fever', 'Hepatitis A', 'Hepatitis B', 'Typhoid', 'Meningitis ACWY', 'Rabies (pre-exposure)',
+  'Yellow fever',
+  'Hepatitis A',
+  'Hepatitis B',
+  'Typhoid',
+  'Meningitis ACWY',
+  'Rabies (pre-exposure)',
+  'Cholera (oral)',
+  'Japanese encephalitis (JE)',
+  'Tick-borne encephalitis (TBE)',
+  'Other',
 ];
 
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine'];
@@ -138,6 +147,7 @@ const emptyTrip = () => ({
   purpose: '',
   // Trip-level vaccines & malaria
   vaccines: [],
+  vaccinesOther: '',            
   malaria: { indication: 'Not indicated', took: false, drug: 'None', adherence: '' },
   stops: [emptyStop()],
   layovers: [],
@@ -213,6 +223,7 @@ function buildTripEvents(trip, companions) {
         isLastInTrip,
         tripPurpose: trip.purpose,
         tripVaccines: trip.vaccines || [],
+        tripVaccinesOther: trip.vaccinesOther || '', 
         tripMalaria: trip.malaria || { indication: 'Not indicated', took: false, drug: 'None', adherence: '' },
         tripCompanions: companions || null,
       }
@@ -710,11 +721,20 @@ function TripCard({
   highlight, setItemRef, innerRef
 }) {
   // Toggle trip-level vaccine
-  const toggleTripVaccine = (v) => {
-    const set = new Set(trip.vaccines || []);
-    if (set.has(v)) set.delete(v); else set.add(v);
-    updateTrip(trip.id, { vaccines: Array.from(set) });
-  };
+const toggleTripVaccine = (v) => {
+  const set = new Set(trip.vaccines || []);
+  const had = set.has(v);
+  if (had) set.delete(v); else set.add(v);
+
+  const patch = { vaccines: Array.from(set) };
+
+  // If "Other" is being unticked, clear the free-text
+  if (v === 'Other' && had) {
+    patch.vaccinesOther = '';
+  }
+
+  updateTrip(trip.id, patch);
+};
 
   // Update malaria (trip-level)
   const setMalaria = (patch) => updateTrip(trip.id, { malaria: { ...trip.malaria, ...patch } });
@@ -760,6 +780,22 @@ function TripCard({
             ))}
           </div>
         </div>
+
+      {/* Free-text for "Other" when selected */}
+{(trip.vaccines || []).includes('Other') && (
+  <div className="mt-2">
+    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
+      Other vaccination(s)
+    </label>
+    <input
+      type="text"
+      placeholder="Enter vaccine name(s)…"
+      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+      value={trip.vaccinesOther || ''}
+      onChange={(e) => updateTrip(trip.id, { vaccinesOther: e.target.value })}
+    />
+  </div>
+)}
 
         {/* Malaria */}
         <div>
@@ -1218,9 +1254,15 @@ function TimelineVertical({ events }) {
                             : 'Not taken')}
                     </div>
                     <div>
-                      <span className="font-semibold">Vaccinations:</span>{' '}
-                      {it.tripVaccines?.length ? it.tripVaccines.join(', ') : 'None'}
-                    </div>
+  <span className="font-semibold">Vaccinations:</span>{' '}
+  {(() => {
+    const base = it.tripVaccines?.length ? it.tripVaccines.join(', ') : '';
+    const other = (it.tripVaccines || []).includes('Other') && it.tripVaccinesOther
+      ? (base ? `${base}, Other: ${it.tripVaccinesOther}` : `Other: ${it.tripVaccinesOther}`)
+      : base;
+    return other || 'None';
+  })()}
+</div>
                     {it.tripCompanions && (
                       <div>
                         <span className="font-semibold">Companions:</span>{' '}
@@ -1379,7 +1421,13 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
     text.push(`Trip ${tripIndex} (${start} to ${end})`);
 
     const tripObj = state.trips.find((t) => t.id === tripId) || {};
-    const vaccines = (tripObj.vaccines || []).join(', ');
+    const vaccinesArr = (tripObj.vaccines || []);
+let vaccinesDisplay = vaccinesArr.join(', ');
+if (vaccinesArr.includes('Other') && tripObj.vaccinesOther) {
+  vaccinesDisplay = vaccinesDisplay
+    ? `${vaccinesDisplay}, Other: ${tripObj.vaccinesOther}`
+    : `Other: ${tripObj.vaccinesOther}`;
+}
     const malaria = tripObj.malaria || { indication: 'Not indicated', took: false, drug: 'None', adherence: '' };
 
     // Purpose
@@ -1401,8 +1449,8 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
     }
 
     // Vaccinations
-    html.push(`<div><strong>Vaccinations:</strong> ${vaccines ? escapeHtml(vaccines) : 'None'}</div>`);
-    text.push(`Vaccinations: ${vaccines || 'None'}`);
+    html.push(`<div><strong>Vaccinations:</strong> ${vaccinesDisplay ? escapeHtml(vaccinesDisplay) : 'None'}</div>`);
+text.push(`Vaccinations: ${vaccinesDisplay || 'None'}`);
 
     // Companions (global, shown per trip)
     const cmp = state.companions || {};
