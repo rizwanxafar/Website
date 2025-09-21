@@ -402,97 +402,6 @@ useEffect(() => {
     }
   };
 
-  const handlePrintTimeline = () => {
-  try {
-    const src = document.getElementById('timeline-section');
-    if (!src) { window.print(); return; }
-
-    // Clone the timeline section so we only print that bit
-    const cloned = src.cloneNode(true);
-
-    // Open a clean print window
-    const win = window.open('', '_blank');
-    if (!win) return;
-
-    // Basic HTML shell
-    win.document.open();
-    win.document.write(`<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Timeline print</title>
-</head>
-<body></body>
-</html>`);
-    win.document.close();
-
-    const dstDoc = win.document;
-
-    // 1) Copy styles from the main app into the print window
-    document.querySelectorAll('link[rel="stylesheet"], style').forEach((node) => {
-      dstDoc.head.appendChild(node.cloneNode(true));
-    });
-
-    // 2) Add small print overrides so the timeline keeps its layout
-    const styleEl = dstDoc.createElement('style');
-    styleEl.textContent = `
-@page { size: A4 portrait; margin: 12mm; }
-html, body { height: auto !important; }
-body { margin: 0; background: white; }
-#print-root {
-  width: 900px;            /* Comfortable page width */
-  margin: 0 auto;          /* Center on page */
-  padding: 16px;
-}
-#print-root .contents { display: block !important; } /* display:contents is unreliable in print */
-#print-root ol {
-  display: grid !important;
-  grid-template-columns: 72px 1fr !important;
-  row-gap: 12px !important;
-}
-#print-root li { break-inside: avoid; page-break-inside: avoid; }
-#print-root, #print-root * {
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-  box-sizing: border-box;
-}
-
-/* Ensure the vertical rail renders in print */
-#print-root .border-l-2 { border-left-width: 2px !important; }
-#print-root .border-dashed { border-style: dashed !important; }
-#print-root .left-\$begin:math:display$36px\\$end:math:display$ { left: 36px !important; }
-
-/* Make cards breathe a bit on paper */
-#print-root .p-6 { padding: 1.5rem !important; }
-#print-root .p-4 { padding: 1rem !important; }
-#print-root .border-2 { border-width: 2px !important; }
-
-/* Fallback: make sure grid/flex exist even if a utility gets dropped */
-@media print {
-  #print-root .grid { display: grid !important; }
-  #print-root .flex { display: flex !important; }
-}
-    `;
-    dstDoc.head.appendChild(styleEl);
-
-    // 3) Insert the cloned timeline into a root container
-    const root = dstDoc.createElement('div');
-    root.id = 'print-root';
-    root.appendChild(cloned);
-    dstDoc.body.appendChild(root);
-
-    // 4) Give the browser a moment to apply CSS, then print
-    win.focus();
-    setTimeout(() => {
-      win.print();
-      win.close();
-    }, 250);
-  } catch {
-    // Fallback if anything odd happens
-    window.print();
-  }
-};
   return (
     <main className="py-10 sm:py-14">
       {/* Header */}
@@ -617,9 +526,8 @@ body { margin: 0; background: white; }
       {/* Timeline */}
       <section id="timeline-section" className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6 tl-printable">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline</h2>
-          <button type="button" onClick={handlePrintTimeline} className={BTN_SECONDARY}>Print timeline</button>
-        </div>
+  <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline</h2>
+</div>
         <TimelineVertical events={mergedEventsAllTrips} />
       </section>
 
