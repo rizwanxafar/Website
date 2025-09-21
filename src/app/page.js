@@ -51,7 +51,7 @@ export default function Home() {
             <Link
               href="/algorithms"
               className="group rounded-2xl p-5
-                         glass                             /* light: frosted */
+                         glass-light                             /* light: frosted */
                          dark:bg-neutral-950               /* dark: solid */
                          dark:border dark:border-slate-800
                          hover:shadow-lg transition focus:outline-none
@@ -94,7 +94,7 @@ export default function Home() {
             <Link
               href="/guidelines"
               className="group rounded-2xl p-5
-                         glass
+                         glass-light
                          dark:bg-neutral-950 dark:border dark:border-slate-800
                          hover:shadow-lg transition focus:outline-none
                          focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
@@ -132,7 +132,7 @@ export default function Home() {
             <Link
               href="/teaching"
               className="group rounded-2xl p-5
-                         glass
+                         glass-light
                          dark:bg-neutral-950 dark:border dark:border-slate-800
                          hover:shadow-lg transition focus:outline-none
                          focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--brand))]/40"
