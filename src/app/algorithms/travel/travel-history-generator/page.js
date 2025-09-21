@@ -38,7 +38,7 @@ const VACCINE_OPTIONS = [
 ];
 
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine'];
-const MALARIA_INDICATIONS = ['Not indicated', 'Indicated'];
+const MALARIA_INDICATIONS = ['Not indicated', 'Taken', 'Not taken'];
 
 // ---- Theme helpers ----
 const BTN_PRIMARY =
@@ -148,7 +148,7 @@ const emptyTrip = () => ({
   // Trip-level vaccines & malaria
   vaccines: [],
   vaccinesOther: '',            
-  malaria: { indication: 'Not indicated', took: false, drug: 'None', adherence: '' },
+  malaria: { indication: 'Not indicated', drug: 'None', adherence: '' },
   stops: [emptyStop()],
   layovers: [],
 });
@@ -737,7 +737,15 @@ const toggleTripVaccine = (v) => {
 };
 
   // Update malaria (trip-level)
-  const setMalaria = (patch) => updateTrip(trip.id, { malaria: { ...trip.malaria, ...patch } });
+  // Update malaria (trip-level) and clean fields when not "Taken"
+const setMalaria = (patch) => {
+  const next = { ...trip.malaria, ...patch };
+  if (next.indication !== 'Taken') {
+    next.drug = 'None';
+    next.adherence = '';
+  }
+  updateTrip(trip.id, { malaria: next });
+};
 
   return (
     <div ref={innerRef} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
@@ -798,30 +806,45 @@ const toggleTripVaccine = (v) => {
 )}
 
         {/* Malaria */}
-        <div>
-          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Malaria prophylaxis</label>
-          <div className="mt-2 grid sm:grid-cols-3 gap-2">
-            {/* Indication */}
-            <select
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-              value={trip.malaria.indication}
-              onChange={(e) => setMalaria({ indication: e.target.value })}
-            >
-              {MALARIA_INDICATIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
-            </select>
+        {/* Malaria */}
+<div>
+  <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Malaria prophylaxis</label>
+  <div className="mt-2 grid sm:grid-cols-3 gap-2">
+    {/* Indication (single dropdown) */}
+    <select
+      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+      value={trip.malaria.indication}
+      onChange={(e) => setMalaria({ indication: e.target.value })}
+    >
+      {MALARIA_INDICATIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
+    </select>
 
-            {/* Took? (enabled only if indicated) */}
-            <div className="flex items-center gap-2">
-              <input
-                id={`malaria-took-${trip.id}`}
-                type="checkbox"
-                className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700"
-                checked={trip.malaria.took}
-                onChange={(e) => setMalaria({ took: e.target.checked })}
-                disabled={trip.malaria.indication !== 'Indicated'}
-              />
-              <label htmlFor={`malaria-took-${trip.id}`} className="text-sm text-slate-700 dark:text-slate-300">Took prophylaxis</label>
-            </div>
+    {/* Drug (only when Taken) */}
+    {trip.malaria.indication === 'Taken' && (
+      <select
+        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+        value={trip.malaria.drug}
+        onChange={(e) => setMalaria({ drug: e.target.value })}
+      >
+        {MALARIA_DRUGS.map((d) => (<option key={d} value={d}>{d}</option>))}
+      </select>
+    )}
+
+    {/* Adherence (only when Taken) */}
+    {trip.malaria.indication === 'Taken' && (
+      <select
+        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+        value={trip.malaria.adherence}
+        onChange={(e) => setMalaria({ adherence: e.target.value })}
+      >
+        <option value="">Adherence…</option>
+        <option value="Good">Good</option>
+        <option value="Partial">Partial</option>
+        <option value="Poor">Poor</option>
+      </select>
+    )}
+  </div>
+</div>
 
             {/* Drug */}
             <select
@@ -1243,16 +1266,18 @@ function TimelineVertical({ events }) {
                         <span className="font-semibold">Purpose:</span> {it.tripPurpose}
                       </div>
                     ) : null}
-                    <div>
-                      <span className="font-semibold">Malaria prophylaxis:</span>{' '}
-                      {it.tripMalaria?.indication === 'Not indicated'
-                        ? 'Not indicated'
-                        : (it.tripMalaria?.took
-                            ? `${it.tripMalaria.drug}${
-                                it.tripMalaria.adherence ? ` (${it.tripMalaria.adherence})` : ''
-                              }`
-                            : 'Not taken')}
-                    </div>
+                    <<div>
+  <span className="font-semibold">Malaria prophylaxis:</span>{' '}
+  {(() => {
+    const m = it.tripMalaria || {};
+    if (m.indication === 'Taken') {
+      const drug = m.drug && m.drug !== 'None' ? m.drug : 'Taken';
+      return m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug;
+    }
+    if (m.indication === 'Not taken') return 'Not taken';
+    return 'Not indicated';
+  })()}
+</div>
                     <div>
   <span className="font-semibold">Vaccinations:</span>{' '}
   {(() => {
@@ -1459,11 +1484,15 @@ if (tripObj.purpose && tripObj.purpose.trim()) {
 
 // Malaria
 {
-  let malariaText = 'Not indicated';
-  if (malaria.indication === 'Indicated') {
-    malariaText = malaria.took
-      ? `${malaria.drug}${malaria.adherence ? ` (${malaria.adherence})` : ''}`
-      : 'Not taken';
+  const m = malaria || {};
+  let malariaText;
+  if (m.indication === 'Taken') {
+    const drug = m.drug && m.drug !== 'None' ? m.drug : 'Taken';
+    malariaText = m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug;
+  } else if (m.indication === 'Not taken') {
+    malariaText = 'Not taken';
+  } else {
+    malariaText = 'Not indicated';
   }
   html.push(`<div><strong>Malaria prophylaxis:</strong> ${escapeHtml(malariaText)}</div>`);
   text.push(`Malaria prophylaxis: ${malariaText}`);
