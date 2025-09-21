@@ -2,9 +2,13 @@
 
 /* Keep Tailwind minimal so nothing conflicts */
 @import "tailwindcss";
+
 /* Let the browser adapt form controls & scrollbars to OS theme */
-html { color-scheme: light dark; }
-/* === Brand colour tokens (no visual change yet) =========== */
+html {
+  color-scheme: light dark;
+}
+
+/* === Brand colour tokens =========== */
 /* Palette you provided:
    #272757 (brand), #8686AC (brandAlt), #505081 (accent), #0F0E47 (midnight) */
 :root {
@@ -14,48 +18,17 @@ html { color-scheme: light dark; }
   --midnight: 244 76% 17%;   /* ~#0F0E47 */
 }
 
-/* Dark mode can reuse the same tokens; we’ll adjust later if needed */
-.dark {
-  /* (no overrides for now) */
-}
+/* No extra dark overrides needed — Tailwind handles dark mode via media queries */
 
-/* --- Light-mode frosted glass utility --- */
-.glass {
-  background-color: rgba(255, 255, 255, 0.60);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.30);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset;
-}
-
-/* Keep dark mode visuals as they were — disable glass by default */
-html.dark .glass {
-  background-color: transparent !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-}
-/* ---- Frosted glass: light mode ON, dark mode OFF ---- */
-
-/* Base glass (light mode) */
-.glass {
-  background-color: rgba(255, 255, 255, 0.60);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.30);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset;
-}
-
-/* Ensure Tailwind puts this after its utilities */
-@layer utilities {
-  /* Dark mode: hard disable glass everywhere */
-  html.dark .glass {
-    background-color: transparent !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-    border-color: transparent !important;
-    box-shadow: none !important;
+/* --- Light-only frosted glass utility --- */
+@media (prefers-color-scheme: light) {
+  .glass-light {
+    background-color: rgba(255, 255, 255, 0.60);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.30);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset;
   }
 }
 
+/* Dark mode has no frosted variant on purpose */
