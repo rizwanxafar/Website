@@ -629,31 +629,30 @@ function TripCard({
   highlight, setItemRef, innerRef
 }) {
   // Toggle trip-level vaccine
-const toggleTripVaccine = (v) => {
-  const set = new Set(trip.vaccines || []);
-  const had = set.has(v);
-  if (had) set.delete(v); else set.add(v);
+  const toggleTripVaccine = (v) => {
+    const set = new Set(trip.vaccines || []);
+    const had = set.has(v);
+    if (had) set.delete(v); else set.add(v);
 
-  const patch = { vaccines: Array.from(set) };
+    const patch = { vaccines: Array.from(set) };
 
-  // If "Other" is being unticked, clear the free-text
-  if (v === 'Other' && had) {
-    patch.vaccinesOther = '';
-  }
+    // If "Other" is being unticked, clear the free-text
+    if (v === 'Other' && had) {
+      patch.vaccinesOther = '';
+    }
 
-  updateTrip(trip.id, patch);
-};
+    updateTrip(trip.id, patch);
+  };
 
-  // Update malaria (trip-level)
   // Update malaria (trip-level) and clean fields when not "Taken"
-const setMalaria = (patch) => {
-  const next = { ...trip.malaria, ...patch };
-  if (next.indication !== 'Taken') {
-    next.drug = 'None';
-    next.adherence = '';
-  }
-  updateTrip(trip.id, { malaria: next });
-};
+  const setMalaria = (patch) => {
+    const next = { ...trip.malaria, ...patch };
+    if (next.indication !== 'Taken') {
+      next.drug = 'None';
+      next.adherence = '';
+    }
+    updateTrip(trip.id, { malaria: next });
+  };
 
   return (
     <div ref={innerRef} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
@@ -684,7 +683,9 @@ const setMalaria = (patch) => {
       <div className="mt-6 grid md:grid-cols-2 gap-6">
         {/* Vaccines */}
         <div>
-          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Pre-travel vaccinations</label>
+          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+            Pre-travel vaccinations
+          </label>
           <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
             {VACCINE_OPTIONS.map((v) => (
               <Checkbox
@@ -695,64 +696,70 @@ const setMalaria = (patch) => {
               />
             ))}
           </div>
-                 {/* Free-text for "Other" when selected */}
-{(trip.vaccines || []).includes('Other') && (
-  <div className="mt-2">
-    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
-      Other vaccination(s)
-    </label>
-    <input
-      type="text"
-      placeholder="Enter vaccine name(s)…"
-      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-      value={trip.vaccinesOther || ''}
-      onChange={(e) => updateTrip(trip.id, { vaccinesOther: e.target.value })}
-    />
-  </div>
-)}
+
+          {/* Free-text for "Other" when selected */}
+          {(trip.vaccines || []).includes('Other') && (
+            <div className="mt-2">
+              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
+                Other vaccination(s)
+              </label>
+              <input
+                type="text"
+                placeholder="Enter vaccine name(s)…"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                value={trip.vaccinesOther || ''}
+                onChange={(e) => updateTrip(trip.id, { vaccinesOther: e.target.value })}
+              />
+            </div>
+          )}
         </div>
 
         {/* Malaria */}
-        {/* Malaria */}
-<div>
-  <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Malaria prophylaxis</label>
-  <div className="mt-2 grid sm:grid-cols-3 gap-2">
-    {/* Indication (single dropdown) */}
-    <select
-      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-      value={trip.malaria.indication}
-      onChange={(e) => setMalaria({ indication: e.target.value })}
-    >
-      {MALARIA_INDICATIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
-    </select>
+        <div>
+          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+            Malaria prophylaxis
+          </label>
+          <div className="mt-2 grid sm:grid-cols-3 gap-2">
+            {/* Indication (single dropdown) */}
+            <select
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              value={trip.malaria.indication}
+              onChange={(e) => setMalaria({ indication: e.target.value })}
+            >
+              {MALARIA_INDICATIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
 
-    {/* Drug (only when Taken) */}
-    {trip.malaria.indication === 'Taken' && (
-      <select
-        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-        value={trip.malaria.drug}
-        onChange={(e) => setMalaria({ drug: e.target.value })}
-      >
-        {MALARIA_DRUGS.map((d) => (<option key={d} value={d}>{d}</option>))}
-      </select>
-    )}
+            {/* Drug (only when Taken) */}
+            {trip.malaria.indication === 'Taken' && (
+              <select
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                value={trip.malaria.drug}
+                onChange={(e) => setMalaria({ drug: e.target.value })}
+              >
+                {MALARIA_DRUGS.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            )}
 
-    {/* Adherence (only when Taken) */}
-    {trip.malaria.indication === 'Taken' && (
-      <select
-        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-        value={trip.malaria.adherence}
-        onChange={(e) => setMalaria({ adherence: e.target.value })}
-      >
-        <option value="">Adherence…</option>
-        <option value="Good">Good</option>
-        <option value="Partial">Partial</option>
-        <option value="Poor">Poor</option>
-      </select>
-    )}
-  </div>
-</div>
-<div>
+            {/* Adherence (only when Taken) */}
+            {trip.malaria.indication === 'Taken' && (
+              <select
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                value={trip.malaria.adherence}
+                onChange={(e) => setMalaria({ adherence: e.target.value })}
+              >
+                <option value="">Adherence…</option>
+                <option value="Good">Good</option>
+                <option value="Partial">Partial</option>
+                <option value="Poor">Poor</option>
+              </select>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Stops */}
       <div className="mt-6 space-y-6">
