@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import ThemeToggle from "./ThemeToggle";
 import { usePathname } from "next/navigation";
 
 const nav = [
@@ -60,9 +59,7 @@ export default function NavBar() {
           })}
         </nav>
 
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-        </div>
+        
       </div>
     </header>
   );
