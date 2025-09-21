@@ -752,6 +752,7 @@ const setMalaria = (patch) => {
     )}
   </div>
 </div>
+<div>
 
       {/* Stops */}
       <div className="mt-6 space-y-6">
