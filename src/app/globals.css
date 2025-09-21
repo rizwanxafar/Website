@@ -2,7 +2,8 @@
 
 /* Keep Tailwind minimal so nothing conflicts */
 @import "tailwindcss";
-
+/* Let the browser adapt form controls & scrollbars to OS theme */
+html { color-scheme: light dark; }
 /* === Brand colour tokens (no visual change yet) =========== */
 /* Palette you provided:
    #272757 (brand), #8686AC (brandAlt), #505081 (accent), #0F0E47 (midnight) */
