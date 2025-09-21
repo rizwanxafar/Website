@@ -224,7 +224,7 @@ function buildTripEvents(trip, companions) {
         tripPurpose: trip.purpose,
         tripVaccines: trip.vaccines || [],
         tripVaccinesOther: trip.vaccinesOther || '', 
-        tripMalaria: trip.malaria || { indication: 'Not indicated', took: false, drug: 'None', adherence: '' },
+        tripMalaria: trip.malaria || { indication: 'Not indicated', drug: 'None', adherence: '' },
         tripCompanions: companions || null,
       }
     });
@@ -787,9 +787,7 @@ const setMalaria = (patch) => {
               />
             ))}
           </div>
-        </div>
-
-      {/* Free-text for "Other" when selected */}
+                 {/* Free-text for "Other" when selected */}
 {(trip.vaccines || []).includes('Other') && (
   <div className="mt-2">
     <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
@@ -804,6 +802,7 @@ const setMalaria = (patch) => {
     />
   </div>
 )}
+        </div>
 
         {/* Malaria */}
         {/* Malaria */}
@@ -845,32 +844,6 @@ const setMalaria = (patch) => {
     )}
   </div>
 </div>
-
-            {/* Drug */}
-            <select
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-              value={trip.malaria.drug}
-              onChange={(e) => setMalaria({ drug: e.target.value })}
-              disabled={!trip.malaria.took || trip.malaria.indication !== 'Indicated'}
-            >
-              {MALARIA_DRUGS.map((d) => (<option key={d} value={d}>{d}</option>))}
-            </select>
-
-            {/* Adherence */}
-            <select
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-              value={trip.malaria.adherence}
-              onChange={(e) => setMalaria({ adherence: e.target.value })}
-              disabled={!trip.malaria.took || trip.malaria.indication !== 'Indicated'}
-            >
-              <option value="">Adherence…</option>
-              <option value="Good">Good</option>
-              <option value="Partial">Partial</option>
-              <option value="Poor">Poor</option>
-            </select>
-          </div>
-        </div>
-      
 
       {/* Stops */}
       <div className="mt-6 space-y-6">
@@ -1266,7 +1239,7 @@ function TimelineVertical({ events }) {
                         <span className="font-semibold">Purpose:</span> {it.tripPurpose}
                       </div>
                     ) : null}
-                    <<div>
+                    <div>
   <span className="font-semibold">Malaria prophylaxis:</span>{' '}
   {(() => {
     const m = it.tripMalaria || {};
