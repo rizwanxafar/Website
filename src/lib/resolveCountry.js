@@ -25,3 +25,5 @@ export function resolveCountry(input) {
   // 4. Fallback: return what they typed
   return q;
 }
+
+export default resolveCountry;
