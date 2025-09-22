@@ -841,53 +841,52 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
         <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove stop</button>
       </div>
 
-      <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Country (with alias resolution) */}
-        <CountryInput
-          value={stop.country}
-          onChange={(val) => onChange({ country: resolveCountry(val) ?? val })}
-        />
+ <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  <CountryInput
+    value={stop.country}
+    onChange={(val) => onChange({ country: val })}
+  />
 
-        {/* Multiple cities */}
-        <div className="lg:col-span-3">
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities</label>
-          <div className="space-y-2">
-            {(stop.cities || []).map((c, i) => (
-              <div key={i} className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="City / locality"
-                  className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-                  value={c}
-                  onChange={(e) => setCity(i, e.target.value)}
-                />
-                <button type="button" onClick={() => removeCity(i)} className={LINKISH_SECONDARY}>Remove</button>
-              </div>
-            ))}
-            <button type="button" onClick={addCity} className={BTN_SECONDARY + " text-xs px-3 py-1.5"}>+ Add another city</button>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Arrival date *</label>
+  {/* Multiple cities */}
+  <div className="lg:col-span-3">
+    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities</label>
+    <div className="space-y-2">
+      {(stop.cities || []).map((c, i) => (
+        <div key={i} className="flex gap-2">
           <input
-            type="date"
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-            value={stop.arrival}
-            onChange={(e) => onChange({ arrival: e.target.value })}
+            type="text"
+            placeholder="City / locality"
+            className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            value={c}
+            onChange={(e) => setCity(i, e.target.value)}
           />
+          <button type="button" onClick={() => removeCity(i)} className={LINKISH_SECONDARY}>Remove</button>
         </div>
+      ))}
+      <button type="button" onClick={addCity} className={BTN_SECONDARY + " text-xs px-3 py-1.5"}>+ Add another city</button>
+    </div>
+  </div>
 
-        <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Departure date *</label>
-          <input
-            type="date"
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-            value={stop.departure}
-            onChange={(e) => onChange({ departure: e.target.value })}
-          />
-        </div>
-      </div>
+  <div>
+    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Arrival date *</label>
+    <input
+      type="date"
+      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+      value={stop.arrival}
+      onChange={(e) => onChange({ arrival: e.target.value })}
+    />
+  </div>
+
+  <div>
+    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Departure date *</label>
+    <input
+      type="date"
+      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+      value={stop.departure}
+      onChange={(e) => onChange({ departure: e.target.value })}
+    />
+  </div>
+</div>
 
       {/* Accommodation (checkbox group) */}
       <div className="mt-4">
@@ -983,6 +982,16 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
             <ExposureCheck label="Safari / wildlife viewing" checked={exp.safariWildlife} details={exp.safariWildlifeDetails} onToggle={(v) => onChange({ exposures: { ...exp, safariWildlife: v } })} onDetails={(v) => onChange({ exposures: { ...exp, safariWildlifeDetails: v } })} />
           </fieldset>
 
+          {/* Food & Water */}
+          <fieldset className="space-y-2">
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Food & Water</legend>
+            <ExposureCheck label="Street food" checked={exp.streetFood} details={exp.streetFoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, streetFood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, streetFoodDetails: v } })} />
+            <ExposureCheck label="Drank untreated water" checked={exp.untreatedWater} details={exp.untreatedWaterDetails} onToggle={(v) => onChange({ exposures: { ...exp, untreatedWater: v } })} onDetails={(v) => onChange({ exposures: { ...exp, untreatedWaterDetails: v } })} />
+            <ExposureCheck label="Undercooked food" checked={exp.undercookedFood} details={exp.undercookedFoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, undercookedFood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, undercookedFoodDetails: v } })} />
+            <ExposureCheck label="Undercooked seafood" checked={exp.undercookedSeafood} details={exp.undercookedSeafoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, undercookedSeafood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, undercookedSeafoodDetails: v } })} />
+            <ExposureCheck label="Unpasteurised milk" checked={exp.unpasteurisedMilk} details={exp.unpasteurisedMilkDetails} onToggle={(v) => onChange({ exposures: { ...exp, unpasteurisedMilk: v } })} onDetails={(v) => onChange({ exposures: { ...exp, unpasteurisedMilkDetails: v } })} />
+          </fieldset>
+
           {/* Institutional / Social */}
           <fieldset className="space-y-2 md:col-span-2">
             <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Institutional / Social</legend>
@@ -1019,51 +1028,33 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
         <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Layover</h4>
         <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove layover</button>
       </div>
-
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Country (with alias resolution) */}
-        <CountryInput
-          value={layover.country}
-          onChange={(val) => onChange({ country: resolveCountry(val) ?? val })}
-        />
-
+        <div>
+          
+          {/* Country */}
+<CountryInput
+  value={layover.country}
+  onChange={(val) => onChange({ country: val })}
+/>
+        </div>
         <div>
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
-          <input
-            type="text"
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-            value={layover.city}
-            onChange={(e) => onChange({ city: e.target.value })}
-          />
+          <input type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.city} onChange={(e) => onChange({ city: e.target.value })} />
         </div>
         <div>
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Start</label>
-          <input
-            type="date"
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-            value={layover.start}
-            onChange={(e) => onChange({ start: e.target.value })}
-          />
+          <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.start} onChange={(e) => onChange({ start: e.target.value })} />
         </div>
         <div>
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">End</label>
-          <input
-            type="date"
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-            value={layover.end}
-            onChange={(e) => onChange({ end: e.target.value })}
-          />
+          <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.end} onChange={(e) => onChange({ end: e.target.value })} />
         </div>
       </div>
 
       <div className="mt-4 grid sm:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Did you leave the airport?</label>
-          <select
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-            value={layover.leftAirport}
-            onChange={(e) => onChange({ leftAirport: e.target.value })}
-          >
+          <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.leftAirport} onChange={(e) => onChange({ leftAirport: e.target.value })}>
             <option value="no">No</option>
             <option value="yes">Yes</option>
           </select>
@@ -1071,9 +1062,7 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
 
         {layover.leftAirport === 'yes' && (
           <div className="sm:col-span-2">
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
-              Please describe any activities undertaken
-            </label>
+            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Please describe any activities undertaken</label>
             <textarea
               rows={3}
               className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
