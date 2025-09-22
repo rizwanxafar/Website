@@ -11,12 +11,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 // ---- Minimal countries stub for datalist (replace with canonical dataset later) ----
-const COUNTRY_STUB = [
-  'United Kingdom', 'Ireland', 'France', 'Spain', 'Portugal', 'Germany', 'Italy', 'Greece',
-  'United States', 'Canada', 'Australia', 'New Zealand', 'India', 'Pakistan', 'China', 'Japan',
-  'Thailand', 'United Arab Emirates', 'Singapore', 'South Africa', 'Kenya', 'Brazil', 'Argentina',
-  'Mexico', 'Turkey', 'Côte d’Ivoire',
-];
+import countries from "world-countries";
+
+// Sorted list of country names
+const COUNTRY_LIST = countries
+  .map(c => c.name.common)       // use common names like "United Kingdom"
+  .sort((a, b) => a.localeCompare(b));
 
 // ---- Options ----
 const ACCOMMODATION_OPTIONS = [
@@ -851,8 +851,10 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Country *</label>
           <input list="country-options" type="text" placeholder="Start typing…" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.country} onChange={(e) => onChange({ country: e.target.value })} />
           <datalist id="country-options">
-            {COUNTRY_STUB.map((c) => (<option key={c} value={c} />))}
-          </datalist>
+  {COUNTRY_LIST.map((c) => (
+    <option key={c} value={c} />
+  ))}
+</datalist>
         </div>
 
         {/* Multiple cities */}
