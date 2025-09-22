@@ -1030,7 +1030,7 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
       </div>
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Country</label>
+          
           {/* Country */}
 <CountryInput
   value={layover.country}
