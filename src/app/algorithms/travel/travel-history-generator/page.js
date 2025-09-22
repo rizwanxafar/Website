@@ -12,7 +12,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 // ---- Minimal countries stub for datalist (replace with canonical dataset later) ----
 import CountryInput from "@/components/inputs/CountryInput";
-import resolveCountry from "@/lib/resolveCountry";
 
 // ---- Options ----
 const ACCOMMODATION_OPTIONS = [
