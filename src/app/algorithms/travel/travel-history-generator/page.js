@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 // ---- Minimal countries stub for datalist (replace with canonical dataset later) ----
-import countries from "world-countries";
+import CountryInput from "@/components/inputs/CountryInput";
 
 // Sorted list of country names
 const COUNTRY_LIST = countries
@@ -846,40 +846,52 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
         <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove stop</button>
       </div>
 
-      <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Country *</label>
-          <input list="country-options" type="text" placeholder="Start typing…" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.country} onChange={(e) => onChange({ country: e.target.value })} />
-          <datalist id="country-options">
-  {COUNTRY_LIST.map((c) => (
-    <option key={c} value={c} />
-  ))}
-</datalist>
-        </div>
+ <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  <CountryInput
+    value={stop.country}
+    onChange={(val) => onChange({ country: val })}
+  />
 
-        {/* Multiple cities */}
-        <div className="lg:col-span-3">
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities</label>
-          <div className="space-y-2">
-            {(stop.cities || []).map((c, i) => (
-              <div key={i} className="flex gap-2">
-                <input type="text" placeholder="City / locality" className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={c} onChange={(e) => setCity(i, e.target.value)} />
-                <button type="button" onClick={() => removeCity(i)} className={LINKISH_SECONDARY}>Remove</button>
-              </div>
-            ))}
-            <button type="button" onClick={addCity} className={BTN_SECONDARY + " text-xs px-3 py-1.5"}>+ Add another city</button>
-          </div>
+  {/* Multiple cities */}
+  <div className="lg:col-span-3">
+    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities</label>
+    <div className="space-y-2">
+      {(stop.cities || []).map((c, i) => (
+        <div key={i} className="flex gap-2">
+          <input
+            type="text"
+            placeholder="City / locality"
+            className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            value={c}
+            onChange={(e) => setCity(i, e.target.value)}
+          />
+          <button type="button" onClick={() => removeCity(i)} className={LINKISH_SECONDARY}>Remove</button>
         </div>
+      ))}
+      <button type="button" onClick={addCity} className={BTN_SECONDARY + " text-xs px-3 py-1.5"}>+ Add another city</button>
+    </div>
+  </div>
 
-        <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Arrival date *</label>
-          <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.arrival} onChange={(e) => onChange({ arrival: e.target.value })} />
-        </div>
-        <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Departure date *</label>
-          <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.departure} onChange={(e) => onChange({ departure: e.target.value })} />
-        </div>
-      </div>
+  <div>
+    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Arrival date *</label>
+    <input
+      type="date"
+      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+      value={stop.arrival}
+      onChange={(e) => onChange({ arrival: e.target.value })}
+    />
+  </div>
+
+  <div>
+    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Departure date *</label>
+    <input
+      type="date"
+      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+      value={stop.departure}
+      onChange={(e) => onChange({ departure: e.target.value })}
+    />
+  </div>
+</div>
 
       {/* Accommodation (checkbox group) */}
       <div className="mt-4">
