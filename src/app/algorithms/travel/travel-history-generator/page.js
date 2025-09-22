@@ -13,11 +13,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 // ---- Minimal countries stub for datalist (replace with canonical dataset later) ----
 import CountryInput from "@/components/inputs/CountryInput";
 
-// Sorted list of country names
-const COUNTRY_LIST = countries
-  .map(c => c.name.common)       // use common names like "United Kingdom"
-  .sort((a, b) => a.localeCompare(b));
-
 // ---- Options ----
 const ACCOMMODATION_OPTIONS = [
   'Hotel/Resort', 'Hostel', 'Homestay', 'Friends/Family home', 'Rural camp', 'Safari camp',
