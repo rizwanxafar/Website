@@ -91,7 +91,7 @@ function rangesOverlap(aStart, aEnd, bStart, bEnd) {
 const emptyStop = () => ({
   id: uid(),
   country: '',
-  cities: [''], // multiple cities per stop
+  cities: [{ name: '', arrived: '' }], // multiple cities per stop (object shape)
   arrival: '',
   departure: '',
   accommodations: [], // multiple accommodation types
@@ -796,19 +796,39 @@ function TripCard({
 function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
   const exp = stop.exposures;
 
-  // Cities handlers
-  const setCity = (i, val) => {
-    const cities = [...(stop.cities || [])];
-    cities[i] = val;
-    onChange({ cities });
-  };
-  const addCity = () => onChange({ cities: [...(stop.cities || []), ''] });
-  const removeCity = (i) => {
-    const cities = [...(stop.cities || [])];
-    cities.splice(i, 1);
-    if (cities.length === 0) cities.push('');
-    onChange({ cities });
-  };
+    // --- City helpers (string ↔ object) ---
+  const normCities = (list) =>
+    (list || []).map((c) =>
+      typeof c === 'string'
+        ? { name: c, arrived: '' }
+        : { name: c?.name || '', arrived: c?.arrived || '' }
+    );
+  
+  // Cities handlers (objects: { name, arrived })
+const cities = normCities(stop.cities);
+
+const setCityName = (i, val) => {
+  const next = [...cities];
+  next[i] = { ...next[i], name: val };
+  onChange({ cities: next });
+};
+
+const setCityArrived = (i, val) => {
+  const next = [...cities];
+  next[i] = { ...next[i], arrived: val };
+  onChange({ cities: next });
+};
+
+const addCity = () => {
+  onChange({ cities: [...cities, { name: '', arrived: '' }] });
+};
+
+const removeCity = (i) => {
+  const next = [...cities];
+  next.splice(i, 1);
+  if (next.length === 0) next.push({ name: '', arrived: '' });
+  onChange({ cities: next });
+};
 
   // Accommodation handlers (checkbox group)
   const toggleAccommodation = (value) => {
@@ -848,24 +868,45 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
   />
 
   {/* Multiple cities */}
-  <div className="lg:col-span-3">
-    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities</label>
-    <div className="space-y-2">
-      {(stop.cities || []).map((c, i) => (
-        <div key={i} className="flex gap-2">
-          <input
-            type="text"
-            placeholder="City / locality"
-            className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-            value={c}
-            onChange={(e) => setCity(i, e.target.value)}
-          />
-          <button type="button" onClick={() => removeCity(i)} className={LINKISH_SECONDARY}>Remove</button>
-        </div>
-      ))}
-      <button type="button" onClick={addCity} className={BTN_SECONDARY + " text-xs px-3 py-1.5"}>+ Add another city</button>
-    </div>
+<div className="lg:col-span-3">
+  <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities</label>
+  <div className="space-y-2">
+    {cities.map((c, i) => (
+      <div key={i} className="grid grid-cols-1 sm:grid-cols-7 gap-2 items-start">
+        {/* City name */}
+        <input
+          type="text"
+          placeholder="City / locality"
+          className="sm:col-span-4 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+          value={c.name}
+          onChange={(e) => setCityName(i, e.target.value)}
+        />
+        {/* Arrived date for that city */}
+        <input
+          type="date"
+          className="sm:col-span-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+          value={c.arrived}
+          onChange={(e) => setCityArrived(i, e.target.value)}
+        />
+        {/* Remove button */}
+        <button
+          type="button"
+          onClick={() => removeCity(i)}
+          className={LINKISH_SECONDARY}
+        >
+          Remove
+        </button>
+      </div>
+    ))}
+    <button
+      type="button"
+      onClick={addCity}
+      className={BTN_SECONDARY + " text-xs px-3 py-1.5"}
+    >
+      + Add another city
+    </button>
   </div>
+</div>
 
   <div>
     <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Arrival date *</label>
