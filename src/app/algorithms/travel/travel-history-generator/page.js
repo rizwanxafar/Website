@@ -861,39 +861,48 @@ const removeCity = (i) => {
         <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove stop</button>
       </div>
 
- <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+ {/* Top row: Country + country-level dates */}
+<div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
   <CountryInput
     value={stop.country}
     onChange={(val) => onChange({ country: val })}
   />
 
-  {/* Multiple cities */}
-<div className="lg:col-span-3">
+  <div>
+    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Arrival *</label>
+    <input
+      type="date"
+      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+      value={stop.arrival}
+      onChange={(e) => onChange({ arrival: e.target.value })}
+    />
+  </div>
+
+  <div>
+    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Departure *</label>
+    <input
+      type="date"
+      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+      value={stop.departure}
+      onChange={(e) => onChange({ departure: e.target.value })}
+    />
+  </div>
+</div>
+
+{/* Below: Cities list */}
+<div className="mt-4">
   <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities</label>
   <div className="space-y-2">
-    {cities.map((c, i) => (
-      <div key={i} className="grid grid-cols-1 sm:grid-cols-7 gap-2 items-start">
-        {/* City name */}
+    {(stop.cities || []).map((c, i) => (
+      <div key={i} className="flex gap-2">
         <input
           type="text"
           placeholder="City / locality"
-          className="sm:col-span-4 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-          value={c.name}
-          onChange={(e) => setCityName(i, e.target.value)}
+          className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+          value={c}
+          onChange={(e) => setCity(i, e.target.value)}
         />
-        {/* Arrived date for that city */}
-        <input
-          type="date"
-          className="sm:col-span-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-          value={c.arrived}
-          onChange={(e) => setCityArrived(i, e.target.value)}
-        />
-        {/* Remove button */}
-        <button
-          type="button"
-          onClick={() => removeCity(i)}
-          className={LINKISH_SECONDARY}
-        >
+        <button type="button" onClick={() => removeCity(i)} className={LINKISH_SECONDARY}>
           Remove
         </button>
       </div>
@@ -907,28 +916,6 @@ const removeCity = (i) => {
     </button>
   </div>
 </div>
-
-  <div>
-    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Arrival date *</label>
-    <input
-      type="date"
-      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-      value={stop.arrival}
-      onChange={(e) => onChange({ arrival: e.target.value })}
-    />
-  </div>
-
-  <div>
-    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Departure date *</label>
-    <input
-      type="date"
-      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-      value={stop.departure}
-      onChange={(e) => onChange({ departure: e.target.value })}
-    />
-  </div>
-</div>
-
       {/* Accommodation (checkbox group) */}
       <div className="mt-4">
         <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Accommodation (select one or more)</label>
