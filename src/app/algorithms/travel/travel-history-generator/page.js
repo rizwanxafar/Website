@@ -814,20 +814,6 @@ function TripCard({
   );
 }
 
-function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
-  const exp = stop.exposures;
-
-    const cityOptions = City.getCitiesOfCountry(stop.country) || [];
-  // ---- Cities: normalize to objects { name, arrival, departure } ----
-const normalizedCities = (stop.cities || []).map((c) =>
-  typeof c === 'string'
-    ? { name: c || '', arrival: '', departure: '' }
-    : {
-        name: c?.name || '',
-        arrival: c?.arrival || '',
-        departure: c?.departure || '',
-      }
-);
 
   function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
   const exp = stop.exposures;
