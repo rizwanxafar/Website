@@ -945,18 +945,20 @@ const removeCity = (i) => {
     {normalizedCities.map((row, i) => (
   <div key={i} className="grid sm:grid-cols-3 lg:grid-cols-4 gap-2">
     {/* City selector (same visual width as CountryInput) */}
-    <select
-      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-      value={row.name}
-      onChange={(e) => setCityName(i, e.target.value)}
-    >
-      <option value="">Select city…</option>
-      {cityOptions.map((opt) => (
-        <option key={`${opt.name}-${opt.latitude}-${opt.longitude}`} value={opt.name}>
-          {opt.name}
-        </option>
-      ))}
-    </select>
+    {/* City free-text + suggestions */}
+<input
+  list={`cities-${stop.id}-${i}`}
+  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+  placeholder="Type or select a city…"
+  value={row.name}
+  onChange={(e) => setCityName(i, e.target.value)}
+  aria-label="City"
+/>
+<datalist id={`cities-${stop.id}-${i}`}>
+  {cityOptions.map((opt) => (
+    <option key={`${opt.name}-${opt.latitude}-${opt.longitude}`} value={opt.name} />
+  ))}
+</datalist>
 
     {/* Arrival */}
     <input
