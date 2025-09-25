@@ -1292,18 +1292,16 @@ function TimelineVertical({ events }) {
                       {it.country || it.label || '—'}
                     </h3>
                     {it.cities && it.cities.length > 0 && (
-  <div className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">
-    {it.cities
-      .map((c) => {
-        const obj = typeof c === 'string' ? { name: c } : c || {};
-        const nm = obj.name || '';
-        const a = obj.arrival ? formatDMY(obj.arrival) : '';
-        const d = obj.departure ? formatDMY(obj.departure) : '';
-        const datePart = a || d ? ` (${a || '—'} to ${d || '—'})` : '';
-        return nm ? nm + datePart : '';
-      })
-      .filter(Boolean)
-      .join(', ')}
+  <div className="mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">
+    {it.cities.map((c, i) => {
+      const obj = typeof c === 'string' ? { name: c } : c || {};
+      const nm = obj.name || '';
+      const a = obj.arrival ? formatDMY(obj.arrival) : '';
+      const d = obj.departure ? formatDMY(obj.departure) : '';
+      const datePart = a || d ? ` (${a || '—'} to ${d || '—'})` : '';
+      if (!nm) return null;
+      return <div key={i}>{nm}{datePart}</div>;
+    })}
   </div>
 )}
 
@@ -1500,20 +1498,26 @@ text.push(`Companions: ${cmpGroup} — Well: ${cmpWell}`);
 
         // Country bold, cities next line
         const country = escapeHtml(s.country || '—');
-        const citiesLine = (s.cities || [])
-  .map((c) => {
-    const obj = typeof c === 'string' ? { name: c } : (c || {});
-    const nm = obj.name || '';
-    const a = obj.arrival ? formatDMY(obj.arrival) : '';
-    const d = obj.departure ? formatDMY(obj.departure) : '';
-    const datePart = a || d ? ` (${a || '—'} to ${d || '—'})` : '';
-    return nm ? nm + datePart : '';
-  })
-  .filter(Boolean)
-  .join(', ');
+        html.push(`<div><strong>${country}</strong></div>`);
+        text.push(country);
+        // Cities (one per line, with optional dates)
+const citiesArr = (s.cities || []).map((c) =>
+  typeof c === 'string'
+    ? { name: c, arrival: '', departure: '' }
+    : { name: c?.name || '', arrival: c?.arrival || '', departure: c?.departure || '' }
+).filter(c => c.name);
 
-if (citiesLine) html.push(`<div>${escapeHtml(citiesLine)}</div>`);
-if (citiesLine) text.push(`Cities: ${citiesLine}`);
+if (citiesArr.length) {
+  citiesArr.forEach((cObj) => {
+    const a = cObj.arrival ? formatDMY(cObj.arrival) : '';
+    const d = cObj.departure ? formatDMY(cObj.departure) : '';
+    const datePart = (a || d) ? ` (${a || '—'} to ${d || '—'})` : '';
+    const line = `${cObj.name}${datePart}`;
+
+    html.push(`<div>${escapeHtml(line)}</div>`);
+    text.push(line);
+  });
+}
 
         // Accommodation line if present
         const accom = s.accommodations?.length
