@@ -907,7 +907,8 @@ const removeCity = (i) => {
   <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities</label>
   <div className="space-y-2">
     {(stop.cities || []).map((c, i) => (
-      <div key={i} className="grid sm:grid-cols-3 gap-2">
+      <div key={i} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 items-end">
+  {/* City name — aligns under Country */}
   <input
     type="text"
     placeholder="City / locality"
@@ -915,25 +916,33 @@ const removeCity = (i) => {
     value={c.name}
     onChange={(e) => setCityName(i, e.target.value)}
   />
+
+  {/* City arrival — aligns under Arrival */}
   <input
     type="date"
     className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-    value={c.arrival}
+    value={c.arrival || ''}
     onChange={(e) => setCityArrival(i, e.target.value)}
   />
+
+  {/* City departure — aligns under Departure */}
   <input
     type="date"
     className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-    value={c.departure}
+    value={c.departure || ''}
     onChange={(e) => setCityDeparture(i, e.target.value)}
   />
-  <button
-    type="button"
-    onClick={() => removeCity(i)}
-    className={LINKISH_SECONDARY}
-  >
-    Remove
-  </button>
+
+  {/* Remove button — right-aligned in the 4th column on large screens */}
+  <div className="flex lg:justify-end">
+    <button
+      type="button"
+      onClick={() => removeCity(i)}
+      className={LINKISH_SECONDARY}
+    >
+      Remove
+    </button>
+  </div>
 </div>
     ))}
     <button
