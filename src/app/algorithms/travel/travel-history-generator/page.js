@@ -829,6 +829,34 @@ const normalizedCities = (stop.cities || []).map((c) =>
       }
 );
 
+  function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
+  const exp = stop.exposures;
+
+  // ---- Cities: normalize to objects { name, arrival, departure } ----
+  const normalizedCities = (stop.cities || []).map((c) =>
+    typeof c === 'string'
+      ? { name: c || '', arrival: '', departure: '' }
+      : {
+          name: c?.name || '',
+          arrival: c?.arrival || '',
+          departure: c?.departure || '',
+        }
+  );
+
+  // === NEW: derive cities from selected country ===
+  const countryISO2 = useMemo(() => {
+    const name = (stop.country || "").trim().toLowerCase();
+    if (!name) return null;
+    const match = Country.getAllCountries().find(
+      (c) => c.name.trim().toLowerCase() === name
+    );
+    return match?.isoCode || null;
+  }, [stop.country]);
+
+  const cityOptions = useMemo(() => {
+    return countryISO2 ? City.getCitiesOfCountry(countryISO2) : [];
+  }, [countryISO2]);
+
 const commitCities = (next) => onChange({ cities: next });
 
 // Update name/arrival/departure for row i
