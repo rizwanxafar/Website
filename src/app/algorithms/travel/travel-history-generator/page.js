@@ -12,6 +12,27 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 // ---- Minimal countries stub for datalist (replace with canonical dataset later) ----
 import CountryInput from "@/components/inputs/CountryInput";
+import { Country, City } from "country-state-city";
+
+// --- country-state-city helpers (cache + name→ISO lookup) ---
+const CSC_COUNTRIES = Country.getAllCountries(); // [{ name, isoCode, ... }]
+
+function getIsoFromCountryName(name) {
+  if (!name) return "";
+  const q = name.trim().toLowerCase();
+
+  // 1) direct case-insensitive name match
+  let hit = CSC_COUNTRIES.find(c => c.name.toLowerCase() === q);
+  if (hit) return hit.isoCode;
+
+  // 2) soft match: strip punctuation/diacritics and compare again
+  const norm = (s) =>
+    s.normalize?.("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s]/g, "").trim().toLowerCase() || s.toLowerCase();
+
+  const qn = norm(q);
+  hit = CSC_COUNTRIES.find(c => norm(c.name) === qn);
+  return hit ? hit.isoCode : "";
+}
 
 // ---- Options ----
 const ACCOMMODATION_OPTIONS = [
@@ -796,6 +817,7 @@ function TripCard({
 function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
   const exp = stop.exposures;
 
+    const cityOptions = City.getCitiesOfCountry(stop.country) || [];
   // ---- Cities: normalize to objects { name, arrival, departure } ----
 const normalizedCities = (stop.cities || []).map((c) =>
   typeof c === 'string'
@@ -906,45 +928,52 @@ const removeCity = (i) => {
 <div className="mt-4">
   <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities</label>
   <div className="space-y-2">
-    {(stop.cities || []).map((c, i) => (
-      <div key={i} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 items-end">
-  {/* City name — aligns under Country */}
-  <input
-    type="text"
-    placeholder="City / locality"
-    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-    value={c.name}
-    onChange={(e) => setCityName(i, e.target.value)}
-  />
-
-  {/* City arrival — aligns under Arrival */}
-  <input
-    type="date"
-    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-    value={c.arrival || ''}
-    onChange={(e) => setCityArrival(i, e.target.value)}
-  />
-
-  {/* City departure — aligns under Departure */}
-  <input
-    type="date"
-    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-    value={c.departure || ''}
-    onChange={(e) => setCityDeparture(i, e.target.value)}
-  />
-
-  {/* Remove button — right-aligned in the 4th column on large screens */}
-  <div className="flex lg:justify-end">
-    <button
-      type="button"
-      onClick={() => removeCity(i)}
-      className={LINKISH_SECONDARY}
+    {normalizedCities.map((row, i) => (
+  <div key={i} className="grid sm:grid-cols-3 lg:grid-cols-4 gap-2">
+    {/* City selector (same visual width as CountryInput) */}
+    <select
+      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+      value={row.name}
+      onChange={(e) => setCityName(i, e.target.value)}
     >
-      Remove
-    </button>
+      <option value="">Select city…</option>
+      {cityOptions.map((opt) => (
+        <option key={`${opt.name}-${opt.latitude}-${opt.longitude}`} value={opt.name}>
+          {opt.name}
+        </option>
+      ))}
+    </select>
+
+    {/* Arrival */}
+    <input
+      type="date"
+      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+      value={row.arrival}
+      onChange={(e) => setCityArrival(i, e.target.value)}
+      aria-label="City arrival date"
+    />
+
+    {/* Departure */}
+    <input
+      type="date"
+      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+      value={row.departure}
+      onChange={(e) => setCityDeparture(i, e.target.value)}
+      aria-label="City departure date"
+    />
+
+    {/* Remove button (pushes to its own column on large screens) */}
+    <div className="flex">
+      <button
+        type="button"
+        onClick={() => removeCity(i)}
+        className={LINKISH_SECONDARY + " w-full sm:w-auto"}
+      >
+        Remove
+      </button>
+    </div>
   </div>
-</div>
-    ))}
+))}
     <button
       type="button"
       onClick={addCity}
