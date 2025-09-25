@@ -91,7 +91,7 @@ function rangesOverlap(aStart, aEnd, bStart, bEnd) {
 const emptyStop = () => ({
   id: uid(),
   country: '',
-  cities: [{ name: '', arrived: '' }], // multiple cities per stop (object shape)
+  cities: [{ name: '', arrival: '', departure: '' }], // multiple cities per stop (object shape)
   arrival: '',
   departure: '',
   accommodations: [], // multiple accommodation types
@@ -796,39 +796,52 @@ function TripCard({
 function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
   const exp = stop.exposures;
 
-    // --- City helpers (string ↔ object) ---
-  const normCities = (list) =>
-    (list || []).map((c) =>
-      typeof c === 'string'
-        ? { name: c, arrived: '' }
-        : { name: c?.name || '', arrived: c?.arrived || '' }
-    );
-  
-  // Cities handlers (objects: { name, arrived })
-const cities = normCities(stop.cities);
+  // ---- Cities: normalize to objects { name, arrival, departure } ----
+const normalizedCities = (stop.cities || []).map((c) =>
+  typeof c === 'string'
+    ? { name: c || '', arrival: '', departure: '' }
+    : {
+        name: c?.name || '',
+        arrival: c?.arrival || '',
+        departure: c?.departure || '',
+      }
+);
 
-const setCityName = (i, val) => {
-  const next = [...cities];
-  next[i] = { ...next[i], name: val };
-  onChange({ cities: next });
+const commitCities = (next) => onChange({ cities: next });
+
+// Update name/arrival/departure for row i
+const setCityName = (i, name) => {
+  const next = [...normalizedCities];
+  next[i] = { ...next[i], name };
+  commitCities(next);
 };
 
-const setCityArrived = (i, val) => {
-  const next = [...cities];
-  next[i] = { ...next[i], arrived: val };
-  onChange({ cities: next });
+const setCityArrival = (i, arrival) => {
+  const next = [...normalizedCities];
+  next[i] = { ...next[i], arrival };
+  commitCities(next);
+};
+
+const setCityDeparture = (i, departure) => {
+  const next = [...normalizedCities];
+  next[i] = { ...next[i], departure };
+  commitCities(next);
 };
 
 const addCity = () => {
-  onChange({ cities: [...cities, { name: '', arrived: '' }] });
+  commitCities([
+    ...normalizedCities,
+    { name: '', arrival: '', departure: '' },
+  ]);
 };
 
 const removeCity = (i) => {
-  const next = [...cities];
+  const next = [...normalizedCities];
   next.splice(i, 1);
-  if (next.length === 0) next.push({ name: '', arrived: '' });
-  onChange({ cities: next });
+  if (next.length === 0) next.push({ name: '', arrival: '', departure: '' });
+  commitCities(next);
 };
+    
 
   // Accommodation handlers (checkbox group)
   const toggleAccommodation = (value) => {
@@ -894,18 +907,34 @@ const removeCity = (i) => {
   <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities</label>
   <div className="space-y-2">
     {(stop.cities || []).map((c, i) => (
-      <div key={i} className="flex gap-2">
-        <input
-          type="text"
-          placeholder="City / locality"
-          className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-          value={c}
-          onChange={(e) => setCity(i, e.target.value)}
-        />
-        <button type="button" onClick={() => removeCity(i)} className={LINKISH_SECONDARY}>
-          Remove
-        </button>
-      </div>
+      <div key={i} className="grid sm:grid-cols-3 gap-2">
+  <input
+    type="text"
+    placeholder="City / locality"
+    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+    value={c.name}
+    onChange={(e) => setCityName(i, e.target.value)}
+  />
+  <input
+    type="date"
+    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+    value={c.arrival}
+    onChange={(e) => setCityArrival(i, e.target.value)}
+  />
+  <input
+    type="date"
+    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+    value={c.departure}
+    onChange={(e) => setCityDeparture(i, e.target.value)}
+  />
+  <button
+    type="button"
+    onClick={() => removeCity(i)}
+    className={LINKISH_SECONDARY}
+  >
+    Remove
+  </button>
+</div>
     ))}
     <button
       type="button"
@@ -1253,11 +1282,21 @@ function TimelineVertical({ events }) {
                     >
                       {it.country || it.label || '—'}
                     </h3>
-                    {it.cities && it.cities.filter(Boolean).length > 0 && (
-                      <div className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">
-                        {it.cities.filter(Boolean).join(', ')}
-                      </div>
-                    )}
+                    {it.cities && it.cities.length > 0 && (
+  <div className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">
+    {it.cities
+      .map((c) => {
+        const obj = typeof c === 'string' ? { name: c } : c || {};
+        const nm = obj.name || '';
+        const a = obj.arrival ? formatDMY(obj.arrival) : '';
+        const d = obj.departure ? formatDMY(obj.departure) : '';
+        const datePart = a || d ? ` (${a || '—'} to ${d || '—'})` : '';
+        return nm ? nm + datePart : '';
+      })
+      .filter(Boolean)
+      .join(', ')}
+  </div>
+)}
 
                     {/* Details grid */}
                     <div className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-2">
@@ -1452,12 +1491,20 @@ text.push(`Companions: ${cmpGroup} — Well: ${cmpWell}`);
 
         // Country bold, cities next line
         const country = escapeHtml(s.country || '—');
-        const cities = (s.cities || []).filter(Boolean).join(', ');
-        html.push(`<div class="mt-2"><strong>Stop ${stopCounter}:</strong> ${dates}</div>`);
-        text.push(`Stop ${stopCounter}: ${dates}`);
+        const citiesLine = (s.cities || [])
+  .map((c) => {
+    const obj = typeof c === 'string' ? { name: c } : (c || {});
+    const nm = obj.name || '';
+    const a = obj.arrival ? formatDMY(obj.arrival) : '';
+    const d = obj.departure ? formatDMY(obj.departure) : '';
+    const datePart = a || d ? ` (${a || '—'} to ${d || '—'})` : '';
+    return nm ? nm + datePart : '';
+  })
+  .filter(Boolean)
+  .join(', ');
 
-        html.push(`<div><strong>${country}</strong></div>`);
-        if (cities) html.push(`<div>${escapeHtml(cities)}</div>`);
+if (citiesLine) html.push(`<div>${escapeHtml(citiesLine)}</div>`);
+if (citiesLine) text.push(`Cities: ${citiesLine}`);
 
         // Accommodation line if present
         const accom = s.accommodations?.length
