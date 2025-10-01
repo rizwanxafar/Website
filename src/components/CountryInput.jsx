@@ -44,7 +44,7 @@ export default function CountryInput({
         <input
           ref={inputRef}
           type="text"
-          placeholder="Start typing a country…"
+          placeholder="Start typing or select country…"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
