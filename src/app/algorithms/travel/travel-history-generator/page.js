@@ -956,52 +956,62 @@ const removeCity = (i) => {
 
   {/* Rows */}
   <div className="space-y-2">
-    {normalizedCities.map((row, i) => (
-      <div key={i} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* City selector/input — same classes as country input for equal width */}
-        <select
+   {normalizedCities.map((row, i) => {
+  const listId = `city-list-${stop.id}-${i}`;
+  return (
+    <div key={i} className="grid sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      {/* City input + datalist (matches CountryInput look/feel) */}
+      <div className="w-full">
+        <input
+          type="text"
+          list={listId}
+          placeholder="Start typing or select city…"
           className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
           value={row.name}
           onChange={(e) => setCityName(i, e.target.value)}
-        >
-          <option value="">Select city…</option>
-          {cityOptions.map((opt) => (
-            <option key={`${opt.name}-${opt.latitude}-${opt.longitude}`} value={opt.name}>
-              {opt.name}
-            </option>
+        />
+        <datalist id={listId}>
+          {(cityOptions || []).map((opt) => (
+            <option
+              key={`${opt.name}-${opt.latitude}-${opt.longitude}`}
+              value={opt.name}
+            />
           ))}
-        </select>
-
-        {/* Arrival */}
-        <input
-          type="date"
-          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-          value={row.arrival}
-          onChange={(e) => setCityArrival(i, e.target.value)}
-          aria-label="City arrival date"
-        />
-
-        {/* Departure */}
-        <input
-          type="date"
-          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-          value={row.departure}
-          onChange={(e) => setCityDeparture(i, e.target.value)}
-          aria-label="City departure date"
-        />
-
-        {/* Remove */}
-        <div className="flex">
-          <button
-            type="button"
-            onClick={() => removeCity(i)}
-            className="w-full sm:w-auto rounded-lg px-3 py-2 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition"
-          >
-            Remove
-          </button>
-        </div>
+        </datalist>
       </div>
-    ))}
+
+      {/* Arrival */}
+      <input
+        type="date"
+        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+        value={row.arrival}
+        onChange={(e) => setCityArrival(i, e.target.value)}
+        aria-label="City arrival date"
+      />
+
+      {/* Departure */}
+      <input
+        type="date"
+        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+        value={row.departure}
+        onChange={(e) => setCityDeparture(i, e.target.value)}
+        aria-label="City departure date"
+      />
+
+      {/* Remove */}
+      <div className="flex">
+        <button
+          type="button"
+          onClick={() => removeCity(i)}
+          className="w-full sm:w-auto rounded-lg px-3 py-2 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition"
+        >
+          Remove
+        </button>
+      </div>
+    </div>
+  );
+})}
+
 
     <button
       type="button"
