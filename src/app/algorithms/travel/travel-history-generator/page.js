@@ -942,6 +942,14 @@ const removeCity = (i) => {
 <div className="mt-4">
   <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities</label>
   <div className="space-y-2">
+  {/* Column headers for city dates (align with country Arrival/Departure) */}
+<div className="hidden sm:grid sm:grid-cols-3 lg:grid-cols-4 gap-2">
+  <div />
+  <div className="text-xs text-slate-500 pl-1">Arrival</div>
+  <div className="text-xs text-slate-500 pl-1">Departure</div>
+  <div />
+</div>
+
     {normalizedCities.map((row, i) => (
   <div key={i} className="grid sm:grid-cols-3 lg:grid-cols-4 gap-2">
     {/* City selector (same visual width as CountryInput) */}
