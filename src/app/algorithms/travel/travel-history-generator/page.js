@@ -940,74 +940,79 @@ const removeCity = (i) => {
 
 {/* Below: Cities list */}
 <div className="mt-4">
-  <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Cities</label>
-  <div className="space-y-2">
-  {/* Column headers for cities (align with country row) */}
-<div className="grid sm:grid-cols-3 lg:grid-cols-4 gap-2 mb-1">
-  <div className="block text-sm text-slate-600 dark:text-slate-300">City</div>
-  <div className="block text-sm text-slate-600 dark:text-slate-300">Arrival</div>
-  <div className="block text-sm text-slate-600 dark:text-slate-300">Departure</div>
-  <div />
-</div>
-
-
-    {normalizedCities.map((row, i) => (
-  <div key={i} className="grid sm:grid-cols-3 lg:grid-cols-4 gap-2">
-    {/* City selector (same visual width as CountryInput) */}
-    {/* City free-text + suggestions */}
-<input
-  list={`cities-${stop.id}-${i}`}
-  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-  placeholder="Type or select a city…"
-  value={row.name}
-  onChange={(e) => setCityName(i, e.target.value)}
-  aria-label="City"
-/>
-<datalist id={`cities-${stop.id}-${i}`}>
-  {cityOptions.map((opt) => (
-    <option key={`${opt.name}-${opt.latitude}-${opt.longitude}`} value={opt.name} />
-  ))}
-</datalist>
-
-    {/* Arrival */}
-    <input
-      type="date"
-      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-      value={row.arrival}
-      onChange={(e) => setCityArrival(i, e.target.value)}
-      aria-label="City arrival date"
-    />
-
-    {/* Departure */}
-    <input
-      type="date"
-      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-      value={row.departure}
-      onChange={(e) => setCityDeparture(i, e.target.value)}
-      aria-label="City departure date"
-    />
-
-    {/* Remove button (pushes to its own column on large screens) */}
-    <div className="flex">
-      <button
-        type="button"
-        onClick={() => removeCity(i)}
-        className={LINKISH_SECONDARY + " w-full sm:w-auto"}
-      >
-        Remove
-      </button>
+  {/* Header row — matches country label style + grid */}
+  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-1">
+    <div>
+      <label className="block text-sm text-slate-600 dark:text-slate-300">City</label>
     </div>
+    <div>
+      <label className="block text-sm text-slate-600 dark:text-slate-300">Arrival</label>
+    </div>
+    <div>
+      <label className="block text-sm text-slate-600 dark:text-slate-300">Departure</label>
+    </div>
+    <div>{/* empty header cell for the Remove button column */}</div>
   </div>
-))}
+
+  {/* Rows */}
+  <div className="space-y-2">
+    {normalizedCities.map((row, i) => (
+      <div key={i} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* City selector/input — same classes as country input for equal width */}
+        <select
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+          value={row.name}
+          onChange={(e) => setCityName(i, e.target.value)}
+        >
+          <option value="">Select city…</option>
+          {cityOptions.map((opt) => (
+            <option key={`${opt.name}-${opt.latitude}-${opt.longitude}`} value={opt.name}>
+              {opt.name}
+            </option>
+          ))}
+        </select>
+
+        {/* Arrival */}
+        <input
+          type="date"
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+          value={row.arrival}
+          onChange={(e) => setCityArrival(i, e.target.value)}
+          aria-label="City arrival date"
+        />
+
+        {/* Departure */}
+        <input
+          type="date"
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+          value={row.departure}
+          onChange={(e) => setCityDeparture(i, e.target.value)}
+          aria-label="City departure date"
+        />
+
+        {/* Remove */}
+        <div className="flex">
+          <button
+            type="button"
+            onClick={() => removeCity(i)}
+            className="w-full sm:w-auto rounded-lg px-3 py-2 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition"
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    ))}
+
     <button
       type="button"
       onClick={addCity}
-      className={BTN_SECONDARY + " text-xs px-3 py-1.5"}
+      className="rounded-lg px-3 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition"
     >
       + Add another city
     </button>
   </div>
 </div>
+
       {/* Accommodation (checkbox group) */}
       <div className="mt-4">
         <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Accommodation (select one or more)</label>
