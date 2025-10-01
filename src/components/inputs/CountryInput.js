@@ -20,7 +20,7 @@ export default function CountryInput({ value, onChange, label = 'Country *' }) {
       <input
         list={listId}
         type="text"
-        placeholder="Start typing…"
+        placeholder= "Start typing or select country…"
         className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
         value={value}
         onChange={(e) => onChange(e.target.value)}
