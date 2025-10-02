@@ -1229,7 +1229,6 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Country (searchable, same UI as your CountryInput.jsx) */}
         <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Country</label>
           <CountryInput
             inputRef={countryInputRef}
             query={countryQuery}
@@ -1250,7 +1249,6 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
 
         {/* City (searchable, same look/feel; suggestions come from country-state-city) */}
         <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
           <CityInput
             inputRef={cityInputRef}
             query={cityQuery}
