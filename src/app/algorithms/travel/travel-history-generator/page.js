@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 // ---- Minimal countries stub for datalist (replace with canonical dataset later) ----
 import CountryInput from "@/components/inputs/CountryInput";
 import { Country, City } from "country-state-city";
+import CityInput from "@/components/inputs/CityInput";
 
 // --- country-state-city helpers (cache + name→ISO lookup) ---
 const CSC_COUNTRIES = Country.getAllCountries(); // [{ name, isoCode, ... }]
@@ -1187,15 +1188,28 @@ const removeCity = (i) => {
 }
 
 function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
-    const countryISO2 = useMemo(
-    () => getIsoFromCountryName(layover.country),
-    [layover.country]
-  );
+  // --- CountryInput state ---
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [countryQuery, setCountryQuery] = useState(layover.country || "");
+  const countryInputRef = useRef(null);
 
-  const cityOptions = useMemo(
-    () => (countryISO2 ? City.getCitiesOfCountry(countryISO2) : []),
-    [countryISO2]
-  );
+  // --- CityInput state ---
+  const [cityOpen, setCityOpen] = useState(false);
+  const [cityQuery, setCityQuery] = useState(layover.city || "");
+  const cityInputRef = useRef(null);
+
+  // Country name -> ISO2, then build a list of city names for the CityInput
+  const iso2 = useMemo(() => getIsoFromCountryName(layover.country), [layover.country]);
+
+  const cityNames = useMemo(() => {
+    if (!iso2) return [];
+    const list = City.getCitiesOfCountry(iso2) || [];
+    // unique + case-insensitive sorted
+    const names = Array.from(new Set(list.map((c) => c.name)));
+    names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+    return names;
+  }, [iso2]);
+
   return (
     <div
       ref={innerRef}
@@ -1210,55 +1224,92 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
         <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Layover</h4>
         <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove layover</button>
       </div>
+
+      {/* Top row: Country / City / Start / End */}
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Country (searchable, same UI as your CountryInput.jsx) */}
         <div>
-          
-          {/* Country */}
-<CountryInput
-  value={layover.country}
-  onChange={(val) => onChange({ country: val })}
-/>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Country</label>
+          <CountryInput
+            inputRef={countryInputRef}
+            query={countryQuery}
+            setQuery={setCountryQuery}
+            open={countryOpen}
+            setOpen={setCountryOpen}
+            onAdd={(name) => {
+              const chosen = name || countryQuery;
+              onChange({ country: chosen });
+              setCountryQuery(chosen);
+              setCountryOpen(false);
+              // clear city when country changes
+              setCityQuery("");
+              onChange({ city: "" });
+            }}
+          />
         </div>
+
+        {/* City (searchable, same look/feel; suggestions come from country-state-city) */}
         <div>
-  <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
-  <select
-    className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
-    value={layover.city}
-    onChange={(e) => onChange({ city: e.target.value })}
-  >
-    <option value="">Start typing or select city…</option>
-    {cityOptions.map((opt) => (
-      <option
-        key={`${opt.name}-${opt.latitude}-${opt.longitude}`}
-        value={opt.name}
-      >
-        {opt.name}
-      </option>
-    ))}
-  </select>
-</div>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
+          <CityInput
+            inputRef={cityInputRef}
+            query={cityQuery}
+            setQuery={setCityQuery}
+            open={cityOpen}
+            setOpen={setCityOpen}
+            names={cityNames}
+            placeholder="Start typing or select city…"
+            onAdd={(name) => {
+              const chosen = name || cityQuery;
+              onChange({ city: chosen });
+              setCityQuery(chosen);
+              setCityOpen(false);
+            }}
+          />
+        </div>
+
+        {/* Start */}
         <div>
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Start</label>
-          <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.start} onChange={(e) => onChange({ start: e.target.value })} />
+          <input
+            type="date"
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            value={layover.start}
+            onChange={(e) => onChange({ start: e.target.value })}
+          />
         </div>
+
+        {/* End */}
         <div>
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">End</label>
-          <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.end} onChange={(e) => onChange({ end: e.target.value })} />
+          <input
+            type="date"
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            value={layover.end}
+            onChange={(e) => onChange({ end: e.target.value })}
+          />
         </div>
       </div>
 
+      {/* Left airport + activities */}
       <div className="mt-4 grid sm:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Did you leave the airport?</label>
-          <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.leftAirport} onChange={(e) => onChange({ leftAirport: e.target.value })}>
+          <select
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            value={layover.leftAirport}
+            onChange={(e) => onChange({ leftAirport: e.target.value })}
+          >
             <option value="no">No</option>
             <option value="yes">Yes</option>
           </select>
         </div>
 
-        {layover.leftAirport === 'yes' && (
+        {layover.leftAirport === "yes" && (
           <div className="sm:col-span-2">
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Please describe any activities undertaken</label>
+            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
+              Please describe any activities undertaken
+            </label>
             <textarea
               rows={3}
               className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
