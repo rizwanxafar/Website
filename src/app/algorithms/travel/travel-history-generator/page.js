@@ -37,7 +37,7 @@ function getIsoFromCountryName(name) {
 // ---- Options ----
 const ACCOMMODATION_OPTIONS = [
   'Hotel/Resort', 'Hostel', 'Homestay', 'Friends/Family home', 'Rural camp', 'Safari camp',
-  'Refugee camp', 'Healthcare facility residence', 'Other', 'Prefer not to say',
+  'Refugee camp', 'Healthcare facility residence', 'Other',
 ];
 
 const VACCINE_OPTIONS = [
@@ -881,19 +881,11 @@ const removeCity = (i) => {
 
   // Accommodation handlers (checkbox group)
   const toggleAccommodation = (value) => {
-    const set = new Set(stop.accommodations || []);
-    if (set.has(value)) set.delete(value);
-    else {
-      if (value === 'Prefer not to say') {
-        set.clear();
-        set.add(value);
-      } else {
-        set.delete('Prefer not to say');
-        set.add(value);
-      }
-    }
-    onChange({ accommodations: Array.from(set) });
-  };
+  const set = new Set(stop.accommodations || []);
+  if (set.has(value)) set.delete(value);
+  else set.add(value);
+  onChange({ accommodations: Array.from(set) });
+};
 
   return (
     <div
