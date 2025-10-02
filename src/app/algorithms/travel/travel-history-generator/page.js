@@ -1188,17 +1188,17 @@ const removeCity = (i) => {
 }
 
 function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
-  // Derive ISO2 from the current country name (helper is defined at top of file)
+  // Derive ISO2 from the current country name
   const countryISO2 = useMemo(
     () => getIsoFromCountryName(layover.country),
     [layover.country]
   );
 
-  // Build city options for that country (same approach as StopCard)
+  // Build city options for that country
   const cityOptions = useMemo(() => {
     if (!countryISO2) return [];
     const list = City.getCitiesOfCountry(countryISO2) || [];
-    // unique, case-insensitive sort
+    // unique + case-insensitive sort
     const names = Array.from(new Set(list.map((c) => c.name)));
     names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
     return names;
@@ -1216,38 +1216,48 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
     >
       <div className="flex items-start justify-between gap-3">
         <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Layover</h4>
-        <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove layover</button>
+        <button
+          type="button"
+          onClick={onRemove}
+          className={LINKISH_SECONDARY}
+        >
+          Remove layover
+        </button>
       </div>
 
       {/* Top row: Country / City / Start / End */}
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Country (uses the same CountryInput component you use elsewhere) */}
+        {/* Country */}
         <div>
           <CountryInput
             value={layover.country}
             onChange={(val) => {
-              // when country changes, clear city to avoid mismatched city
+              // when country changes, clear city to avoid mismatch
               onChange({ country: val, city: "" });
             }}
           />
         </div>
 
-        {/* City (native select — identical classes to StopCard city select) */}
-        <div>
+        {/* City (input + datalist, same as StopCard) */}
+        <div className="w-full">
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
-          <select
+          <input
+            type="text"
+            list={`layover-city-options-${layover.id}`}
+            placeholder="Start typing or select city…"
             className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-            value={layover.city}
+            value={layover.city || ""}
             onChange={(e) => onChange({ city: e.target.value })}
             disabled={!countryISO2}
-          >
-            <option value="">
-              {countryISO2 ? "Select city…" : "Select a country first…"}
-            </option>
-            {cityOptions.map((name) => (
-              <option key={name} value={name}>{name}</option>
+          />
+          <datalist id={`layover-city-options-${layover.id}`}>
+            {(cityOptions || []).map((opt) => (
+              <option
+                key={`${opt.name}-${opt.latitude}-${opt.longitude}`}
+                value={opt.name}
+              />
             ))}
-          </select>
+          </datalist>
         </div>
 
         {/* Start */}
@@ -1276,7 +1286,9 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
       {/* Left airport + activities */}
       <div className="mt-4 grid sm:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Did you leave the airport?</label>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
+            Did you leave the airport?
+          </label>
           <select
             className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
             value={layover.leftAirport}
