@@ -1187,6 +1187,15 @@ const removeCity = (i) => {
 }
 
 function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
+    const countryISO2 = useMemo(
+    () => getIsoFromCountryName(layover.country),
+    [layover.country]
+  );
+
+  const cityOptions = useMemo(
+    () => (countryISO2 ? City.getCitiesOfCountry(countryISO2) : []),
+    [countryISO2]
+  );
   return (
     <div
       ref={innerRef}
@@ -1211,9 +1220,23 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
 />
         </div>
         <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
-          <input type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.city} onChange={(e) => onChange({ city: e.target.value })} />
-        </div>
+  <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
+  <select
+    className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+    value={layover.city}
+    onChange={(e) => onChange({ city: e.target.value })}
+  >
+    <option value="">Start typing or select city…</option>
+    {cityOptions.map((opt) => (
+      <option
+        key={`${opt.name}-${opt.latitude}-${opt.longitude}`}
+        value={opt.name}
+      >
+        {opt.name}
+      </option>
+    ))}
+  </select>
+</div>
         <div>
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Start</label>
           <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.start} onChange={(e) => onChange({ start: e.target.value })} />
