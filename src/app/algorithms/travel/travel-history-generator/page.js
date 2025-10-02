@@ -1188,27 +1188,21 @@ const removeCity = (i) => {
 }
 
 function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
-  // --- CountryInput state ---
-  const [countryOpen, setCountryOpen] = useState(false);
-  const [countryQuery, setCountryQuery] = useState(layover.country || "");
-  const countryInputRef = useRef(null);
+  // Derive ISO2 from the current country name (helper is defined at top of file)
+  const countryISO2 = useMemo(
+    () => getIsoFromCountryName(layover.country),
+    [layover.country]
+  );
 
-  // --- CityInput state ---
-  const [cityOpen, setCityOpen] = useState(false);
-  const [cityQuery, setCityQuery] = useState(layover.city || "");
-  const cityInputRef = useRef(null);
-
-  // Country name -> ISO2, then build a list of city names for the CityInput
-  const iso2 = useMemo(() => getIsoFromCountryName(layover.country), [layover.country]);
-
-  const cityNames = useMemo(() => {
-    if (!iso2) return [];
-    const list = City.getCitiesOfCountry(iso2) || [];
-    // unique + case-insensitive sorted
+  // Build city options for that country (same approach as StopCard)
+  const cityOptions = useMemo(() => {
+    if (!countryISO2) return [];
+    const list = City.getCitiesOfCountry(countryISO2) || [];
+    // unique, case-insensitive sort
     const names = Array.from(new Set(list.map((c) => c.name)));
     names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
     return names;
-  }, [iso2]);
+  }, [countryISO2]);
 
   return (
     <div
@@ -1227,43 +1221,33 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
 
       {/* Top row: Country / City / Start / End */}
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Country (searchable, same UI as your CountryInput.jsx) */}
+        {/* Country (uses the same CountryInput component you use elsewhere) */}
         <div>
           <CountryInput
-            inputRef={countryInputRef}
-            query={countryQuery}
-            setQuery={setCountryQuery}
-            open={countryOpen}
-            setOpen={setCountryOpen}
-            onAdd={(name) => {
-              const chosen = name || countryQuery;
-              onChange({ country: chosen });
-              setCountryQuery(chosen);
-              setCountryOpen(false);
-              // clear city when country changes
-              setCityQuery("");
-              onChange({ city: "" });
+            value={layover.country}
+            onChange={(val) => {
+              // when country changes, clear city to avoid mismatched city
+              onChange({ country: val, city: "" });
             }}
           />
         </div>
 
-        {/* City (searchable, same look/feel; suggestions come from country-state-city) */}
+        {/* City (native select — identical classes to StopCard city select) */}
         <div>
-          <CityInput
-            inputRef={cityInputRef}
-            query={cityQuery}
-            setQuery={setCityQuery}
-            open={cityOpen}
-            setOpen={setCityOpen}
-            names={cityNames}
-            placeholder="Start typing or select city…"
-            onAdd={(name) => {
-              const chosen = name || cityQuery;
-              onChange({ city: chosen });
-              setCityQuery(chosen);
-              setCityOpen(false);
-            }}
-          />
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
+          <select
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+            value={layover.city}
+            onChange={(e) => onChange({ city: e.target.value })}
+            disabled={!countryISO2}
+          >
+            <option value="">
+              {countryISO2 ? "Select city…" : "Select a country first…"}
+            </option>
+            {cityOptions.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
         </div>
 
         {/* Start */}
