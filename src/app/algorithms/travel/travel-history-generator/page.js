@@ -171,7 +171,12 @@ const emptyTrip = () => ({
 
 const initialState = {
   trips: [emptyTrip()],
-  companions: { group: 'Alone', otherText: '', companionsWell: 'unknown' }, // yes | no | unknown
+  companions: {
+    group: 'Alone',
+    otherText: '',
+    companionsWell: 'unknown',  // yes | no | unknown
+    companionsUnwellDetails: '', // NEW
+  },
 };
 
 // ===== Shared chronology builder (used by Timeline and Summary) =====
@@ -487,7 +492,17 @@ useEffect(() => {
                 <button
                   key={opt}
                   type="button"
-                  onClick={() => setState((p) => ({ ...p, companions: { ...p.companions, group: opt } }))}
+                  onClick={() =>
+  setState((p) => {
+    const next = { ...p.companions, group: opt };
+    if (opt === 'Alone') {
+      next.companionsWell = 'unknown';
+      next.companionsUnwellDetails = '';
+      next.otherText = '';
+    }
+    return { ...p, companions: next };
+  })
+}
                   className={classNames(
                     'rounded-md px-3 py-1.5 text-sm border-2 transition',
                     state.companions.group === opt
@@ -512,30 +527,61 @@ useEffect(() => {
             )}
           </div>
 
-          <div>
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Companions well?</label>
-            <div className="flex gap-2">
-              {[
-                { val: 'yes', label: 'Yes' },
-                { val: 'no', label: 'No' },
-                { val: 'unknown', label: 'Unknown' },
-              ].map(({ val, label }) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => setState((p) => ({ ...p, companions: { ...p.companions, companionsWell: val } }))}
-                  className={classNames(
-                    'rounded-md px-3 py-1.5 text-sm border-2 transition',
-                    state.companions.companionsWell === val
-                      ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent'
-                      : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+          {state.companions.group !== 'Alone' && (
+  <div>
+    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Are they well?</label>
+    <div className="flex gap-2">
+      {[
+        { val: 'yes', label: 'Yes' },
+        { val: 'no', label: 'No' },
+        { val: 'unknown', label: 'Unknown' },
+      ].map(({ val, label }) => (
+        <button
+          key={val}
+          type="button"
+          onClick={() =>
+            setState((p) => ({
+              ...p,
+              companions: {
+                ...p.companions,
+                companionsWell: val,
+                // Clear details if not "No"
+                companionsUnwellDetails: val === 'no' ? p.companions.companionsUnwellDetails : '',
+              },
+            }))
+          }
+          className={classNames(
+            'rounded-md px-3 py-1.5 text-sm border-2 transition',
+            state.companions.companionsWell === val
+              ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent'
+              : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+
+    {state.companions.companionsWell === 'no' && (
+      <div className="mt-2">
+        <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
+          Please provide details
+        </label>
+        <textarea
+          rows={3}
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+          value={state.companions.companionsUnwellDetails}
+          onChange={(e) =>
+            setState((p) => ({
+              ...p,
+              companions: { ...p.companions, companionsUnwellDetails: e.target.value },
+            }))
+          }
+        />
+      </div>
+    )}
+  </div>
+)}
         </div>
       </section>
 
@@ -1324,20 +1370,31 @@ function TimelineVertical({ events }) {
   })()}
 </div>
                     {it.tripCompanions && (
-                      <div>
-                        <span className="font-semibold">Companions:</span>{' '}
-                        {it.tripCompanions.group === 'Other'
-                          ? (it.tripCompanions.otherText || 'Other')
-                          : (it.tripCompanions.group || '—')}
-                        {` — Well: ${
-                          it.tripCompanions.companionsWell === 'yes'
-                            ? 'Yes'
-                            : it.tripCompanions.companionsWell === 'no'
-                            ? 'No'
-                            : 'Unknown'
-                        }`}
-                      </div>
-                    )}
+  <>
+    {it.tripCompanions.group === 'Alone' ? (
+      <div><span className="font-semibold">Travelled alone.</span></div>
+    ) : (
+      <>
+        <div>
+          <span className="font-semibold">Travelled with:</span>{' '}
+          {it.tripCompanions.group === 'Other'
+            ? (it.tripCompanions.otherText || 'Other')
+            : (it.tripCompanions.group || '—')}
+        </div>
+        <div>
+          <span className="font-semibold">Are they well:</span>{' '}
+          {it.tripCompanions.companionsWell === 'yes'
+            ? 'Yes'
+            : it.tripCompanions.companionsWell === 'no'
+            ? ('No' + (it.tripCompanions.companionsUnwellDetails?.trim()
+                ? ` — ${it.tripCompanions.companionsUnwellDetails.trim()}`
+                : ''))
+            : 'Unknown'}
+        </div>
+      </>
+    )}
+  </>
+)}
                   </div>
                 )}
 
@@ -1539,15 +1596,33 @@ if (tripObj.purpose && tripObj.purpose.trim()) {
 html.push(`<div><strong>Vaccinations:</strong> ${vaccinesDisplay ? escapeHtml(vaccinesDisplay) : 'None'}</div>`);
 text.push(`Vaccinations: ${vaccinesDisplay || 'None'}`);
 
-// Companions (global, shown per trip)
-const cmp = state.companions || {};
-const cmpGroup = cmp.group === 'Other' ? (cmp.otherText || 'Other') : (cmp.group || '—');
-const cmpWell =
-  cmp.companionsWell === 'yes' ? 'Yes'
-  : cmp.companionsWell === 'no' ? 'No'
-  : 'Unknown';
-html.push(`<div><strong>Companions:</strong> ${escapeHtml(cmpGroup)} — Well: ${cmpWell}</div>`);
-text.push(`Companions: ${cmpGroup} — Well: ${cmpWell}`);
+// Companions (global, shown per trip) — new wording
+{
+  const cmp = state.companions || {};
+  if (cmp.group === 'Alone') {
+    html.push(`<div><strong>Travelled alone.</strong></div>`);
+    text.push(`Travelled alone.`);
+  } else {
+    const groupStr = cmp.group === 'Other' ? (cmp.otherText || 'Other') : (cmp.group || '—');
+    const wellStr =
+      cmp.companionsWell === 'yes' ? 'Yes'
+      : cmp.companionsWell === 'no' ? 'No'
+      : 'Unknown';
+
+    html.push(`<div><strong>Travelled with:</strong> ${escapeHtml(groupStr)}</div>`);
+    text.push(`Travelled with: ${groupStr}`);
+
+    // If No, append details if present
+    if (cmp.companionsWell === 'no') {
+      const details = (cmp.companionsUnwellDetails || '').trim();
+      html.push(`<div><strong>Are they well:</strong> No${details ? ` — ${escapeHtml(details)}` : ''}</div>`);
+      text.push(`Are they well: No${details ? ` — ${details}` : ''}`);
+    } else {
+      html.push(`<div><strong>Are they well:</strong> ${wellStr}</div>`);
+      text.push(`Are they well: ${wellStr}`);
+    }
+  }
+}
 
     // Now chronological events
     let stopCounter = 0;
