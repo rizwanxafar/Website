@@ -1195,14 +1195,10 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
   );
 
   // Build city options for that country
-  const cityOptions = useMemo(() => {
-    if (!countryISO2) return [];
-    const list = City.getCitiesOfCountry(countryISO2) || [];
-    // unique + case-insensitive sort
-    const names = Array.from(new Set(list.map((c) => c.name)));
-    names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-    return names;
-  }, [countryISO2]);
+  // Build city options for that country (OBJECTS, like StopCard)
+const cityOptions = useMemo(() => {
+  return countryISO2 ? (City.getCitiesOfCountry(countryISO2) || []) : [];
+}, [countryISO2]);
 
   return (
     <div
@@ -1239,26 +1235,25 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
         </div>
 
         {/* City (input + datalist, same as StopCard) */}
-        <div className="w-full">
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
-          <input
-            type="text"
-            list={`layover-city-options-${layover.id}`}
-            placeholder="Start typing or select city…"
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-            value={layover.city || ""}
-            onChange={(e) => onChange({ city: e.target.value })}
-            disabled={!countryISO2}
-          />
-          <datalist id={`layover-city-options-${layover.id}`}>
-            {(cityOptions || []).map((opt) => (
-              <option
-                key={`${opt.name}-${opt.latitude}-${opt.longitude}`}
-                value={opt.name}
-              />
-            ))}
-          </datalist>
-        </div>
+<div className="w-full">
+  <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
+  <input
+    type="text"
+    list={`layover-city-options-${layover.id}`}
+    placeholder="Start typing or select city…"
+    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+    value={layover.city || ""}
+    onChange={(e) => onChange({ city: e.target.value })}
+  />
+  <datalist id={`layover-city-options-${layover.id}`}>
+    {(cityOptions || []).map((opt) => (
+      <option
+        key={`${opt.name}-${opt.latitude}-${opt.longitude}`}
+        value={opt.name}
+      />
+    ))}
+  </datalist>
+</div>
 
         {/* Start */}
         <div>
