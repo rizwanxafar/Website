@@ -252,7 +252,6 @@ function buildTripEvents(trip, companions) {
         tripCompanions: companions || null,
         tripOriginCountry: trip.originCountry || '',
         tripOriginCity: trip.originCity || '',
-  }
       },
     });
     if (i < betweenByIndex.length) {
