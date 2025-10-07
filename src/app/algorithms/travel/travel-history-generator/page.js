@@ -253,7 +253,7 @@ function buildTripEvents(trip, companions) {
         tripOriginCountry: trip.originCountry || '',
         tripOriginCity: trip.originCity || '',
   }
-      }
+      },
     });
     if (i < betweenByIndex.length) {
       const group = betweenByIndex[i].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
