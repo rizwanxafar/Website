@@ -162,6 +162,8 @@ const emptyLayover = (tripId) => ({
 const emptyTrip = () => ({
   id: uid(),
   purpose: '',
+  originCountry: '',
+  originCity: '',
   // Trip-level vaccines & malaria
   vaccines: [],
   vaccinesOther: '',            
@@ -248,6 +250,9 @@ function buildTripEvents(trip, companions) {
         tripVaccinesOther: trip.vaccinesOther || '', 
         tripMalaria: trip.malaria || { indication: 'Not indicated', drug: 'None', adherence: '' },
         tripCompanions: companions || null,
+        tripOriginCountry: trip.originCountry || '',
+        tripOriginCity: trip.originCity || '',
+  }
       }
     });
     if (i < betweenByIndex.length) {
@@ -716,6 +721,13 @@ function TripCard({
     }
     updateTrip(trip.id, { malaria: next });
   };
+   // ---- Trip origin helpers (country -> city list)
+  const originISO2 = useMemo(() => getIsoFromCountryName(trip.originCountry), [trip.originCountry]);
+  const originCityNames = useMemo(() => {
+    const names = Array.from(new Set(list.map((c) => c.name)));
+    names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+    return names;
+  }, [originISO2]);
 
   return (
     <div ref={innerRef} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
@@ -725,6 +737,39 @@ function TripCard({
           <button type="button" onClick={() => addStop(trip.id)} className={BTN_PRIMARY}>+ Add stop</button>
           <button type="button" onClick={() => addLayover(trip.id)} className={BTN_PRIMARY}>+ Add layover</button>
           <button type="button" onClick={() => removeTrip(trip.id)} className={BTN_SECONDARY}>Remove trip</button>
+        </div>
+      </div>
+
+      {/* Travelling from */}
+      <div className="mt-6">
+        <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+          Travelling from
+        </label>
+        <div className="mt-2 grid sm:grid-cols-2 gap-4">
+          {/* Country */}
+          <div>
+            <CountryInput
+              value={trip.originCountry}
+              onChange={(val) => updateTrip(trip.id, { originCountry: val, originCity: '' })}
+            />
+          </div>
+          {/* City (input + datalist like StopCard) */}
+          <div className="w-full">
+            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
+            <input
+              type="text"
+              list={`trip-origin-cities-${trip.id}`}
+              placeholder="Start typing or select city…"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+              value={trip.originCity || ''}
+              onChange={(e) => updateTrip(trip.id, { originCity: e.target.value })}
+            />
+            <datalist id={`trip-origin-cities-${trip.id}`}>
+              {originCityNames.map((nm) => (
+                <option key={nm} value={nm} />
+              ))}
+            </datalist>
+          </div>
         </div>
       </div>
 
@@ -1389,10 +1434,12 @@ function TimelineVertical({ events }) {
                   <div className="flex items-center gap-3">
                     <strong className="tabular-nums">{formatDMY(it.arrival)}</strong>
                     {it.isFirstInTrip && (
-                      <span className="text-sm text-slate-600 dark:text-slate-300">
-                        — Departure
-                      </span>
-                    )}
+  <span className="text-sm text-slate-600 dark:text-slate-300">
+    — {it.tripOriginCity || it.tripOriginCountry
+        ? `Departure from ${[it.tripOriginCity, it.tripOriginCountry].filter(Boolean).join(', ')}`
+        : 'Departure'}
+  </span>
+)}
                   </div>
                 </div>
 
@@ -1531,10 +1578,12 @@ function TimelineVertical({ events }) {
                 <div className="col-[2] h-6 flex items-center gap-3">
                   <strong className="tabular-nums">{formatDMY(it.departure)}</strong>
                   {it.isLastInTrip && (
-                    <span className="text-sm text-slate-600 dark:text-slate-300">
-                      — Arrival
-                    </span>
-                  )}
+  <span className="text-sm text-slate-600 dark:text-slate-300">
+    — {it.tripOriginCity || it.tripOriginCountry
+        ? `Arrival to ${[it.tripOriginCity, it.tripOriginCountry].filter(Boolean).join(', ')}`
+        : 'Arrival'}
+  </span>
+)}
                 </div>
               </li>
             );
@@ -1633,6 +1682,16 @@ const malaria = tripObj.malaria || {
   adherence: ''
 };
 
+    // Travelling from
+{
+  const fromCity = (tripObj.originCity || '').trim();
+  const fromCountry = (tripObj.originCountry || '').trim();
+  if (fromCity || fromCountry) {
+    const fromLine = [fromCity, fromCountry].filter(Boolean).join(', ');
+    html.push(`<div><strong>Travelling from:</strong> ${escapeHtml(fromLine)}</div>`);
+    text.push(`Travelling from: ${fromLine}`);
+  }
+}
 // Purpose
 if (tripObj.purpose && tripObj.purpose.trim()) {
   html.push(`<div><strong>Purpose:</strong> ${escapeHtml(tripObj.purpose)}</div>`);
