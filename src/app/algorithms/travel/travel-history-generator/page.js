@@ -721,12 +721,18 @@ function TripCard({
     updateTrip(trip.id, { malaria: next });
   };
    // ---- Trip origin helpers (country -> city list)
-  const originISO2 = useMemo(() => getIsoFromCountryName(trip.originCountry), [trip.originCountry]);
-  const originCityNames = useMemo(() => {
-    const names = Array.from(new Set(list.map((c) => c.name)));
-    names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-    return names;
-  }, [originISO2]);
+  // ---- Trip origin helpers (country -> city list)
+const originISO2 = useMemo(
+  () => getIsoFromCountryName(trip.originCountry),
+  [trip.originCountry]
+);
+
+const originCityNames = useMemo(() => {
+  const list = originISO2 ? (City.getCitiesOfCountry(originISO2) || []) : [];
+  const names = Array.from(new Set(list.map((c) => c.name)));
+  names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  return names;
+}, [originISO2]);
 
   return (
     <div ref={innerRef} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
