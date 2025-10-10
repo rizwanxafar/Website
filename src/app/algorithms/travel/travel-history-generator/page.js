@@ -6,7 +6,6 @@
 // - Companions added to both visual and text summaries
 // - Stops numbered in text summary (Stop 1, Stop 2, …)
 // - Removed separate tripMeta node/card; trip meta shown under first stop’s arrival
-// - Print timeline uses display:none to avoid multi-page bloat
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -589,7 +588,7 @@ useEffect(() => {
       </section>
 
       {/* Timeline */}
-      <section id="timeline-section" className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6 tl-printable">
+      <section id="timeline-section" className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
         <div className="flex items-center justify-between mb-3">
   <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline</h2>
 </div>
@@ -612,62 +611,6 @@ useEffect(() => {
     </button>
   </div>
 </section>
-
-
-            {/* Print styles */}
-      <style jsx global>{`
-        /* Normal print cleanup */
-        @media print {
-          header, .no-print { display: none !important; }
-          main { padding: 0 !important; }
-        }
-
-        /* Print ONLY the timeline section when the button toggles body.print-timeline-only */
-        @media print {
-          /* Hide all direct children of <main> except the timeline section */
-          body.print-timeline-only main > * { display: none !important; }
-          body.print-timeline-only main > #timeline-section { display: block !important; }
-
-          /* Keep the on-screen grid layout for the timeline */
-          body.print-timeline-only #timeline-section ol {
-            display: grid !important;
-            grid-template-columns: 72px 1fr !important;
-            row-gap: 12px !important;
-          }
-          /* Keep display:contents so the rail & nodes align properly */
-          body.print-timeline-only #timeline-section li.contents { display: contents !important; }
-
-          /* Make the small date rows consistent height */
-          body.print-timeline-only #timeline-section .h-6 { height: 24px !important; }
-          body.print-timeline-only #timeline-section .h-6.flex {
-            display: flex !important;
-            align-items: center !important;
-          }
-
-          /* Ensure the vertical rail prints */
-          body.print-timeline-only #timeline-section .pointer-events-none {
-            position: absolute !important;
-            left: 36px !important;
-            top: 0 !important;
-            bottom: 0 !important;
-            border-left-width: 2px !important;
-            border-left-style: dashed !important;
-            border-left-color: rgb(203,213,225) !important; /* slate-300 */
-          }
-
-          /* Preserve colors (rail, nodes, etc.) */
-          body.print-timeline-only #timeline-section,
-          body.print-timeline-only #timeline-section * {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-
-          /* Avoid card splits across pages */
-          body.print-timeline-only #timeline-section [class*="rounded-xl"] {
-            break-inside: avoid;
-          }
-        }
-      `}</style>
     </main>
   );
 }
