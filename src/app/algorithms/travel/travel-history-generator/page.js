@@ -1644,9 +1644,9 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
   const html = [];
   const text = [];
 
-  // Group events back by trip for nice per-trip blocks
+  // Group events by trip id to render per-trip sections
   const byTrip = new Map();
-  mergedEventsAllTrips.forEach((ev) => {
+  (mergedEventsAllTrips || []).forEach((ev) => {
     if (!byTrip.has(ev.tripId)) byTrip.set(ev.tripId, []);
     byTrip.get(ev.tripId).push(ev);
   });
@@ -1654,24 +1654,24 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
 
   let tripIndex = 1;
   for (const [tripId, events] of byTrip.entries()) {
-    // Compute inferred date range from stops
-    const stops = events.filter((e) => e.type === 'stop').map((e) => e.stop);
+    // Stops & date range for this trip
+    const stops = events.filter((e) => e.type === "stop").map((e) => e.stop);
     const arrivals = stops.map((s) => parseDate(s.arrival)).filter(Boolean);
     const departures = stops.map((s) => parseDate(s.departure)).filter(Boolean);
-    const start = arrivals.length ? formatDMY(new Date(Math.min(...arrivals)).toISOString()) : '—';
-    const end = departures.length ? formatDMY(new Date(Math.max(...departures)).toISOString()) : '—';
+    const start = arrivals.length ? formatDMY(new Date(Math.min(...arrivals)).toISOString()) : "—";
+    const end = departures.length ? formatDMY(new Date(Math.max(...departures)).toISOString()) : "—";
 
-    // Countries list for this trip (unique, non-empty, in order of appearance)
+    // Countries list (unique, ordered)
     const countriesList = [];
     const seen = new Set();
     stops.forEach((s) => {
-      const c = (s.country || '').trim();
+      const c = (s.country || "").trim();
       if (c && !seen.has(c)) {
         seen.add(c);
         countriesList.push(c);
       }
     });
-    const countriesCsv = countriesList.join(', ') || '—';
+    const countriesCsv = countriesList.join(", ") || "—";
 
     // Trip heading
     if (tripsCount === 1) {
@@ -1682,26 +1682,28 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
       text.push(`Trip ${tripIndex}`);
     }
 
-    // Dates + Countries travelled
+    // Dates + Countries travelled (unchanged)
     html.push(`<div>Dates: ${escapeHtml(`${start} to ${end}`)}</div>`);
     text.push(`Dates: ${start} to ${end}`);
 
     html.push(
-      `<div>Country / countries travelled (See below for details of the countries in this trip): ${escapeHtml(countriesCsv)}</div>`
+      `<div>Country / countries travelled (See below for details of the countries in this trip): ${escapeHtml(
+        countriesCsv
+      )}</div>`
     );
     text.push(
       `Country / countries travelled (See below for details of the countries in this trip): ${countriesCsv}`
     );
 
-    // Pull the canonical trip object for trip-level fields
+    // Pull canonical trip object for trip-level lines
     const tripObj = state.trips.find((t) => t.id === tripId) || {};
 
-    // Travelling from (if provided)
+    // Travelling from
     {
-      const fromCity = (tripObj.originCity || '').trim();
-      const fromCountry = (tripObj.originCountry || '').trim();
+      const fromCity = (tripObj.originCity || "").trim();
+      const fromCountry = (tripObj.originCountry || "").trim();
       if (fromCity || fromCountry) {
-        const fromLine = [fromCity, fromCountry].filter(Boolean).join(', ');
+        const fromLine = [fromCity, fromCountry].filter(Boolean).join(", ");
         html.push(`<div>Travelling from: ${escapeHtml(fromLine)}</div>`);
         text.push(`Travelling from: ${fromLine}`);
       }
@@ -1715,62 +1717,62 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
 
     // Malaria prophylaxis
     {
-      const m = tripObj.malaria || { indication: 'Not indicated', drug: 'None', adherence: '' };
+      const m = tripObj.malaria || {
+        indication: "Not indicated",
+        drug: "None",
+        adherence: "",
+      };
       let malariaText;
-      if (m.indication === 'Taken') {
-        const drug = m.drug && m.drug !== 'None' ? m.drug : 'Taken';
+      if (m.indication === "Taken") {
+        const drug = m.drug && m.drug !== "None" ? m.drug : "Taken";
         malariaText = m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug;
-      } else if (m.indication === 'Not taken') {
-        malariaText = 'Not taken';
+      } else if (m.indication === "Not taken") {
+        malariaText = "Not taken";
       } else {
-        malariaText = 'Not indicated';
+        malariaText = "Not indicated";
       }
       html.push(`<div>Malaria prophylaxis: ${escapeHtml(malariaText)}</div>`);
       text.push(`Malaria prophylaxis: ${malariaText}`);
     }
 
-    // Pre-travel vaccinations (renamed)
+    // Vaccinations
     {
       const vaccinesArr = Array.isArray(tripObj.vaccines) ? tripObj.vaccines : [];
-      const hasOther = vaccinesArr.includes('Other');
-      const baseList = hasOther ? vaccinesArr.filter((v) => v !== 'Other') : vaccinesArr;
-      let vaccinesDisplay = baseList.join(', ');
-      const otherText = (tripObj.vaccinesOther || '').trim();
+      const hasOther = vaccinesArr.includes("Other");
+      const baseList = hasOther ? vaccinesArr.filter((v) => v !== "Other") : vaccinesArr;
+      let vaccinesDisplay = baseList.join(", ");
+      const otherText = (tripObj.vaccinesOther || "").trim();
       if (hasOther && otherText) {
-        vaccinesDisplay = vaccinesDisplay
-          ? `${vaccinesDisplay}, Other: ${otherText}`
-          : `Other: ${otherText}`;
+        vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other: ${otherText}` : `Other: ${otherText}`;
       } else if (hasOther) {
-        vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other` : 'Other';
+        vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other` : "Other";
       }
       html.push(
-        `<div>Pre-travel vaccinations: ${vaccinesDisplay ? escapeHtml(vaccinesDisplay) : 'None'}</div>`
+        `<div>Pre-travel vaccinations: ${vaccinesDisplay ? escapeHtml(vaccinesDisplay) : "None"}</div>`
       );
-      text.push(`Pre-travel vaccinations: ${vaccinesDisplay || 'None'}`);
+      text.push(`Pre-travel vaccinations: ${vaccinesDisplay || "None"}`);
     }
 
-    // Companions (global, shown per trip)
+    // Companions
     {
       const cmp = state.companions || {};
-      if (cmp.group === 'Alone') {
+      if (cmp.group === "Alone") {
         html.push(`<div>Travelled alone.</div>`);
         text.push(`Travelled alone.`);
       } else {
-        const groupStr = cmp.group === 'Other' ? (cmp.otherText || 'Other') : (cmp.group || '—');
+        const groupStr = cmp.group === "Other" ? cmp.otherText || "Other" : cmp.group || "—";
         html.push(`<div>Travelled with: ${escapeHtml(groupStr)}</div>`);
         text.push(`Travelled with: ${groupStr}`);
 
         const wellStr =
-          cmp.companionsWell === 'yes'
-            ? 'Yes'
-            : cmp.companionsWell === 'no'
-            ? 'No'
-            : 'Unknown';
+          cmp.companionsWell === "yes" ? "Yes" : cmp.companionsWell === "no" ? "No" : "Unknown";
 
-        if (cmp.companionsWell === 'no') {
-          const details = (cmp.companionsUnwellDetails || '').trim();
-          html.push(`<div>Are they well: No${details ? ` — ${escapeHtml(details)}` : ''}</div>`);
-          text.push(`Are they well: No${details ? ` — ${details}` : ''}`);
+        if (cmp.companionsWell === "no") {
+          const details = (cmp.companionsUnwellDetails || "").trim();
+          html.push(
+            `<div>Are they well: No${details ? ` — ${escapeHtml(details)}` : ""}</div>`
+          );
+          text.push(`Are they well: No${details ? ` — ${details}` : ""}`);
         } else {
           html.push(`<div>Are they well: ${wellStr}</div>`);
           text.push(`Are they well: ${wellStr}`);
@@ -1778,44 +1780,80 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
       }
     }
 
-    // Render countries (by stop chronology in this trip)
-    // We reuse the events order, but only process 'stop' events
-    events.forEach((ev) => {
-      if (ev.type !== 'stop') return;
+    // ===== Layover indexing for this trip (by anchor stop) =====
+    const layoversByStop = new Map(); // stopId -> { before: [], between: [], after: [] }
+    events
+      .filter((e) => e.type === "layover" && e.anchorStopId)
+      .forEach((e) => {
+        const sid = e.anchorStopId;
+        if (!layoversByStop.has(sid)) layoversByStop.set(sid, { before: [], between: [], after: [] });
+        const bucket =
+          e.position === "before-stop"
+            ? "before"
+            : e.position === "after-stop"
+            ? "after"
+            : "between";
+        layoversByStop.get(sid)[bucket].push(e.layover);
+      });
+
+    // Helper: format one layover line (HTML string + text string)
+    const fmtLayover = (l) => {
+      const place = `${(l.city ? `${l.city}, ` : "") + (l.country || "")}`.trim();
+      const dates = `(${formatDMY(l.start) || "—"}–${formatDMY(l.end) || "—"})`;
+      const act =
+        l.leftAirport === "yes" && (l.activitiesText || "").trim()
+          ? ` · ${l.activitiesText.trim()}`
+          : "";
+      const line = `${place} ${dates}${act}`;
+      return {
+        html: escapeHtml(line),
+        text: line,
+      };
+    };
+
+    // Render each country (stop) with attached layovers
+    events.forEach((ev, idxInTrip) => {
+      if (ev.type !== "stop") return;
       const s = ev.stop;
+      const isLastStop = !!s.isLastInTrip;
 
-      // Country heading with dates in brackets; add a little separation visually
-      const country = escapeHtml(s.country || '—');
-      const countryDates = `${formatDMY(s.arrival) || '—'} to ${formatDMY(s.departure) || '—'}`;
+      // Country heading with dates
+      const country = escapeHtml(s.country || "—");
+      const countryDates = `${formatDMY(s.arrival) || "—"} to ${formatDMY(s.departure) || "—"}`;
       html.push(`<p><strong>${country} (${escapeHtml(countryDates)})</strong></p>`);
-      text.push(`${s.country || '—'} (${countryDates})`);
+      text.push(`${s.country || "—"} (${countryDates})`);
 
-      // Cities / regions
+      // --- Layovers BEFORE this country (only for the first stop) ---
+      const beforeList = (layoversByStop.get(s.id)?.before || []).map(fmtLayover);
+      if (beforeList.length) {
+        html.push(`<div>Layovers before this country:</div>`);
+        text.push(`Layovers before this country:`);
+        html.push(`<ul>${beforeList.map((v) => `<li>${v.html}</li>`).join("")}</ul>`);
+        beforeList.forEach((v) => text.push(`- ${v.text}`));
+      }
+
+      // Cities / regions (keep bullets)
       const citiesArr = (s.cities || [])
         .map((c) =>
-          typeof c === 'string'
-            ? { name: c, arrival: '', departure: '' }
-            : {
-                name: c?.name || '',
-                arrival: c?.arrival || '',
-                departure: c?.departure || '',
-              }
+          typeof c === "string"
+            ? { name: c, arrival: "", departure: "" }
+            : { name: c?.name || "", arrival: c?.arrival || "", departure: c?.departure || "" }
         )
         .filter((c) => c.name);
 
       if (citiesArr.length) {
         html.push(`<div>Cities / regions:</div>`);
         text.push(`Cities / regions:`);
-        html.push('<ul>');
+        html.push("<ul>");
         citiesArr.forEach((cObj) => {
-          const a = cObj.arrival ? formatDMY(cObj.arrival) : '';
-          const d = cObj.departure ? formatDMY(cObj.departure) : '';
-          const datePart = a || d ? ` (${a || '—'} to ${d || '—'})` : '';
+          const a = cObj.arrival ? formatDMY(cObj.arrival) : "";
+          const d = cObj.departure ? formatDMY(cObj.departure) : "";
+          const datePart = a || d ? ` (${a || "—"} to ${d || "—"})` : "";
           const line = `${cObj.name}${datePart}`;
           html.push(`<li>${escapeHtml(line)}</li>`);
           text.push(`- ${line}`);
         });
-        html.push('</ul>');
+        html.push("</ul>");
       } else {
         html.push(`<div>Cities / regions: —</div>`);
         text.push(`Cities / regions: —`);
@@ -1823,13 +1861,10 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
 
       // Accommodation
       const accom = s.accommodations?.length
-        ? (s.accommodations.includes('Other') && s.accommodationOther
-            ? [
-                ...s.accommodations.filter((a) => a !== 'Other'),
-                `Other: ${s.accommodationOther}`,
-              ].join(', ')
-            : s.accommodations.join(', '))
-        : '';
+        ? s.accommodations.includes("Other") && s.accommodationOther
+          ? [...s.accommodations.filter((a) => a !== "Other"), `Other: ${s.accommodationOther}`].join(", ")
+          : s.accommodations.join(", ")
+        : "";
       if (accom) {
         html.push(`<div>Accommodation: ${escapeHtml(accom)}</div>`);
         text.push(`Accommodation: ${accom}`);
@@ -1838,30 +1873,49 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
         text.push(`Accommodation: —`);
       }
 
-      // Exposures (bulleted list, with colon)
+      // Exposures (bullets)
       const bullets = exposureBullets(s.exposures); // [{label, details}]
       if (bullets.length) {
         html.push(`<div>Exposures:</div>`);
         text.push(`Exposures:`);
-        html.push('<ul>');
+        html.push("<ul>");
         bullets.forEach(({ label, details }) => {
           const line = details ? `${label} — ${details}` : label;
           html.push(`<li>${escapeHtml(line)}</li>`);
           text.push(`- ${line}`);
         });
-        html.push('</ul>');
+        html.push("</ul>");
       } else {
         html.push(`<div>Exposures: —</div>`);
         text.push(`Exposures: —`);
+      }
+
+      // --- Layovers BETWEEN this country and the next ---
+      const betweenList = (layoversByStop.get(s.id)?.between || []).map(fmtLayover);
+      if (betweenList.length) {
+        html.push(`<div>Layovers to next destination:</div>`);
+        text.push(`Layovers to next destination:`);
+        html.push(`<ul>${betweenList.map((v) => `<li>${v.html}</li>`).join("")}</ul>`);
+        betweenList.forEach((v) => text.push(`- ${v.text}`));
+      }
+
+      // --- Layovers AFTER this trip (only for last stop) ---
+      if (isLastStop) {
+        const afterList = (layoversByStop.get(s.id)?.after || []).map(fmtLayover);
+        if (afterList.length) {
+          html.push(`<div>Layovers after this trip:</div>`);
+          text.push(`Layovers after this trip:`);
+          html.push(`<ul>${afterList.map((v) => `<li>${v.html}</li>`).join("")}</ul>`);
+          afterList.forEach((v) => text.push(`- ${v.text}`));
+        }
       }
     });
 
     tripIndex += 1;
   }
 
-  return { summaryHtml: html.join('\n'), summaryTextPlain: text.join('\n') };
+  return { summaryHtml: html.join("\n"), summaryTextPlain: text.join("\n") };
 }
-
 function escapeHtml(s) {
   return String(s)
     .replaceAll('&', '&amp;')
