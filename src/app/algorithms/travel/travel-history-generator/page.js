@@ -230,13 +230,17 @@ function buildTripEvents(trip, companions) {
     }
   }
 
-  // Emit: layovers before first (by end asc), then stop0, (between 0&1), stop1, ..., then layovers after last (by start asc)
+   // Emit with anchors so Timeline can place layovers near the correct stop
+  const firstStopId = firstStop.id;
+  const lastStopId = lastStop.id;
+
+  // Sort groups
   beforeFirst.sort((a, b) => (parseDate(a.end) - parseDate(b.end)));
-  beforeFirst.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l }));
+  afterLast.sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
 
   stopsSorted.forEach((s, i) => {
-    const isFirstInTrip = s.id === firstStop.id;
-    const isLastInTrip = s.id === lastStop.id;
+    const isFirstInTrip = s.id === firstStopId;
+    const isLastInTrip = s.id === lastStopId;
     events.push({
       type: 'stop',
       date: parseDate(s.arrival),
@@ -246,21 +250,54 @@ function buildTripEvents(trip, companions) {
         isLastInTrip,
         tripPurpose: trip.purpose,
         tripVaccines: trip.vaccines || [],
-        tripVaccinesOther: trip.vaccinesOther || '', 
+        tripVaccinesOther: trip.vaccinesOther || '',
         tripMalaria: trip.malaria || { indication: 'Not indicated', drug: 'None', adherence: '' },
         tripCompanions: companions || null,
         tripOriginCountry: trip.originCountry || '',
         tripOriginCity: trip.originCity || '',
       },
     });
+
+    // Attach layovers that belong *before the first stop's card*
+    if (i === 0 && beforeFirst.length) {
+      beforeFirst.forEach((l) =>
+        events.push({
+          type: 'layover',
+          date: parseDate(l.start),
+          layover: l,
+          anchorStopId: s.id,
+          position: 'before-stop',
+        })
+      );
+    }
+
+    // Layovers between this stop and the next (render *after* this stop's card)
     if (i < betweenByIndex.length) {
       const group = betweenByIndex[i].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
-      group.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l }));
+      group.forEach((l) =>
+        events.push({
+          type: 'layover',
+          date: parseDate(l.start),
+          layover: l,
+          anchorStopId: s.id,
+          position: 'between',
+        })
+      );
+    }
+
+    // Attach layovers that belong *after the last stop's card*
+    if (isLastInTrip && afterLast.length) {
+      afterLast.forEach((l) =>
+        events.push({
+          type: 'layover',
+          date: parseDate(l.start),
+          layover: l,
+          anchorStopId: s.id,
+          position: 'after-stop',
+        })
+      );
     }
   });
-
-  afterLast.sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
-  afterLast.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l }));
 
   return events;
 }
@@ -1315,12 +1352,10 @@ function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
 }
 
 /**
- * Timeline (Vertical)
- * - Two-column grid with 72px gutter
- * - Dashed rail centered in gutter
- * - Nodes centered over rail
- * - Renders stop (arrival node + meta text for first stop + card + departure node)
- *   and layover (start node + strip + end node). No separate tripMeta card.
+ * Timeline (Vertical) — with anchored layovers
+ * Layovers are expected to be annotated in buildTripEvents with:
+ *   - anchorStopId: string
+ *   - position: 'before-stop' | 'between' | 'after-stop'
  */
 function TimelineVertical({ events }) {
   // Capitalise first letter for visual labels (local to this component)
@@ -1337,6 +1372,62 @@ function TimelineVertical({ events }) {
     />
   );
 
+  // Bucket layovers by their anchor stop and position
+  const layoversByStop = useMemo(() => {
+    const map = new Map(); // stopId -> { 'before-stop': [], between: [], 'after-stop': [] }
+    for (const ev of events || []) {
+      if (ev.type !== "layover" || !ev.anchorStopId) continue;
+      const id = ev.anchorStopId;
+      const pos = ev.position || "between";
+      if (!map.has(id)) map.set(id, { "before-stop": [], between: [], "after-stop": [] });
+      map.get(id)[pos].push(ev.layover);
+    }
+    return map;
+  }, [events]);
+
+  // Helper to render a layover as start row + strip + end row, using same visual language
+  const LayoverRows = ({ l }) => (
+    <>
+      {/* Layover start */}
+      <div className="col-[1] relative h-6 z-10">
+        <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
+          {/* small grey node (different to stop node) */}
+          <span
+            className="relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900 bg-slate-400 dark:bg-slate-600"
+            aria-hidden="true"
+          />
+        </span>
+      </div>
+      <div className="col-[2] h-6 flex items-center gap-3">
+        <strong className="tabular-nums">{formatDMY(l.start)}</strong>
+        <span className="text-xs text-slate-500">Layover start</span>
+      </div>
+
+      {/* Layover strip */}
+      <div className="col-[1]" aria-hidden="true" />
+      <div className="col-[2]">
+        <div className="mt-1 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-xs text-slate-700 dark:text-slate-300">
+          {(l.city ? `${l.city}, ` : "") + (l.country || "")}
+          {l.leftAirport === "yes" && l.activitiesText ? ` · ${l.activitiesText}` : ""}
+        </div>
+      </div>
+
+      {/* Layover end */}
+      <div className="col-[1] relative h-6 z-10">
+        <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
+          <span
+            className="relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900 bg-slate-400 dark:bg-slate-600"
+            aria-hidden="true"
+          />
+        </span>
+      </div>
+      <div className="col-[2] h-6 flex items-center gap-3">
+        <strong className="tabular-nums">{formatDMY(l.end)}</strong>
+        <span className="text-xs text-slate-500">Layover end</span>
+      </div>
+    </>
+  );
+
   return (
     <div className="relative">
       {/* Continuous dashed rail centered in the 72px gutter */}
@@ -1347,211 +1438,200 @@ function TimelineVertical({ events }) {
 
       <ol
         className="grid"
-        style={{ gridTemplateColumns: '72px 1fr', rowGap: '12px' }}
+        style={{ gridTemplateColumns: "72px 1fr", rowGap: "12px" }}
       >
-        {events.map((ev, idx) => {
-          if (ev.type === 'stop') {
-            const it = ev.stop;
-            return (
-              <li key={`stop-${it.id}-${idx}`} className="contents">
-                {/* Arrival row */}
-                <div className="col-[1] relative h-6 z-10">
-                  <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-                    <Node />
-                  </span>
+        {(events || []).map((ev, idx) => {
+          if (ev.type !== "stop") return null; // layovers are rendered inline via anchors
+
+          const it = ev.stop;
+
+          return (
+            <li key={`stop-${it.id}-${idx}`} className="contents">
+              {/* Arrival row */}
+              <div className="col-[1] relative h-6 z-10">
+                <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
+                  <Node />
+                </span>
+              </div>
+              <div className="col-[2] h-6 flex items-center">
+                <div className="flex items-center gap-3">
+                  <strong className="tabular-nums">{formatDMY(it.arrival)}</strong>
+                  {it.isFirstInTrip && (
+                    <span className="text-sm text-slate-600 dark:text-slate-300">
+                      — {it.tripOriginCity || it.tripOriginCountry
+                        ? `Departure from ${[it.tripOriginCity, it.tripOriginCountry].filter(Boolean).join(", ")}`
+                        : "Departure"}
+                    </span>
+                  )}
                 </div>
-                <div className="col-[2] h-6 flex items-center">
-                  <div className="flex items-center gap-3">
-                    <strong className="tabular-nums">{formatDMY(it.arrival)}</strong>
-                    {it.isFirstInTrip && (
-  <span className="text-sm text-slate-600 dark:text-slate-300">
-    — {it.tripOriginCity || it.tripOriginCountry
-        ? `Departure from ${[it.tripOriginCity, it.tripOriginCountry].filter(Boolean).join(', ')}`
-        : 'Departure'}
-  </span>
-)}
+              </div>
+
+              {/* Trip meta + companions under first stop */}
+              {it.isFirstInTrip && (
+                <div className="col-[2] mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">
+                  {it.tripPurpose ? (
+                    <div>
+                      <span className="font-semibold">Purpose:</span> {it.tripPurpose}
+                    </div>
+                  ) : null}
+                  <div>
+                    <span className="font-semibold">Malaria prophylaxis:</span>{" "}
+                    {(() => {
+                      const m = it.tripMalaria || {};
+                      if (m.indication === "Taken") {
+                        const drug = m.drug && m.drug !== "None" ? m.drug : "Taken";
+                        return m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug;
+                      }
+                      if (m.indication === "Not taken") return "Not taken";
+                      return "Not indicated";
+                    })()}
                   </div>
+                  <div>
+                    <span className="font-semibold">Vaccinations:</span>{" "}
+                    {(() => {
+                      const arr = Array.isArray(it.tripVaccines) ? it.tripVaccines : [];
+                      const hasOther = arr.includes("Other");
+                      const base = (hasOther ? arr.filter((v) => v !== "Other") : arr).join(", ");
+                      const otherText = (it.tripVaccinesOther || "").trim();
+
+                      if (hasOther && otherText) {
+                        return base ? `${base}, Other: ${otherText}` : `Other: ${otherText}`;
+                      }
+                      return base ? (hasOther ? `${base}, Other` : base) : hasOther ? "Other" : "None";
+                    })()}
+                  </div>
+                  {it.tripCompanions && (
+                    <>
+                      {it.tripCompanions.group === "Alone" ? (
+                        <div>
+                          <span className="font-semibold">Travelled alone.</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <span className="font-semibold">Travelled with:</span>{" "}
+                            {it.tripCompanions.group === "Other"
+                              ? it.tripCompanions.otherText || "Other"
+                              : it.tripCompanions.group || "—"}
+                          </div>
+                          <div>
+                            <span className="font-semibold">Are they well:</span>{" "}
+                            {it.tripCompanions.companionsWell === "yes"
+                              ? "Yes"
+                              : it.tripCompanions.companionsWell === "no"
+                              ? "No" +
+                                (it.tripCompanions.companionsUnwellDetails?.trim()
+                                  ? ` — ${it.tripCompanions.companionsUnwellDetails.trim()}`
+                                  : "")
+                              : "Unknown"}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
                 </div>
+              )}
 
-                {/* Trip meta + companions under first stop */}
-                {it.isFirstInTrip && (
-                  <div className="col-[2] mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">
-                    {it.tripPurpose ? (
-                      <div>
-                        <span className="font-semibold">Purpose:</span> {it.tripPurpose}
-                      </div>
-                    ) : null}
-                    <div>
-  <span className="font-semibold">Malaria prophylaxis:</span>{' '}
-  {(() => {
-    const m = it.tripMalaria || {};
-    if (m.indication === 'Taken') {
-      const drug = m.drug && m.drug !== 'None' ? m.drug : 'Taken';
-      return m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug;
-    }
-    if (m.indication === 'Not taken') return 'Not taken';
-    return 'Not indicated';
-  })()}
-</div>
-                    <div>
-  <span className="font-semibold">Vaccinations:</span>{' '}
-  {(() => {
-    const arr = Array.isArray(it.tripVaccines) ? it.tripVaccines : [];
-    const hasOther = arr.includes('Other');
-    const base = (hasOther ? arr.filter(v => v !== 'Other') : arr).join(', ');
-    const otherText = (it.tripVaccinesOther || '').trim();
+              {/* Layovers BEFORE the first stop's country card */}
+              {(layoversByStop.get(it.id)?.["before-stop"] || []).map((l) => (
+                <LayoverRows key={`layover-before-${l.id}`} l={l} />
+              ))}
 
-    // If we have Other + free text, show only "Other: <text>" (no bare "Other")
-    if (hasOther && otherText) {
-      return base ? `${base}, Other: ${otherText}` : `Other: ${otherText}`;
-    }
-    // If "Other" was ticked but no text given, keep a bare "Other"
-    return base ? (hasOther ? `${base}, Other` : base) : (hasOther ? 'Other' : 'None');
-  })()}
-</div>
-                    {it.tripCompanions && (
-  <>
-    {it.tripCompanions.group === 'Alone' ? (
-      <div><span className="font-semibold">Travelled alone.</span></div>
-    ) : (
-      <>
-        <div>
-          <span className="font-semibold">Travelled with:</span>{' '}
-          {it.tripCompanions.group === 'Other'
-            ? (it.tripCompanions.otherText || 'Other')
-            : (it.tripCompanions.group || '—')}
-        </div>
-        <div>
-          <span className="font-semibold">Are they well:</span>{' '}
-          {it.tripCompanions.companionsWell === 'yes'
-            ? 'Yes'
-            : it.tripCompanions.companionsWell === 'no'
-            ? ('No' + (it.tripCompanions.companionsUnwellDetails?.trim()
-                ? ` — ${it.tripCompanions.companionsUnwellDetails.trim()}`
-                : ''))
-            : 'Unknown'}
-        </div>
-      </>
-    )}
-  </>
-)}
-                  </div>
-                )}
+              {/* Country card */}
+              <div className="col-[1]" aria-hidden="true" />
+              <div className="col-[2]">
+                <div className="relative z-0 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
+                  {/* Country & Cities */}
+                  <h3
+                    className="text-base font-semibold text-slate-900 dark:text-slate-100"
+                    title={it.country || it.label}
+                  >
+                    {it.country || it.label || "—"}
+                  </h3>
+                  {it.cities && it.cities.length > 0 && (
+                    <div className="mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">
+                      {it.cities.map((c, i) => {
+                        const obj = typeof c === "string" ? { name: c } : c || {};
+                        const nm = obj.name || "";
+                        const a = obj.arrival ? formatDMY(obj.arrival) : "";
+                        const d = obj.departure ? formatDMY(obj.departure) : "";
+                        const datePart = a || d ? ` (${a || "—"} to ${d || "—"})` : "";
+                        if (!nm) return null;
+                        return (
+                          <div key={i}>
+                            {nm}
+                            {datePart}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
-                {/* Card row */}
-                <div className="col-[1]" aria-hidden="true" />
-                <div className="col-[2]">
-                  <div className="relative z-0 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
-                    {/* Country & Cities */}
-                    <h3
-                      className="text-base font-semibold text-slate-900 dark:text-slate-100"
-                      title={it.country || it.label}
-                    >
-                      {it.country || it.label || '—'}
-                    </h3>
-                    {it.cities && it.cities.length > 0 && (
-  <div className="mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">
-    {it.cities.map((c, i) => {
-      const obj = typeof c === 'string' ? { name: c } : c || {};
-      const nm = obj.name || '';
-      const a = obj.arrival ? formatDMY(obj.arrival) : '';
-      const d = obj.departure ? formatDMY(obj.departure) : '';
-      const datePart = a || d ? ` (${a || '—'} to ${d || '—'})` : '';
-      if (!nm) return null;
-      return <div key={i}>{nm}{datePart}</div>;
-    })}
-  </div>
-)}
+                  {/* Details grid */}
+                  <div className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-2">
+                    <div className="text-sm">
+                      <span className="font-medium">Accommodation:</span>{" "}
+                      {it.accommodations?.length
+                        ? it.accommodations.includes("Other") && it.accommodationOther
+                          ? [
+                              ...it.accommodations.filter((a) => a !== "Other"),
+                              `Other: ${it.accommodationOther}`,
+                            ].join(", ")
+                          : it.accommodations.join(", ")
+                        : "—"}
+                    </div>
 
-                    {/* Details grid */}
-                    <div className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-2">
-                      <div className="text-sm">
-                        <span className="font-medium">Accommodation:</span>{' '}
-                        {it.accommodations?.length
-                          ? (it.accommodations.includes('Other') && it.accommodationOther
-                              ? [
-                                  ...it.accommodations.filter((a) => a !== 'Other'),
-                                  `Other: ${it.accommodationOther}`,
-                                ].join(', ')
-                              : it.accommodations.join(', '))
-                          : '—'}
-                      </div>
-
-                      {/* Exposures with details */}
-                      <div className="text-sm sm:col-span-2">
-  <span className="font-medium">Exposures:</span>{' '}
-  {(() => {
-    const items = exposureBullets(it.exposures); // [{label, details}]
-    return items.length ? (
-      <ul className="mt-1 list-disc pl-5">
-        {items.map(({ label, details }, i) => (
-          <li key={i} className="text-sm">
-            {details ? `${label} — ${details}` : label}
-          </li>
-        ))}
-      </ul>
-    ) : (
-      '—'
-    );
-  })()}
-</div>
+                    {/* Exposures with details */}
+                    <div className="text-sm sm:col-span-2">
+                      <span className="font-medium">Exposures:</span>{" "}
+                      {(() => {
+                        const items = exposureBullets(it.exposures); // [{label, details}]
+                        return items.length ? (
+                          <ul className="mt-1 list-disc pl-5">
+                            {items.map(({ label, details }, i) => (
+                              <li key={i} className="text-sm">
+                                {details ? `${label} — ${details}` : label}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          "—"
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Departure row */}
-                <div className="col-[1] relative h-6 z-10">
-                  <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-                    <Node />
+              {/* Layovers BETWEEN this country and the next (immediately after this card) */}
+              {(layoversByStop.get(it.id)?.between || []).map((l) => (
+                <LayoverRows key={`layover-between-${l.id}`} l={l} />
+              ))}
+
+              {/* Layovers AFTER the last country card but BEFORE the departure row */}
+              {it.isLastInTrip &&
+                (layoversByStop.get(it.id)?.["after-stop"] || []).map((l) => (
+                  <LayoverRows key={`layover-after-${l.id}`} l={l} />
+                ))}
+
+              {/* Departure row */}
+              <div className="col-[1] relative h-6 z-10">
+                <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
+                  <Node />
+                </span>
+              </div>
+              <div className="col-[2] h-6 flex items-center gap-3">
+                <strong className="tabular-nums">{formatDMY(it.departure)}</strong>
+                {it.isLastInTrip && (
+                  <span className="text-sm text-slate-600 dark:text-slate-300">
+                    —{" "}
+                    {it.tripOriginCity || it.tripOriginCountry
+                      ? `Arrival to ${[it.tripOriginCity, it.tripOriginCountry]
+                          .filter(Boolean)
+                          .join(", ")}`
+                      : "Arrival"}
                   </span>
-                </div>
-                <div className="col-[2] h-6 flex items-center gap-3">
-                  <strong className="tabular-nums">{formatDMY(it.departure)}</strong>
-                  {it.isLastInTrip && (
-  <span className="text-sm text-slate-600 dark:text-slate-300">
-    — {it.tripOriginCity || it.tripOriginCountry
-        ? `Arrival to ${[it.tripOriginCity, it.tripOriginCountry].filter(Boolean).join(', ')}`
-        : 'Arrival'}
-  </span>
-)}
-                </div>
-              </li>
-            );
-          }
-
-          // Layover
-          const l = ev.layover;
-          return (
-            <li key={`layover-${l.id}-${idx}`} className="contents">
-              {/* Layover start */}
-              <div className="col-[1] relative h-6 z-10">
-                <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-                  <Node />
-                </span>
-              </div>
-              <div className="col-[2] h-6 flex items-center gap-3">
-                <strong className="tabular-nums">{formatDMY(l.start)}</strong>
-                <span className="text-xs text-slate-500">Layover start</span>
-              </div>
-
-              {/* Layover strip */}
-              <div className="col-[1]" aria-hidden="true" />
-              <div className="col-[2]">
-                <div className="mt-1 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-xs text-slate-700 dark:text-slate-300">
-                  {(l.city ? `${l.city}, ` : '') + (l.country || '')}
-                  {l.leftAirport === 'yes' && l.activitiesText ? ` · ${l.activitiesText}` : ''}
-                </div>
-              </div>
-
-              {/* Layover end */}
-              <div className="col-[1] relative h-6 z-10">
-                <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-                  <Node />
-                </span>
-              </div>
-              <div className="col-[2] h-6 flex items-center gap-3">
-                <strong className="tabular-nums">{formatDMY(l.end)}</strong>
-                <span className="text-xs text-slate-500">Layover end</span>
+                )}
               </div>
             </li>
           );
