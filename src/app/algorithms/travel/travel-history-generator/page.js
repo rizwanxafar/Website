@@ -1123,24 +1123,15 @@ const removeCity = (i) => {
                 />
                 <span>Other vector</span>
               </label>
-              {exp.vectorOtherEnabled && (
-                <>
-                  <input
-                    type="text"
-                    placeholder="Other vector (e.g., sandflies)"
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm"
-                    value={exp.vectorOther}
-                    onChange={(e) => onChange({ exposures: { ...exp, vectorOther: e.target.value } })}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Please provide more details."
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm"
-                    value={exp.vectorOtherDetails}
-                    onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })}
-                  />
-                </>
-              )}
+             {exp.vectorOtherEnabled && (
+   <input
+     type="text"
+     placeholder="Please provide more details."
+     className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm"
+     value={exp.vectorOtherDetails}
+     onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })}
+   />
+ )}
             </div>
           </fieldset>
 
@@ -1946,8 +1937,8 @@ function exposureBullets(exp) {
   // Vector
   push('mosquito bites', exp.mosquito, exp.mosquitoDetails);
   push('tick bites', exp.tick, exp.tickDetails);
-  if (exp.vectorOtherEnabled && exp.vectorOther) {
-  out.push({ label: cap(exp.vectorOther), details: exp.vectorOtherDetails?.trim() || '' });
+  if (exp.vectorOtherEnabled) {
+  out.push({ label: 'Other vector', details: exp.vectorOtherDetails?.trim() || '' });
   }
 
   // Environment
