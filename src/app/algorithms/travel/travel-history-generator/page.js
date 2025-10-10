@@ -1820,6 +1820,9 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
       // Country heading with dates
       const country = escapeHtml(s.country || "—");
       const countryDates = `${formatDMY(s.arrival) || "—"} to ${formatDMY(s.departure) || "—"}`;
+       // Blank line / spacer before each country block (HTML + plain text)
+      html.push(`<div style="height:8px"></div>`);
+      text.push("");
       html.push(`<p><strong>${country} (${escapeHtml(countryDates)})</strong></p>`);
       text.push(`${s.country || "—"} (${countryDates})`);
 
