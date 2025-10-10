@@ -1828,63 +1828,76 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
         beforeList.forEach((v) => text.push(`- ${v.text}`));
       }
 
-      // Cities / regions (keep bullets)
-      const citiesArr = (s.cities || [])
-        .map((c) =>
-          typeof c === "string"
-            ? { name: c, arrival: "", departure: "" }
-            : { name: c?.name || "", arrival: c?.arrival || "", departure: c?.departure || "" }
-        )
-        .filter((c) => c.name);
+     // Cities / regions
+const citiesArr = (s.cities || [])
+  .map((c) =>
+    typeof c === "string"
+      ? { name: c, arrival: "", departure: "" }
+      : {
+          name: c?.name || "",
+          arrival: c?.arrival || "",
+          departure: c?.departure || "",
+        }
+  )
+  .filter((c) => c.name);
 
-      if (citiesArr.length) {
-        html.push(`<div>Cities / regions:</div>`);
-        text.push(`Cities / regions:`);
-        html.push("<ul>");
-        citiesArr.forEach((cObj) => {
-          const a = cObj.arrival ? formatDMY(cObj.arrival) : "";
-          const d = cObj.departure ? formatDMY(cObj.departure) : "";
-          const datePart = a || d ? ` (${a || "—"} to ${d || "—"})` : "";
-          const line = `${cObj.name}${datePart}`;
-          html.push(`<li>${escapeHtml(line)}</li>`);
-          text.push(`- ${line}`);
-        });
-        html.push("</ul>");
-      } else {
-        html.push(`<div>Cities / regions: —</div>`);
-        text.push(`Cities / regions: —`);
-      }
+if (citiesArr.length) {
+  html.push(`<div>Cities / regions:</div>`);
+  text.push(`Cities / regions:`);
+  text.push(""); // blank line before bullets
 
-      // Accommodation
-      const accom = s.accommodations?.length
-        ? s.accommodations.includes("Other") && s.accommodationOther
-          ? [...s.accommodations.filter((a) => a !== "Other"), `Other: ${s.accommodationOther}`].join(", ")
-          : s.accommodations.join(", ")
-        : "";
-      if (accom) {
-        html.push(`<div>Accommodation: ${escapeHtml(accom)}</div>`);
-        text.push(`Accommodation: ${accom}`);
-      } else {
-        html.push(`<div>Accommodation: —</div>`);
-        text.push(`Accommodation: —`);
-      }
+  html.push("<ul>");
+  citiesArr.forEach((cObj) => {
+    const a = cObj.arrival ? formatDMY(cObj.arrival) : "";
+    const d = cObj.departure ? formatDMY(cObj.departure) : "";
+    const datePart = a || d ? ` (${a || "—"} to ${d || "—"})` : "";
+    const line = `${cObj.name}${datePart}`;
+    html.push(`<li>${escapeHtml(line)}</li>`);
+    text.push(`• ${line}`);
+  });
+  html.push("</ul>");
+  text.push(""); // blank line after list
+} else {
+  html.push(`<div>Cities / regions: —</div>`);
+  text.push(`Cities / regions: —`);
+}
 
-      // Exposures (bullets)
-      const bullets = exposureBullets(s.exposures); // [{label, details}]
-      if (bullets.length) {
-        html.push(`<div>Exposures:</div>`);
-        text.push(`Exposures:`);
-        html.push("<ul>");
-        bullets.forEach(({ label, details }) => {
-          const line = details ? `${label} — ${details}` : label;
-          html.push(`<li>${escapeHtml(line)}</li>`);
-          text.push(`- ${line}`);
-        });
-        html.push("</ul>");
-      } else {
-        html.push(`<div>Exposures: —</div>`);
-        text.push(`Exposures: —`);
-      }
+// Accommodation
+const accom = s.accommodations?.length
+  ? (s.accommodations.includes("Other") && s.accommodationOther
+      ? [
+          ...s.accommodations.filter((a) => a !== "Other"),
+          `Other: ${s.accommodationOther}`,
+        ].join(", ")
+      : s.accommodations.join(", "))
+  : "";
+if (accom) {
+  html.push(`<div>Accommodation: ${escapeHtml(accom)}</div>`);
+  text.push(`Accommodation: ${accom}`);
+} else {
+  html.push(`<div>Accommodation: —</div>`);
+  text.push(`Accommodation: —`);
+}
+
+// Exposures (bulleted list)
+const bullets = exposureBullets(s.exposures);
+if (bullets.length) {
+  html.push(`<div>Exposures:</div>`);
+  text.push(`Exposures:`);
+  text.push(""); // blank line before bullets
+
+  html.push("<ul>");
+  bullets.forEach(({ label, details }) => {
+    const line = details ? `${label} — ${details}` : label;
+    html.push(`<li>${escapeHtml(line)}</li>`);
+    text.push(`• ${line}`);
+  });
+  html.push("</ul>");
+  text.push(""); // blank line after list
+} else {
+  html.push(`<div>Exposures: —</div>`);
+  text.push(`Exposures: —`);
+}
 
       // --- Layovers BETWEEN this country and the next ---
       const betweenList = (layoversByStop.get(s.id)?.between || []).map(fmtLayover);
