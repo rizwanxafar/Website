@@ -269,7 +269,6 @@ function buildTripEvents(trip, companions) {
 // ===== Main Page Component =====
 export default function TravelHistoryGeneratorPage() {
   const [state, setState] = useState(initialState);
-  const [showAbout, setShowAbout] = useState(false);
   const [issues, setIssues] = useState([]);
   const [highlight, setHighlight] = useState({ stopIds: new Set(), layoverIds: new Set() });
   const [pendingScrollId, setPendingScrollId] = useState(null);
@@ -439,7 +438,6 @@ useEffect(() => {
           </p>
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setShowAbout(true)} className={BTN_SECONDARY}>About</button>
           <button type="button" onClick={clearAll} className={BTN_SECONDARY}>Clear all</button>
         </div>
       </header>
@@ -615,22 +613,6 @@ useEffect(() => {
   </div>
 </section>
 
-      {/* About modal */}
-      {showAbout && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowAbout(false)} />
-          <div className="relative z-10 w-full max-w-lg rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">About this tool</h3>
-            <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-              This generator creates a travel history summary (text + timeline). Data is stored only in your browser for this session.
-              Do not enter private or patient-identifiable information.
-            </p>
-            <div className="mt-4 text-right">
-              <button type="button" onClick={() => setShowAbout(false)} className={LINKISH_SECONDARY + " text-sm px-3 py-2"}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
 
             {/* Print styles */}
       <style jsx global>{`
