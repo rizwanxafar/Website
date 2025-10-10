@@ -1828,7 +1828,7 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
         beforeList.forEach((v) => text.push(`- ${v.text}`));
       }
 
-     // Cities / regions
+    // Cities / regions
 const citiesArr = (s.cities || [])
   .map((c) =>
     typeof c === "string"
@@ -1846,7 +1846,8 @@ if (citiesArr.length) {
   text.push(`Cities / regions:`);
   text.push(""); // blank line before bullets
 
-  html.push("<ul>");
+  // ✅ proper bullets in HTML
+  html.push('<ul class="list-disc pl-5">');
   citiesArr.forEach((cObj) => {
     const a = cObj.arrival ? formatDMY(cObj.arrival) : "";
     const d = cObj.departure ? formatDMY(cObj.departure) : "";
@@ -1886,7 +1887,8 @@ if (bullets.length) {
   text.push(`Exposures:`);
   text.push(""); // blank line before bullets
 
-  html.push("<ul>");
+  // ✅ proper bullets in HTML
+  html.push('<ul class="list-disc pl-5">');
   bullets.forEach(({ label, details }) => {
     const line = details ? `${label} — ${details}` : label;
     html.push(`<li>${escapeHtml(line)}</li>`);
