@@ -465,7 +465,7 @@ useEffect(() => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Travel History Generator</h1>
           <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl">
-            Build a clear, printable travel history. Provide as much information as possible to generate accurate history.
+            Build a clear, concise travel history. Provide as much information as possible to generate accurate history.
           </p>
         </div>
         <div className="flex gap-2">
