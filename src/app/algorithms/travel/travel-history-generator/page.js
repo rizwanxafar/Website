@@ -12,7 +12,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 // ---- Minimal countries stub for datalist (replace with canonical dataset later) ----
 import CountryInput from "@/components/inputs/CountryInput";
 import { Country, City } from "country-state-city";
-import CityInput from "@/components/inputs/CityInput";
 
 // --- country-state-city helpers (cache + name→ISO lookup) ---
 const CSC_COUNTRIES = Country.getAllCountries(); // [{ name, isoCode, ... }]
@@ -66,10 +65,6 @@ const BTN_PRIMARY =
 const BTN_SECONDARY =
   "rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 " +
   "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition";
-
-const BADGE_PRIMARY =
-  "inline-flex h-6 w-6 items-center justify-center rounded-full text-white text-xs font-semibold " +
-  "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]";
 
 const LINKISH_SECONDARY =
   "rounded-lg px-3 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 " +
@@ -1358,8 +1353,6 @@ function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
  *   - position: 'before-stop' | 'between' | 'after-stop'
  */
 function TimelineVertical({ events }) {
-  // Capitalise first letter for visual labels (local to this component)
-  const capFirst = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
   // Node component (10px brand with white ring)
   const Node = () => (
@@ -1926,47 +1919,6 @@ function escapeHtml(s) {
     .replaceAll('>', '&gt;');
 }
 
-// Exposure labels for the visual timeline (no details)
-function exposureLabels(exp) {
-  const labels = [];
-  if (!exp) return labels;
-
-  // Vector
-  if (exp.mosquito) labels.push(cap('mosquito bites'));
-  if (exp.tick) labels.push(cap('tick bites'));
-  if (exp.vectorOtherEnabled && exp.vectorOther) labels.push(cap(exp.vectorOther));
-
-  // Environment
-  if (exp.freshwater) labels.push(cap('freshwater contact'));
-  if (exp.cavesMines) labels.push(cap('visited caves or mines'));
-  if (exp.ruralForest) labels.push(cap('rural / forest stay'));
-  if (exp.hikingWoodlands) labels.push(cap('hiking in forest / bush / woodlands'));
-
-  // Animal & procedures
-  if (exp.animalContact) labels.push(cap('animal contact'));
-  if (exp.animalBiteScratch) labels.push(cap('animal bite / scratch'));
-  if (exp.bushmeat) labels.push(cap('bushmeat consumption'));
-  if (exp.needlesTattoos) labels.push(cap('needles / tattoos / piercings'));
-  if (exp.safariWildlife) labels.push(cap('safari / wildlife viewing'));
-
-  // Food & water
-  if (exp.streetFood) labels.push(cap('street food'));
-  if (exp.untreatedWater) labels.push(cap('untreated water'));
-  if (exp.undercookedFood) labels.push(cap('undercooked food'));
-  if (exp.undercookedSeafood) labels.push(cap('undercooked seafood'));
-  if (exp.unpasteurisedMilk) labels.push(cap('unpasteurised milk'));
-
-  // Social / institutional
-  if (exp.funerals) labels.push(cap('attended funerals'));
-  if (exp.sickContacts) labels.push(cap('sick contacts (incl. TB)'));
-  if (exp.healthcareFacility) labels.push(cap('healthcare facility contact'));
-  if (exp.prison) labels.push(cap('prison contact'));
-  if (exp.refugeeCamp) labels.push(cap('refugee camp contact'));
-
-  if (exp.otherText?.trim()) labels.push(cap(exp.otherText.trim()));
-
-  return labels;
-}
 
 // Exposure bullets for the text summary (with details)
 function exposureBullets(exp) {
