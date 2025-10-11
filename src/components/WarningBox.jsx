@@ -8,12 +8,12 @@ export default function WarningBox() {
       <div>
         <p className="font-semibold mb-1">Clinical guidance</p>
         <p>
-          This tool is for <strong>UK healthcare professionals</strong> to support infectious disease risk assessment.
-          It complements, but does not replace, clinical judgment or local/national guidance (e.g. UKHSA, NHS).
+          This tool is for <strong>UK healthcare professionals</strong> to support infectious diseases risk assessment.
+          It complements, but does not replace, clinical judgment or local/national guidance.
         </p>
         <p className="mt-2">
-          <strong>Do not enter any patient-identifiable information</strong> or data that could directly or indirectly identify an individual.
-          Always verify recommendations with your local Infection team.
+          <strong>Do not enter any private or patient-identifiable information. </strong>
+          Always verify recommendations with your local infection team.
         </p>
       </div>
     </div>
