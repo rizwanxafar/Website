@@ -33,7 +33,8 @@ export default function NavBar() {
           href="/"
           className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-semibold"
         >
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-white bg-[hsl(var(--midnight))] dark:bg-[hsl(var(--brand-alt))]">
+          {/* ID Badge — now matches button colour */}
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-white bg-[hsl(var(--midnight))] dark:bg-[hsl(var(--accent))]">
             ID
           </span>
           <span>ID North West</span>
@@ -47,9 +48,9 @@ export default function NavBar() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
                   active
-                    ? "text-[hsl(var(--midnight))] dark:text-[hsl(var(--brand-alt))]"
+                    ? "text-[hsl(var(--midnight))] dark:text-[hsl(var(--accent))]"
                     : "text-[hsl(var(--accent))] dark:text-slate-300 hover:text-[hsl(var(--midnight))] dark:hover:text-white"
                 }`}
               >
@@ -58,8 +59,6 @@ export default function NavBar() {
             );
           })}
         </nav>
-
-        
       </div>
     </header>
   );
