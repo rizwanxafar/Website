@@ -1,7 +1,5 @@
 // src/app/algorithms/page.js
 
-import { ChevronDown, ChevronUp } from "lucide-react";
-
 export const metadata = {
   title: "Algorithms · ID Northwest",
   description: "Quick access to infectious diseases algorithms — Travel-related section.",
@@ -53,8 +51,8 @@ export default function AlgorithmsIndex() {
                   className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 group-open:text-[hsl(var(--accent))] group-open:border-[hsl(var(--accent))] transition"
                   aria-hidden="true"
                 >
-                  <ChevronDown className="block group-open:hidden h-5 w-5" />
-                  <ChevronUp className="hidden group-open:block h-5 w-5" />
+                  <span className="group-open:hidden">+</span>
+                  <span className="hidden group-open:inline">–</span>
                 </span>
               </summary>
 
