@@ -21,10 +21,10 @@ const hasDisease = (entries = [], name = "") =>
 export default function ExposuresStep({
   selected,
   normalizedMap,
-  exposuresGlobal = {},         
-  setExposuresGlobal = () => {}, 
-  exposuresByCountry = {},       
-  setCountryExposure = () => {}, 
+  exposuresGlobal = {},
+  setExposuresGlobal = () => {},
+  exposuresByCountry = {},
+  setCountryExposure = () => {},
   onBackToReview,
   onReset,
   onContinueToSummary,
@@ -42,14 +42,14 @@ export default function ExposuresStep({
         (e) => !isNoKnownHcid(e.disease) && !isTravelAssociated(e.disease) && !isImportedOnly(e.evidence)
       );
 
-      const showLassa  = hasDisease(entriesFiltered, "lassa");
+      const showLassa = hasDisease(entriesFiltered, "lassa");
       const showEbMarb = hasDisease(entriesFiltered, "ebola") || hasDisease(entriesFiltered, "marburg");
-      const showCchf   = hasDisease(entriesFiltered, "cchf");
+      const showCchf = hasDisease(entriesFiltered, "cchf");
 
       const row = exposuresByCountry[c.id] || {};
-      const ansLassa  = showLassa  ? row.lassa || "" : null;
+      const ansLassa = showLassa ? row.lassa || "" : null;
       const ansEbMarb = showEbMarb ? row.ebola_marburg || "" : null;
-      const ansCchf   = showCchf   ? row.cchf || "" : null;
+      const ansCchf = showCchf ? row.cchf || "" : null;
 
       [ansLassa, ansEbMarb, ansCchf].forEach((a) => {
         if (a !== null) {
@@ -80,12 +80,16 @@ export default function ExposuresStep({
                     type="button"
                     className={yesNoBtn((exposuresByCountry[c.id]?.lassa || "") === "yes")}
                     onClick={() => setCountryExposure(c.id, "lassa", "yes")}
-                  >Yes</button>
+                  >
+                    Yes
+                  </button>
                   <button
                     type="button"
                     className={yesNoBtn((exposuresByCountry[c.id]?.lassa || "") === "no")}
                     onClick={() => setCountryExposure(c.id, "lassa", "no")}
-                  >No</button>
+                  >
+                    No
+                  </button>
                 </div>
               </div>
             )}
@@ -101,12 +105,16 @@ export default function ExposuresStep({
                     type="button"
                     className={yesNoBtn((exposuresByCountry[c.id]?.ebola_marburg || "") === "yes")}
                     onClick={() => setCountryExposure(c.id, "ebola_marburg", "yes")}
-                  >Yes</button>
+                  >
+                    Yes
+                  </button>
                   <button
                     type="button"
                     className={yesNoBtn((exposuresByCountry[c.id]?.ebola_marburg || "") === "no")}
                     onClick={() => setCountryExposure(c.id, "ebola_marburg", "no")}
-                  >No</button>
+                  >
+                    No
+                  </button>
                 </div>
               </div>
             )}
@@ -122,12 +130,16 @@ export default function ExposuresStep({
                     type="button"
                     className={yesNoBtn((exposuresByCountry[c.id]?.cchf || "") === "yes")}
                     onClick={() => setCountryExposure(c.id, "cchf", "yes")}
-                  >Yes</button>
+                  >
+                    Yes
+                  </button>
                   <button
                     type="button"
                     className={yesNoBtn((exposuresByCountry[c.id]?.cchf || "") === "no")}
                     onClick={() => setCountryExposure(c.id, "cchf", "no")}
-                  >No</button>
+                  >
+                    No
+                  </button>
                 </div>
               </div>
             )}
@@ -150,7 +162,7 @@ export default function ExposuresStep({
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-        Exposure questions (contextual)
+        Exposure questions
       </h2>
 
       {/* Countries */}
@@ -165,12 +177,16 @@ export default function ExposuresStep({
               type="button"
               className={yesNoBtn(exposuresGlobal.q1_outbreak === "yes")}
               onClick={() => setExposuresGlobal({ ...exposuresGlobal, q1_outbreak: "yes" })}
-            >Yes</button>
+            >
+              Yes
+            </button>
             <button
               type="button"
               className={yesNoBtn(exposuresGlobal.q1_outbreak === "no")}
               onClick={() => setExposuresGlobal({ ...exposuresGlobal, q1_outbreak: "no" })}
-            >No</button>
+            >
+              No
+            </button>
           </div>
           <p className="mt-2 text-xs text-slate-500">
             For current outbreak information, check{" "}
@@ -211,18 +227,22 @@ export default function ExposuresStep({
               type="button"
               className={yesNoBtn(exposuresGlobal.q2_bleeding === "yes")}
               onClick={() => setExposuresGlobal({ ...exposuresGlobal, q2_bleeding: "yes" })}
-            >Yes</button>
+            >
+              Yes
+            </button>
             <button
               type="button"
               className={yesNoBtn(exposuresGlobal.q2_bleeding === "no")}
               onClick={() => setExposuresGlobal({ ...exposuresGlobal, q2_bleeding: "no" })}
-            >No</button>
+            >
+              No
+            </button>
           </div>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <button
           type="button"
           onClick={onBackToReview}
@@ -234,24 +254,24 @@ export default function ExposuresStep({
 
         <button
           type="button"
-          onClick={onReset}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700
-           hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
+          disabled={!allAnswered}
+          onClick={onContinueToSummary}
+          className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3
+                     text-sm font-medium text-white
+                     bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95
+                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70
+                     disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
-          New assessment
+          Continue to summary
         </button>
 
         <button
           type="button"
-          disabled={!allAnswered}
-          onClick={onContinueToSummary}
-          className={`ml-auto inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3
-                      text-sm font-medium text-white
-                      bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95
-                      focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70
-                      disabled:opacity-50 disabled:cursor-not-allowed transition`}
+          onClick={onReset}
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700
+                     hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
         >
-          Continue to summary
+          New assessment
         </button>
       </div>
     </div>
