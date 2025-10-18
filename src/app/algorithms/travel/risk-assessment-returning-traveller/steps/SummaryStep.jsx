@@ -3,6 +3,7 @@
 
 import { useMemo, useState, useRef, useEffect } from "react";
 import DecisionCard from "@/components/DecisionCard";
+import { normalizeName } from "@/utils/names";
 
 const yesNoBtn = (active) =>
   `px-3 py-1.5 text-sm font-medium rounded-md border-2 ${
@@ -37,7 +38,7 @@ export default function SummaryStep({
     let anyYesLocal = false;
 
     selected.forEach((c) => {
-      const key = String(c.name || "").toLowerCase();
+      const key = normalizeName(c.name || "");
       const entries = normalizedMap.get(key) || [];
 
       const entriesFiltered = (entries || []).filter(
@@ -82,10 +83,7 @@ export default function SummaryStep({
 
     return {
       allAnswered,
-      anyYes:
-        anyYesLocal ||
-        outbreak === "yes" ||
-        bleeding === "yes",
+      anyYes: anyYesLocal || outbreak === "yes" || bleeding === "yes",
     };
   }, [selected, normalizedMap, exposuresByCountry, exposuresGlobal]);
 
@@ -134,10 +132,9 @@ export default function SummaryStep({
   const activatedRef = useRef(false);
 
   const isPostMalariaRed =
-    (!anyYes && allAnswered) && (
-      (amberMalariaPositive === "yes" && amberConcern72h === "yes") ||
-      (amberMalariaPositive === "no" && amberAltDx === "no" && amberConcern72h === "yes")
-    );
+    (!anyYes && allAnswered) &&
+    ((amberMalariaPositive === "yes" && amberConcern72h === "yes") ||
+      (amberMalariaPositive === "no" && amberAltDx === "no" && amberConcern72h === "yes"));
 
   useEffect(() => {
     if (isPostMalariaRed && !activatedRef.current) {
@@ -322,12 +319,16 @@ export default function SummaryStep({
               type="button"
               className={yesNoBtn(preMalariaMalariaPositive === "yes")}
               onClick={() => setMalariaResult("yes")}
-            >Yes</button>
+            >
+              Yes
+            </button>
             <button
               type="button"
               className={yesNoBtn(preMalariaMalariaPositive === "no")}
               onClick={() => setMalariaResult("no")}
-            >No</button>
+            >
+              No
+            </button>
           </div>
         </div>
 
@@ -341,12 +342,16 @@ export default function SummaryStep({
                   type="button"
                   className={yesNoBtn(preMalariaOutbreakReturn === "yes")}
                   onClick={() => setOutbreakReturn("yes")}
-                >Yes</button>
+                >
+                  Yes
+                </button>
                 <button
                   type="button"
                   className={yesNoBtn(preMalariaOutbreakReturn === "no")}
                   onClick={() => setOutbreakReturn("no")}
-                >No</button>
+                >
+                  No
+                </button>
               </div>
             </div>
 
@@ -360,12 +365,16 @@ export default function SummaryStep({
                       type="button"
                       className={yesNoBtn(preMalariaConcern72h === "yes")}
                       onClick={() => setConcern72h("yes")}
-                    >Yes</button>
+                    >
+                      Yes
+                    </button>
                     <button
                       type="button"
                       className={yesNoBtn(preMalariaConcern72h === "no")}
                       onClick={() => setConcern72h("no")}
-                    >No</button>
+                    >
+                      No
+                    </button>
                   </div>
                 </div>
 
