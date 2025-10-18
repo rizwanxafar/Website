@@ -16,8 +16,15 @@ const txt = (s = "") => String(s).toLowerCase();
 const isNoKnownHcid = (d = "") => txt(d).includes("no known hcid");
 const isTravelAssociated = (d = "") => txt(d).includes("travel associated");
 const isImportedOnly = (e = "") => txt(e).includes("imported cases only");
-const hasDisease = (entries = [], name = "") =>
-  entries.some((e) => String(e?.disease || "").toLowerCase().includes(name.toLowerCase()));
+
+// Robust matchers for disease names
+const RX = {
+  lassa: /lassa/i,
+  ebmarb: /(ebola|ebolavirus|marburg)/i,
+  cchf: /(cchf|crimean[-\s]?congo|crimea[-\s]?congo)/i,
+};
+const hasDisease = (entries = [], rx) =>
+  entries.some((e) => rx.test(String(e?.disease || "")));
 
 export default function SummaryStep({
   selected,
@@ -41,19 +48,16 @@ export default function SummaryStep({
       const key = normalizeName(c.name || "");
       const entries = normalizedMap.get(key) || [];
 
+      // Keep imported-only so exposures can still be asked
       const entriesFiltered = (entries || []).filter(
-        (e) =>
-          !isNoKnownHcid(e.disease) &&
-          !isTravelAssociated(e.disease) &&
-          !isImportedOnly(e.evidence)
+        (e) => !isNoKnownHcid(e.disease) && !isTravelAssociated(e.disease)
+        // if you want to hide questions when imported-only, also add: && !isImportedOnly(e.evidence)
       );
 
       const row = exposuresByCountry[c.id] || {};
-      const showLassa = hasDisease(entriesFiltered, "lassa");
-      const showEbMarb =
-        hasDisease(entriesFiltered, "ebola") ||
-        hasDisease(entriesFiltered, "marburg");
-      const showCchf = hasDisease(entriesFiltered, "cchf");
+      const showLassa = hasDisease(entriesFiltered, RX.lassa);
+      const showEbMarb = hasDisease(entriesFiltered, RX.ebmarb);
+      const showCchf = hasDisease(entriesFiltered, RX.cchf);
 
       const ansLassa = showLassa ? row.lassa || "" : null;
       const ansEbMarb = showEbMarb ? row.ebola_marburg || "" : null;
@@ -293,7 +297,7 @@ export default function SummaryStep({
 
   // ---------------- RENDER ----------------
 
-  // Branch 1: Came from screening-red jump (unchanged content)
+  // Branch 1: Came from screening-red jump
   if (fromScreeningRed) {
     return (
       <div className="space-y-6">
@@ -474,7 +478,7 @@ export default function SummaryStep({
           <button
             type="button"
             onClick={onReset}
-            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
+            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover	border-[hsl(var(--accent))]"
           >
             New assessment
           </button>
@@ -500,7 +504,7 @@ export default function SummaryStep({
         </DecisionCard>
 
         {/* Is malaria positive? */}
-        <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+        <div className="rounded-lg border-2 border-slate-300 dark	border-slate-700 p-4">
           <div className="text-sm mb-1">Is the malaria test result positive?</div>
           <div className="flex gap-2">
             <button
@@ -524,7 +528,7 @@ export default function SummaryStep({
         {amberMalariaPositive === "yes" && (
           <>
             <DecisionCard tone="green" title="Manage as malaria; VHF unlikely" />
-            <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+            <div className="rounded-lg border-2 border-slate-300 dark	border-slate-700 p-4">
               <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
               <div className="flex gap-2">
                 <button
@@ -567,7 +571,7 @@ export default function SummaryStep({
         {/* AMBER → malaria NO */}
         {amberMalariaPositive === "no" && (
           <>
-            <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+            <div className="rounded-lg border-2 border-slate-300 dark	border-slate-700 p-4">
               <div className="text-sm mb-1">Alternative diagnosis established?</div>
               <div className="flex gap-2">
                 <button
@@ -593,7 +597,7 @@ export default function SummaryStep({
 
             {amberAltDx === "no" && (
               <>
-                <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+                <div className="rounded-lg border-2 border-slate-300 dark	border-slate-700 p-4">
                   <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
                   <div className="flex gap-2">
                     <button
@@ -640,14 +644,14 @@ export default function SummaryStep({
           <button
             type="button"
             onClick={onBackToExposures}
-            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
+            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark	border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
           >
             Back to exposures
           </button>
           <button
             type="button"
             onClick={onReset}
-            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
+            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark	border-slate-700 hover:border-[hsl(var(--brand))] dark:hover	border-[hsl(var(--accent))]"
           >
             New assessment
           </button>
@@ -674,7 +678,7 @@ export default function SummaryStep({
       </DecisionCard>
 
       {/* Malaria test? */}
-      <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+      <div className="rounded-lg border-2 border-slate-300 dark	border-slate-700 p-4">
         <div className="text-sm mb-1">Is the malaria test positive?</div>
         <div className="flex gap-2">
           <button
@@ -696,7 +700,7 @@ export default function SummaryStep({
 
       {preMalariaMalariaPositive === "yes" && (
         <>
-          <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+          <div className="rounded-lg border-2 border-slate-300 dark	border-slate-700 p-4">
             <div className="text-sm mb-1">Has the patient returned from a VHF outbreak area?</div>
             <div className="flex gap-2">
               <button
@@ -719,7 +723,7 @@ export default function SummaryStep({
           {preMalariaOutbreakReturn === "no" && (
             <>
               <DecisionCard tone="green" title="Manage as malaria; VHF unlikely" />
-              <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+              <div className="rounded-lg border-2 border-slate-300 dark	border-slate-700 p-4">
                 <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
                 <div className="flex gap-2">
                   <button
@@ -798,14 +802,14 @@ export default function SummaryStep({
         <button
           type="button"
           onClick={onBackToExposures}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark	border-slate-700 hover:border-[hsl(var(--brand))] dark:hover	border-[hsl(var(--accent))]"
         >
           Back to exposures
         </button>
         <button
           type="button"
           onClick={onReset}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark	border-slate-700 hover:border-[hsl(var(--brand))] dark:hover	border-[hsl(var(--accent))]"
         >
           New assessment
         </button>
