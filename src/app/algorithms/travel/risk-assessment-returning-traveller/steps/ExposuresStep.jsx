@@ -3,6 +3,7 @@
 
 import { useMemo } from "react";
 import { EXPOSURE_QUESTIONS as Q } from "@/data/diseaseQuestions";
+import { normalizeName } from "@/utils/names";
 
 const yesNoBtn = (active) =>
   `px-3 py-1.5 text-sm font-medium rounded-md border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70 ${
@@ -15,8 +16,15 @@ const txt = (s = "") => String(s).toLowerCase();
 const isNoKnownHcid = (disease = "") => txt(disease).includes("no known hcid");
 const isTravelAssociated = (disease = "") => txt(disease).includes("travel associated");
 const isImportedOnly = (evidence = "") => txt(evidence).includes("imported cases only");
-const hasDisease = (entries = [], name = "") =>
-  entries.some((e) => String(e?.disease || "").toLowerCase().includes(name.toLowerCase()));
+
+// Robust disease matching to catch wording variants
+const RX = {
+  lassa: /lassa/i,
+  ebmarb: /(ebola|ebolavirus|ebola\s*virus|e\.?v\.?d|marburg)/i,
+  cchf: /(cchf|crimean[-\s]?congo|crimea[-\s]?congo)/i,
+};
+const hasDisease = (entries = [], rx) =>
+  entries.some((e) => rx.test(String(e?.disease || "")));
 
 export default function ExposuresStep({
   selected,
@@ -35,16 +43,21 @@ export default function ExposuresStep({
     let answeredCountryQs = 0;
 
     const blocks = selected.map((c, idx) => {
-      const key = String(c.name || "").toLowerCase();
+      // KEY FIX: use shared normaliser so Côte d’Ivoire / DRC match the map
+      const key = normalizeName(c.name || "");
       const entries = normalizedMap.get(key) || [];
 
+      // Keep only HCIDs that are not travel-associated and not imported-only
       const entriesFiltered = (entries || []).filter(
-        (e) => !isNoKnownHcid(e.disease) && !isTravelAssociated(e.disease) && !isImportedOnly(e.evidence)
+        (e) =>
+          !isNoKnownHcid(e.disease) &&
+          !isTravelAssociated(e.disease) &&
+          !isImportedOnly(e.evidence)
       );
 
-      const showLassa = hasDisease(entriesFiltered, "lassa");
-      const showEbMarb = hasDisease(entriesFiltered, "ebola") || hasDisease(entriesFiltered, "marburg");
-      const showCchf = hasDisease(entriesFiltered, "cchf");
+      const showLassa = hasDisease(entriesFiltered, RX.lassa);
+      const showEbMarb = hasDisease(entriesFiltered, RX.ebmarb);
+      const showCchf = hasDisease(entriesFiltered, RX.cchf);
 
       const row = exposuresByCountry[c.id] || {};
       const ansLassa = showLassa ? row.lassa || "" : null;
@@ -157,7 +170,7 @@ export default function ExposuresStep({
     const allAnswered = answeredGlobalQs + answeredCountryQs === requiredGlobalQs + requiredCountryQs;
 
     return { countryBlocks: blocks, allAnswered };
-  }, [selected, normalizedMap, exposuresByCountry, exposuresGlobal]);
+  }, [selected, normalizedMap, exposuresByCountry, exposuresGlobal, setCountryExposure]);
 
   return (
     <div className="space-y-6">
@@ -165,7 +178,6 @@ export default function ExposuresStep({
         Exposure questions
       </h2>
 
-      {/* Countries */}
       <div className="space-y-6">
         {countryBlocks}
 
@@ -246,8 +258,7 @@ export default function ExposuresStep({
         <button
           type="button"
           onClick={onBackToReview}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700
-                     hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
         >
           Back to country review
         </button>
@@ -256,11 +267,7 @@ export default function ExposuresStep({
           type="button"
           disabled={!allAnswered}
           onClick={onContinueToSummary}
-          className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3
-                     text-sm font-medium text-white
-                     bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95
-                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70
-                     disabled:opacity-50 disabled:cursor-not-allowed transition"
+          className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70 disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
           Continue to summary
         </button>
@@ -268,8 +275,7 @@ export default function ExposuresStep({
         <button
           type="button"
           onClick={onReset}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700
-                     hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover	border-[hsl(var(--accent))]"
         >
           New assessment
         </button>
