@@ -2,6 +2,7 @@
 "use client";
 
 import DecisionCard from "@/components/DecisionCard";
+import { normalizeName } from "@/utils/names";
 
 function daysBetween(d1, d2) {
   try {
@@ -73,7 +74,7 @@ export default function ReviewStep({
       leavingDate && onsetDate ? daysBetween(leavingDate, onsetDate) : null;
     const outside21 = diffFromLeaving !== null && diffFromLeaving > 21;
 
-    const key = String(c.name || "").toLowerCase();
+    const key = normalizeName(c.name || "");
     const entries = normalizedMap.get(key) || [];
 
     // Country card separator (keeps the original layout)
