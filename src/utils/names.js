@@ -1,63 +1,41 @@
 // src/utils/names.js
-// Single source for normalising country names + aliases.
+// Helpers for normalising country names and building a lookup map
 
-function _n(s = "") {
-  return String(s)
+export function normalizeName(s = "") {
+  return s
     .toLowerCase()
-    .normalize("NFD")                 // split accents
-    .replace(/[\u0300-\u036f]/g, "")  // drop accents
-    .replace(/[’'‘`"]/g, " ")         // unify quotes to space
-    .replace(/[^a-z0-9\s-]/g, " ")    // drop other punctuation
-    .replace(/\bthe\b/g, " ")         // drop leading “the”
-    .replace(/\s+/g, " ")             // collapse spaces
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\s'’`-]+/g, " ")
+    .replace(/[()]/g, " ")
+    .replace(/,+/g, " ")
+    .replace(/\bthe\b/g, "")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
-// Aliases map: keys and values are already normalised strings.
-export const ALIASES = new Map([
-  // Myanmar/Burma
-  [_n("Burma"), _n("Myanmar")],
-  [_n("Myanma"), _n("Myanmar")],
+// A few useful aliases to improve matching vs GOV.UK text
+export const ALIASES = {
+  [normalizeName("Türkiye")]: "turkey",
+  [normalizeName("Democratic Republic of the Congo")]: "congo democratic republic",
+  [normalizeName("Congo (Democratic Republic)")]: "congo democratic republic",
+  [normalizeName("DR Congo")]: "congo democratic republic",
+  [normalizeName("Congo, Democratic Republic of the")]: "congo democratic republic",
+  [normalizeName("Republic of the Congo")]: "congo republic",
+  [normalizeName("Congo (Republic)")]: "congo republic",
+  [normalizeName("Côte d’Ivoire")]: "cote divoire",
+  [normalizeName("Cote d'Ivoire")]: "cote divoire",
+  [normalizeName("Swaziland")]: "eswatini",
+  [normalizeName("Eswatini")]: "eswatini",
+};
 
-  // DRC variants
-  [_n("DR Congo"), _n("Democratic Republic of the Congo")],
-  [_n("Congo (Democratic Republic)"), _n("Democratic Republic of the Congo")],
-  [_n("Congo, Democratic Republic of the"), _n("Democratic Republic of the Congo")],
-  [_n("Congo-Kinshasa"), _n("Democratic Republic of the Congo")],
-
-  // Republic of the Congo variants
-  [_n("Republic of the Congo"), _n("Republic of the Congo")],
-  [_n("Congo (Republic)"), _n("Republic of the Congo")],
-  [_n("Congo-Brazzaville"), _n("Republic of the Congo")],
-
-  // Türkiye
-  [_n("Türkiye"), _n("Turkey")],
-
-  // Côte d’Ivoire variants
-  [_n("Côte d’Ivoire"), _n("Cote d Ivoire")],
-  [_n("Cote d'Ivoire"), _n("Cote d Ivoire")],
-  [_n("Cote d’ivoire"), _n("Cote d Ivoire")],
-  [_n("Cote d Ivore"), _n("Cote d Ivoire")],
-  [_n("Ivory Coast"), _n("Cote d Ivoire")],
-
-  // Eswatini
-  [_n("Swaziland"), _n("Eswatini")],
-  [_n("Eswatini"), _n("Eswatini")],
-]);
-
-export function normalizeName(s = "") {
-  const base = _n(s);
-  const aliased = ALIASES.get(base) || base;
-  return aliased;
-}
-
-// Convert raw { country: entries[] } into Map keyed by normalised+aliased names
+// Convert the raw { Country: [entries] } into a Map keyed by normalised names
 export function buildNormalizedMap(riskMap) {
   const out = new Map();
   if (!riskMap) return out;
   for (const [rawName, entries] of Object.entries(riskMap)) {
-    const key = normalizeName(rawName);
-    out.set(key, Array.isArray(entries) ? entries : []);
+    const norm = normalizeName(rawName);
+    out.set(norm, Array.isArray(entries) ? entries : []);
   }
   return out;
 }
