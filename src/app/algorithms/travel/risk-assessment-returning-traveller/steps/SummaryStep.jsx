@@ -17,10 +17,10 @@ const isNoKnownHcid = (d = "") => txt(d).includes("no known hcid");
 const isTravelAssociated = (d = "") => txt(d).includes("travel associated");
 const isImportedOnly = (e = "") => txt(e).includes("imported cases only");
 
-// Robust matchers for disease names
+// Robust disease matchers (covers wording variants)
 const RX = {
   lassa: /lassa/i,
-  ebmarb: /(ebola|ebolavirus|marburg)/i,
+  ebmarb: /(ebola|ebolavirus|ebola\s*virus|e\.?v\.?d|marburg)/i,
   cchf: /(cchf|crimean[-\s]?congo|crimea[-\s]?congo)/i,
 };
 const hasDisease = (entries = [], rx) =>
@@ -28,10 +28,10 @@ const hasDisease = (entries = [], rx) =>
 
 export default function SummaryStep({
   selected,
-  normalizedMap,
+  normalizedMap,            // Map keyed with normalizeName(...)
   exposuresGlobal,
   exposuresByCountry,
-  entryMode = "normal", // "normal" | "screeningRed"
+  entryMode = "normal",      // "normal" | "screeningRed"
   onBackToExposures,
   onBackToScreen,
   onReset,
@@ -48,10 +48,9 @@ export default function SummaryStep({
       const key = normalizeName(c.name || "");
       const entries = normalizedMap.get(key) || [];
 
-      // Keep imported-only so exposures can still be asked
+      // Keep imported-only so exposures are still asked
       const entriesFiltered = (entries || []).filter(
         (e) => !isNoKnownHcid(e.disease) && !isTravelAssociated(e.disease)
-        // if you want to hide questions when imported-only, also add: && !isImportedOnly(e.evidence)
       );
 
       const row = exposuresByCountry[c.id] || {};
@@ -72,7 +71,7 @@ export default function SummaryStep({
       });
     });
 
-    // Include BOTH global questions: outbreak + bleeding
+    // Global outbreak + bleeding
     let requiredGlobalQs = 2;
     let answeredGlobalQs = 0;
     const outbreak = exposuresGlobal.q1_outbreak;
@@ -240,7 +239,6 @@ export default function SummaryStep({
 
   const renderSevereChain = () => (
     <>
-      {/* Severe features */}
       <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
         <div className="text-sm mb-1">
           Does the patient have extensive bruising or active bleeding or uncontrolled diarrhoea or uncontrolled vomiting?
@@ -267,7 +265,6 @@ export default function SummaryStep({
 
       {preMalariaSevere === "no" && (
         <>
-          {/* Fit for OP? */}
           <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
             <div className="text-sm mb-1">Is the patient fit for outpatient management?</div>
             <div className="flex gap-2">
@@ -297,13 +294,10 @@ export default function SummaryStep({
 
   // ---------------- RENDER ----------------
 
-  // Branch 1: Came from screening-red jump
   if (fromScreeningRed) {
     return (
       <div className="space-y-6">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-          Outcome of risk assessment
-        </h2>
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Outcome of risk assessment</h2>
 
         <DecisionCard tone="red" title="AT RISK OF VHF">
           <ul className="list-disc pl-5">
@@ -315,47 +309,21 @@ export default function SummaryStep({
           </ul>
         </DecisionCard>
 
-        {/* Malaria test? */}
         <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
           <div className="text-sm mb-1">Is the malaria test positive?</div>
           <div className="flex gap-2">
-            <button
-              type="button"
-              className={yesNoBtn(preMalariaMalariaPositive === "yes")}
-              onClick={() => setMalariaResult("yes")}
-            >
-              Yes
-            </button>
-            <button
-              type="button"
-              className={yesNoBtn(preMalariaMalariaPositive === "no")}
-              onClick={() => setMalariaResult("no")}
-            >
-              No
-            </button>
+            <button type="button" className={yesNoBtn(preMalariaMalariaPositive === "yes")} onClick={() => setMalariaResult("yes")}>Yes</button>
+            <button type="button" className={yesNoBtn(preMalariaMalariaPositive === "no")} onClick={() => setMalariaResult("no")}>No</button>
           </div>
         </div>
 
-        {/* Malaria positive */}
         {preMalariaMalariaPositive === "yes" && (
           <>
             <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
               <div className="text-sm mb-1">Has the patient returned from a VHF outbreak area?</div>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  className={yesNoBtn(preMalariaOutbreakReturn === "yes")}
-                  onClick={() => setOutbreakReturn("yes")}
-                >
-                  Yes
-                </button>
-                <button
-                  type="button"
-                  className={yesNoBtn(preMalariaOutbreakReturn === "no")}
-                  onClick={() => setOutbreakReturn("no")}
-                >
-                  No
-                </button>
+                <button type="button" className={yesNoBtn(preMalariaOutbreakReturn === "yes")} onClick={() => setOutbreakReturn("yes")}>Yes</button>
+                <button type="button" className={yesNoBtn(preMalariaOutbreakReturn === "no")} onClick={() => setOutbreakReturn("no")}>No</button>
               </div>
             </div>
 
@@ -365,20 +333,8 @@ export default function SummaryStep({
                 <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
                   <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      className={yesNoBtn(preMalariaConcern72h === "yes")}
-                      onClick={() => setConcern72h("yes")}
-                    >
-                      Yes
-                    </button>
-                    <button
-                      type="button"
-                      className={yesNoBtn(preMalariaConcern72h === "no")}
-                      onClick={() => setConcern72h("no")}
-                    >
-                      No
-                    </button>
+                    <button type="button" className={yesNoBtn(preMalariaConcern72h === "yes")} onClick={() => setConcern72h("yes")}>Yes</button>
+                    <button type="button" className={yesNoBtn(preMalariaConcern72h === "no")} onClick={() => setConcern72h("no")}>No</button>
                   </div>
                 </div>
 
@@ -396,9 +352,7 @@ export default function SummaryStep({
                   </>
                 )}
 
-                {preMalariaConcern72h === "no" && (
-                  <DecisionCard tone="green" title="VHF unlikely; manage locally" />
-                )}
+                {preMalariaConcern72h === "no" && <DecisionCard tone="green" title="VHF unlikely; manage locally" />}
               </>
             )}
 
@@ -419,7 +373,6 @@ export default function SummaryStep({
           </>
         )}
 
-        {/* Malaria negative */}
         {preMalariaMalariaPositive === "no" && (
           <>
             <DecisionCard tone="red" title="AT RISK OF VHF">
@@ -434,67 +387,35 @@ export default function SummaryStep({
           </>
         )}
 
-        {/* Footer — always show */}
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onBackToScreen}
-            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
-          >
-            Back to screening
-          </button>
-          <button
-            type="button"
-            onClick={onReset}
-            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
-          >
-            New assessment
-          </button>
+          <button type="button" onClick={onBackToScreen} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]">Back to screening</button>
+          <button type="button" onClick={onReset} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]">New assessment</button>
         </div>
       </div>
     );
   }
 
-  // Branch 2: Normal summary (after exposures) – block user until all answered
+  // Block until all answered
   if (!allAnswered) {
     return (
       <div className="space-y-6">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-          Summary
-        </h2>
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Summary</h2>
         <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
           <p className="text-sm">Please answer all exposure questions first.</p>
         </div>
-
-        {/* Footer — always show */}
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onBackToExposures}
-            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
-          >
-            Back to exposures
-          </button>
-          <button
-            type="button"
-            onClick={onReset}
-            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover	border-[hsl(var(--accent))]"
-          >
-            New assessment
-          </button>
+          <button type="button" onClick={onBackToExposures} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]">Back to exposures</button>
+          <button type="button" onClick={onReset} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]">New assessment</button>
         </div>
       </div>
     );
   }
 
-  // Branch 3: Normal summary when all answered
+  // AMBER branch
   if (!anyYes) {
-    // AMBER branch
     return (
       <div className="space-y-6">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-          Outcome of risk assessment
-        </h2>
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Outcome of risk assessment</h2>
 
         <DecisionCard tone="amber" title="Minimal risk of VHF">
           <ul className="list-disc pl-5">
@@ -503,48 +424,22 @@ export default function SummaryStep({
           </ul>
         </DecisionCard>
 
-        {/* Is malaria positive? */}
-        <div className="rounded-lg border-2 border-slate-300 dark	border-slate-700 p-4">
+        <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
           <div className="text-sm mb-1">Is the malaria test result positive?</div>
           <div className="flex gap-2">
-            <button
-              type="button"
-              className={yesNoBtn(amberMalariaPositive === "yes")}
-              onClick={() => setAmberMalaria("yes")}
-            >
-              Yes
-            </button>
-            <button
-              type="button"
-              className={yesNoBtn(amberMalariaPositive === "no")}
-              onClick={() => setAmberMalaria("no")}
-            >
-              No
-            </button>
+            <button type="button" className={yesNoBtn(amberMalariaPositive === "yes")} onClick={() => setAmberMalaria("yes")}>Yes</button>
+            <button type="button" className={yesNoBtn(amberMalariaPositive === "no")} onClick={() => setAmberMalaria("no")}>No</button>
           </div>
         </div>
 
-        {/* AMBER → malaria YES */}
         {amberMalariaPositive === "yes" && (
           <>
             <DecisionCard tone="green" title="Manage as malaria; VHF unlikely" />
-            <div className="rounded-lg border-2 border-slate-300 dark	border-slate-700 p-4">
+            <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
               <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  className={yesNoBtn(amberConcern72h === "yes")}
-                  onClick={() => setAmberConcern72h("yes")}
-                >
-                  Yes
-                </button>
-                <button
-                  type="button"
-                  className={yesNoBtn(amberConcern72h === "no")}
-                  onClick={() => setAmberConcern72h("no")}
-                >
-                  No
-                </button>
+                <button type="button" className={yesNoBtn(amberConcern72h === "yes")} onClick={() => setAmberConcern72h("yes")}>Yes</button>
+                <button type="button" className={yesNoBtn(amberConcern72h === "no")} onClick={() => setAmberConcern72h("no")}>No</button>
               </div>
             </div>
 
@@ -562,58 +457,29 @@ export default function SummaryStep({
               </>
             )}
 
-            {amberConcern72h === "no" && (
-              <DecisionCard tone="green" title="VHF unlikely; manage locally" />
-            )}
+            {amberConcern72h === "no" && <DecisionCard tone="green" title="VHF unlikely; manage locally" />}
           </>
         )}
 
-        {/* AMBER → malaria NO */}
         {amberMalariaPositive === "no" && (
           <>
-            <div className="rounded-lg border-2 border-slate-300 dark	border-slate-700 p-4">
+            <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
               <div className="text-sm mb-1">Alternative diagnosis established?</div>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  className={yesNoBtn(amberAltDx === "yes")}
-                  onClick={() => setAmberAltDx("yes")}
-                >
-                  Yes
-                </button>
-                <button
-                  type="button"
-                  className={yesNoBtn(amberAltDx === "no")}
-                  onClick={() => setAmberAltDx("no")}
-                >
-                  No
-                </button>
+                <button type="button" className={yesNoBtn(amberAltDx === "yes")} onClick={() => setAmberAltDx("yes")}>Yes</button>
+                <button type="button" className={yesNoBtn(amberAltDx === "no")} onClick={() => setAmberAltDx("no")}>No</button>
               </div>
             </div>
 
-            {amberAltDx === "yes" && (
-              <DecisionCard tone="green" title="VHF unlikely; manage locally" />
-            )}
+            {amberAltDx === "yes" && <DecisionCard tone="green" title="VHF unlikely; manage locally" />}
 
             {amberAltDx === "no" && (
               <>
                 <div className="rounded-lg border-2 border-slate-300 dark	border-slate-700 p-4">
                   <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      className={yesNoBtn(amberConcern72h === "yes")}
-                      onClick={() => setAmberConcern72h("yes")}
-                    >
-                      Yes
-                    </button>
-                    <button
-                      type="button"
-                      className={yesNoBtn(amberConcern72h === "no")}
-                      onClick={() => setAmberConcern72h("no")}
-                    >
-                      No
-                    </button>
+                    <button type="button" className={yesNoBtn(amberConcern72h === "yes")} onClick={() => setAmberConcern72h("yes")}>Yes</button>
+                    <button type="button" className={yesNoBtn(amberConcern72h === "no")} onClick={() => setAmberConcern72h("no")}>No</button>
                   </div>
                 </div>
 
@@ -631,41 +497,24 @@ export default function SummaryStep({
                   </>
                 )}
 
-                {amberConcern72h === "no" && (
-                  <DecisionCard tone="green" title="VHF unlikely; manage locally" />
-                )}
+                {amberConcern72h === "no" && <DecisionCard tone="green" title="VHF unlikely; manage locally" />}
               </>
             )}
           </>
         )}
 
-        {/* Footer — always show */}
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onBackToExposures}
-            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark	border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
-          >
-            Back to exposures
-          </button>
-          <button
-            type="button"
-            onClick={onReset}
-            className="rounded-lg px-4 py-2 border-2 border-slate-300 dark	border-slate-700 hover:border-[hsl(var(--brand))] dark:hover	border-[hsl(var(--accent))]"
-          >
-            New assessment
-          </button>
+          <button type="button" onClick={onBackToExposures} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover	border-[hsl(var(--accent))]">Back to exposures</button>
+          <button type="button" onClick={onReset} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover	border-[hsl(var(--accent))]">New assessment</button>
         </div>
       </div>
     );
   }
 
-  // Branch 4: RED (anyYes)
+  // RED branch
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-        Outcome of risk assessment
-      </h2>
+      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Outcome of risk assessment</h2>
 
       <DecisionCard tone="red" title="AT RISK OF VHF">
         <ul className="list-disc pl-5">
@@ -677,24 +526,11 @@ export default function SummaryStep({
         </ul>
       </DecisionCard>
 
-      {/* Malaria test? */}
-      <div className="rounded-lg border-2 border-slate-300 dark	border-slate-700 p-4">
+      <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
         <div className="text-sm mb-1">Is the malaria test positive?</div>
         <div className="flex gap-2">
-          <button
-            type="button"
-            className={yesNoBtn(preMalariaMalariaPositive === "yes")}
-            onClick={() => setMalariaResult("yes")}
-          >
-            Yes
-          </button>
-          <button
-            type="button"
-            className={yesNoBtn(preMalariaMalariaPositive === "no")}
-            onClick={() => setMalariaResult("no")}
-          >
-            No
-          </button>
+          <button type="button" className={yesNoBtn(preMalariaMalariaPositive === "yes")} onClick={() => setMalariaResult("yes")}>Yes</button>
+          <button type="button" className={yesNoBtn(preMalariaMalariaPositive === "no")} onClick={() => setMalariaResult("no")}>No</button>
         </div>
       </div>
 
@@ -703,20 +539,8 @@ export default function SummaryStep({
           <div className="rounded-lg border-2 border-slate-300 dark	border-slate-700 p-4">
             <div className="text-sm mb-1">Has the patient returned from a VHF outbreak area?</div>
             <div className="flex gap-2">
-              <button
-                type="button"
-                className={yesNoBtn(preMalariaOutbreakReturn === "yes")}
-                onClick={() => setOutbreakReturn("yes")}
-              >
-                Yes
-              </button>
-              <button
-                type="button"
-                className={yesNoBtn(preMalariaOutbreakReturn === "no")}
-                onClick={() => setOutbreakReturn("no")}
-              >
-                No
-              </button>
+              <button type="button" className={yesNoBtn(preMalariaOutbreakReturn === "yes")} onClick={() => setOutbreakReturn("yes")}>Yes</button>
+              <button type="button" className={yesNoBtn(preMalariaOutbreakReturn === "no")} onClick={() => setOutbreakReturn("no")}>No</button>
             </div>
           </div>
 
@@ -726,20 +550,8 @@ export default function SummaryStep({
               <div className="rounded-lg border-2 border-slate-300 dark	border-slate-700 p-4">
                 <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
                 <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className={yesNoBtn(preMalariaConcern72h === "yes")}
-                    onClick={() => setConcern72h("yes")}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    className={yesNoBtn(preMalariaConcern72h === "no")}
-                    onClick={() => setConcern72h("no")}
-                  >
-                    No
-                  </button>
+                  <button type="button" className={yesNoBtn(preMalariaConcern72h === "yes")} onClick={() => setConcern72h("yes")}>Yes</button>
+                  <button type="button" className={yesNoBtn(preMalariaConcern72h === "no")} onClick={() => setConcern72h("no")}>No</button>
                 </div>
               </div>
 
@@ -757,18 +569,13 @@ export default function SummaryStep({
                 </>
               )}
 
-              {preMalariaConcern72h === "no" && (
-                <DecisionCard tone="green" title="VHF unlikely; manage locally" />
-              )}
+              {preMalariaConcern72h === "no" && <DecisionCard tone="green" title="VHF unlikely; manage locally" />}
             </>
           )}
 
           {preMalariaOutbreakReturn === "yes" && (
             <>
-              <DecisionCard
-                tone="amber"
-                title="Manage as Malaria, but consider possibility of dual infection with VHF"
-              />
+              <DecisionCard tone="amber" title="Manage as Malaria, but consider possibility of dual infection with VHF" />
               <DecisionCard tone="red" title="AT RISK OF VHF">
                 <ul className="list-disc pl-5">
                   <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
@@ -797,22 +604,9 @@ export default function SummaryStep({
         </>
       )}
 
-      {/* Footer — always show */}
       <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={onBackToExposures}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark	border-slate-700 hover:border-[hsl(var(--brand))] dark:hover	border-[hsl(var(--accent))]"
-        >
-          Back to exposures
-        </button>
-        <button
-          type="button"
-          onClick={onReset}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark	border-slate-700 hover:border-[hsl(var(--brand))] dark:hover	border-[hsl(var(--accent))]"
-        >
-          New assessment
-        </button>
+        <button type="button" onClick={onBackToExposures} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark	border-slate-700 hover:border-[hsl(var(--brand))] dark:hover	border-[hsl(var(--accent))]">Back to exposures</button>
+        <button type="button" onClick={onReset} className="rounded-lg px-4 py-2 border-2 border-slate-300 dark	border-slate-700 hover	border-[hsl(var(--brand))] dark:hover	border-[hsl(var(--accent))]">New assessment</button>
       </div>
     </div>
   );
