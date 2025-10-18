@@ -25,15 +25,6 @@ const isNoKnownHcid = (disease = "") => txt(disease).includes("no known hcid");
 const isTravelAssociated = (disease = "") => txt(disease).includes("travel associated");
 const isImportedOnly = (evidence = "") => txt(evidence).includes("imported cases only");
 
-// Normalise country names for matching
-const normalizeName = (s = "") =>
-  s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
 // Countries for MERS prompt (include both “Saudi Arabia” and “Kingdom of Saudi Arabia”)
 const MERS_COUNTRIES = new Set(
   [
