@@ -16,6 +16,8 @@ const txt = (s = "") => String(s).toLowerCase();
 const isNoKnownHcid = (disease = "") => txt(disease).includes("no known hcid");
 const isTravelAssociated = (disease = "") => txt(disease).includes("travel associated");
 const isImportedOnly = (evidence = "") => txt(evidence).includes("imported cases only");
+const isImportedLike = (evidence = "") =>
+  /(imported cases only|associated with a case import|import[-\s]?related)/i.test(String(evidence));
 
 // Robust disease matching to catch wording variants
 const RX = {
@@ -52,7 +54,7 @@ export default function ExposuresStep({
         (e) =>
           !isNoKnownHcid(e.disease) &&
           !isTravelAssociated(e.disease) &&
-          !isImportedOnly(e.evidence)
+          !isImportedLike(e.evidence)
       );
 
       const showLassa = hasDisease(entriesFiltered, RX.lassa);
