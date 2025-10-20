@@ -15,18 +15,14 @@ const yesNoBtn = (active) =>
 const txt = (s = "") => String(s).toLowerCase();
 const isNoKnownHcid = (d = "") => txt(d).includes("no known hcid");
 const isTravelAssociated = (d = "") => txt(d).includes("travel associated");
+const isImportedOnly = (e = "") => txt(e).includes("imported cases only");
 
-// Treat import-linked wording as non-triggering for exposures (must match ExposuresStep)
-const isImportedLike = (e = "") =>
-  /(imported cases only|associated with a case import|import[-\s]?related)/i.test(String(e));
-
-// Robust disease matchers (align with ExposuresStep)
+// Robust matchers for disease names
 const RX = {
   lassa: /lassa/i,
-  ebmarb: /(ebola|ebolavirus|ebola\s*virus|e\.?v\.?d|marburg)/i,
+  ebmarb: /(ebola|ebolavirus|marburg)/i,
   cchf: /(cchf|crimean[-\s]?congo|crimea[-\s]?congo)/i,
 };
-
 const hasDisease = (entries = [], rx) =>
   entries.some((e) => rx.test(String(e?.disease || "")));
 
