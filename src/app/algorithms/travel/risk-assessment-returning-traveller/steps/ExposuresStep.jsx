@@ -15,7 +15,10 @@ const yesNoBtn = (active) =>
 const txt = (s = "") => String(s).toLowerCase();
 const isNoKnownHcid = (disease = "") => txt(disease).includes("no known hcid");
 const isTravelAssociated = (disease = "") => txt(disease).includes("travel associated");
-const isImportedOnly = (evidence = "") => txt(evidence).includes("imported cases only");
+
+// Treat “import-linked” evidence as non-triggering for exposures
+const isImportedLike = (evidence = "") =>
+  /(imported cases only|associated with a case import|import[-\s]?related)/i.test(String(evidence || ""));
 
 // Robust disease matching to catch wording variants
 const RX = {
@@ -37,22 +40,20 @@ export default function ExposuresStep({
   onReset,
   onContinueToSummary,
 }) {
-  // Build the question blocks and compute completion
   const { countryBlocks, allAnswered } = useMemo(() => {
     let requiredCountryQs = 0;
     let answeredCountryQs = 0;
 
     const blocks = selected.map((c, idx) => {
-      // KEY FIX: use shared normaliser so Côte d’Ivoire / DRC match the map
       const key = normalizeName(c.name || "");
       const entries = normalizedMap.get(key) || [];
 
-      // Keep only HCIDs that are not travel-associated and not imported-only
+      // Keep only HCIDs that are NOT travel-associated and NOT import-linked
       const entriesFiltered = (entries || []).filter(
         (e) =>
           !isNoKnownHcid(e.disease) &&
           !isTravelAssociated(e.disease) &&
-          !isImportedOnly(e.evidence)
+          !isImportedLike(e.evidence)
       );
 
       const showLassa = hasDisease(entriesFiltered, RX.lassa);
@@ -161,7 +162,7 @@ export default function ExposuresStep({
       );
     });
 
-    // Global Qs
+    // Global questions
     let requiredGlobalQs = 2;
     let answeredGlobalQs = 0;
     if (exposuresGlobal.q1_outbreak === "yes" || exposuresGlobal.q1_outbreak === "no") answeredGlobalQs += 1;
@@ -200,36 +201,6 @@ export default function ExposuresStep({
               No
             </button>
           </div>
-          <p className="mt-2 text-xs text-slate-500">
-            For current outbreak information, check{" "}
-            <a
-              href="https://www.who.int/emergencies/disease-outbreak-news"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              WHO Disease Outbreak News
-            </a>
-            ,{" "}
-            <a
-              href="https://travelhealthpro.org.uk"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              TravelHealthPro
-            </a>{" "}
-            or{" "}
-            <a
-              href="https://www.promedmail.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              ProMED
-            </a>
-            .
-          </p>
         </div>
 
         <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
@@ -275,7 +246,7 @@ export default function ExposuresStep({
         <button
           type="button"
           onClick={onReset}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover	border-[hsl(var(--accent))]"
+          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
         >
           New assessment
         </button>
