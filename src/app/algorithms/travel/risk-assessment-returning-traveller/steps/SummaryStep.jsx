@@ -16,11 +16,11 @@ const txt = (s = "") => String(s).toLowerCase();
 const isNoKnownHcid = (d = "") => txt(d).includes("no known hcid");
 const isTravelAssociated = (d = "") => txt(d).includes("travel associated");
 
-// Match ExposuresStep: treat “import-linked” evidence as non-triggering
+// must match ExposuresStep
 const isImportedLike = (e = "") =>
   /(imported cases only|associated with a case import|import[-\s]?related)/i.test(String(e));
 
-// Robust matchers for disease names
+// robust matchers
 const RX = {
   lassa: /lassa/i,
   ebmarb: /(ebola|ebolavirus|ebola\s*virus|e\.?v\.?d|marburg)/i,
@@ -51,7 +51,7 @@ export default function SummaryStep({
       const key = normalizeName(c.name || "");
       const entries = normalizedMap.get(key) || [];
 
-      // EXACTLY match ExposuresStep filter
+      // EXACT filter parity with ExposuresStep
       const entriesFiltered = (entries || []).filter(
         (e) =>
           !isNoKnownHcid(e.disease) &&
@@ -77,7 +77,7 @@ export default function SummaryStep({
       });
     });
 
-    // Include BOTH global questions: outbreak + bleeding
+    // global questions
     let requiredGlobalQs = 2;
     let answeredGlobalQs = 0;
     const outbreak = exposuresGlobal.q1_outbreak;
@@ -92,10 +92,7 @@ export default function SummaryStep({
 
     return {
       allAnswered,
-      anyYes:
-        anyYesLocal ||
-        outbreak === "yes" ||
-        bleeding === "yes",
+      anyYes: anyYesLocal || outbreak === "yes" || bleeding === "yes",
     };
   }, [selected, normalizedMap, exposuresByCountry, exposuresGlobal]);
 
@@ -144,10 +141,11 @@ export default function SummaryStep({
   const activatedRef = useRef(false);
 
   const isPostMalariaRed =
-    (!anyYes && allAnswered) && (
-      (amberMalariaPositive === "yes" && amberConcern72h === "yes") ||
-      (amberMalariaPositive === "no" && amberAltDx === "no" && amberConcern72h === "yes")
-    );
+    (!anyYes && allAnswered) &&
+    ((amberMalariaPositive === "yes" && amberConcern72h === "yes") ||
+      (amberMalariaPositive === "no" &&
+        amberAltDx === "no" &&
+        amberConcern72h === "yes"));
 
   useEffect(() => {
     if (isPostMalariaRed && !activatedRef.current) {
@@ -163,73 +161,537 @@ export default function SummaryStep({
     }
   }, [isPostMalariaRed]);
 
-  // ---------- Shared blocks ----------
-  const AdmitBlock = () => (
-    <>
-      <DecisionCard tone="red" title="Admit" />
-      <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
-        <div className="text-sm mb-1">VHF test result positive?</div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className={yesNoBtn(preMalariaVhfPositive === "yes")}
-            onClick={() => setPreMalariaVhfPositive("yes")}
-          >
-            Yes
-          </button>
-          <button
-            type="button"
-            className={yesNoBtn(preMalariaVhfPositive === "no")}
-            onClick={() => setPreMalariaVhfPositive("no")}
-          >
-            No
-          </button>
-        </div>
-      </div>
+  // ---------------- RENDER ----------------
 
-      {preMalariaVhfPositive === "yes" && (
-        <DecisionCard tone="red" title="CONFIRMED VHF">
+  // Branch 1: Came from screening-red jump
+  if (fromScreeningRed) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+          Outcome of risk assessment
+        </h2>
+
+        <DecisionCard tone="red" title="AT RISK OF VHF">
           <ul className="list-disc pl-5">
-            <li>Contact NHSE EPRR (020 8168 0053) to arrange transfer to HLIU</li>
-            <li>Launch full public health actions including categorisation and management of contacts</li>
+            <li>ISOLATE PATIENT IN SIDE ROOM</li>
+            <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+            <li>Urgent Malaria investigation</li>
+            <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
+            <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
           </ul>
         </DecisionCard>
-      )}
-      {preMalariaVhfPositive === "no" && (
-        <DecisionCard tone="green" title="VHF unlikely; manage locally" />
-      )}
-    </>
-  );
 
-  const OPBlock = () => (
-    <>
-      <DecisionCard tone="red" title="Outpatient management">
+        {/* Malaria test? */}
+        <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+          <div className="text-sm mb-1">Is the malaria test positive?</div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className={yesNoBtn(preMalariaMalariaPositive === "yes")}
+              onClick={() => setMalariaResult("yes")}
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              className={yesNoBtn(preMalariaMalariaPositive === "no")}
+              onClick={() => setMalariaResult("no")}
+            >
+              No
+            </button>
+          </div>
+        </div>
+
+        {/* Malaria positive */}
+        {preMalariaMalariaPositive === "yes" && (
+          <>
+            <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+              <div className="text-sm mb-1">Has the patient returned from a VHF outbreak area?</div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className={yesNoBtn(preMalariaOutbreakReturn === "yes")}
+                  onClick={() => setOutbreakReturn("yes")}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  className={yesNoBtn(preMalariaOutbreakReturn === "no")}
+                  onClick={() => setOutbreakReturn("no")}
+                >
+                  No
+                </button>
+              </div>
+            </div>
+
+            {preMalariaOutbreakReturn === "no" && (
+              <>
+                <DecisionCard tone="green" title="Manage as malaria; VHF unlikely" />
+                <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+                  <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className={yesNoBtn(preMalariaConcern72h === "yes")}
+                      onClick={() => setConcern72h("yes")}
+                    >
+                      Yes
+                    </button>
+                    <button
+                      type="button"
+                      className={yesNoBtn(preMalariaConcern72h === "no")}
+                      onClick={() => setConcern72h("no")}
+                    >
+                      No
+                    </button>
+                  </div>
+                </div>
+
+                {preMalariaConcern72h === "yes" && (
+                  <>
+                    <DecisionCard tone="red" title="AT RISK OF VHF">
+                      <ul className="list-disc pl-5">
+                        <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+                        <li>Infection Consultant to discuss VHF test with Imported Fever Service (0844 7788990)</li>
+                        <li>If VHF testing agreed with IFS, notify local Health Protection Team</li>
+                        <li>Consider empiric antimicrobials</li>
+                      </ul>
+                    </DecisionCard>
+                    {renderSevereChain({
+                      preMalariaSevere,
+                      setPreMalariaSevere,
+                      preMalariaFitOP,
+                      setPreMalariaFitOP,
+                      preMalariaVhfPositive,
+                      setPreMalariaVhfPositive,
+                    })}
+                  </>
+                )}
+
+                {preMalariaConcern72h === "no" && (
+                  <DecisionCard tone="green" title="VHF unlikely; manage locally" />
+                )}
+              </>
+            )}
+
+            {preMalariaOutbreakReturn === "yes" && (
+              <>
+                <DecisionCard tone="amber" title="Manage as Malaria, but consider possibility of dual infection with VHF" />
+                <DecisionCard tone="red" title="AT RISK OF VHF">
+                  <ul className="list-disc pl-5">
+                    <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+                    <li>Infection Consultant to discuss VHF test with Imported Fever Service (0844 7788990)</li>
+                    <li>If VHF testing agreed with IFS, notify local Health Protection Team</li>
+                    <li>Consider empiric antimicrobials</li>
+                  </ul>
+                </DecisionCard>
+                {renderSevereChain({
+                  preMalariaSevere,
+                  setPreMalariaSevere,
+                  preMalariaFitOP,
+                  setPreMalariaFitOP,
+                  preMalariaVhfPositive,
+                  setPreMalariaVhfPositive,
+                })}
+              </>
+            )}
+          </>
+        )}
+
+        {/* Malaria negative */}
+        {preMalariaMalariaPositive === "no" && (
+          <>
+            <DecisionCard tone="red" title="AT RISK OF VHF">
+              <ul className="list-disc pl-5">
+                <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+                <li>Infection Consultant to discuss VHF test with Imported Fever Service (0844 7788990)</li>
+                <li>If VHF testing agreed with IFS, notify local Health Protection Team</li>
+                <li>Consider empiric antimicrobials</li>
+              </ul>
+            </DecisionCard>
+            {renderSevereChain({
+              preMalariaSevere,
+              setPreMalariaSevere,
+              preMalariaFitOP,
+              setPreMalariaFitOP,
+              preMalariaVhfPositive,
+              setPreMalariaVhfPositive,
+            })}
+          </>
+        )}
+
+        <Footer onBack={onBackToScreen} onReset={onReset} />
+      </div>
+    );
+  }
+
+  // Branch 2: Normal summary – block until all answered
+  if (!allAnswered) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Summary</h2>
+        <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+          <p className="text-sm">Please answer all exposure questions first.</p>
+        </div>
+        <Footer onBack={onBackToExposures} onReset={onReset} />
+      </div>
+    );
+  }
+
+  // Branch 3: AMBER path (no “yes” exposures)
+  if (!anyYes) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Outcome of risk assessment</h2>
+
+        <DecisionCard tone="amber" title="Minimal risk of VHF">
+          <ul className="list-disc pl-5">
+            <li>Urgent Malaria investigation</li>
+            <li>Urgent local investigations as normally appropriate, including blood cultures.</li>
+          </ul>
+        </DecisionCard>
+
+        {/* Is malaria positive? */}
+        <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+          <div className="text-sm mb-1">Is the malaria test result positive?</div>
+          <div className="flex gap-2">
+            <button type="button" className={yesNoBtn(amberMalariaPositive === "yes")} onClick={() => setAmberMalaria("yes")}>Yes</button>
+            <button type="button" className={yesNoBtn(amberMalariaPositive === "no")} onClick={() => setAmberMalaria("no")}>No</button>
+          </div>
+        </div>
+
+        {/* AMBER → malaria YES */}
+        {amberMalariaPositive === "yes" && (
+          <>
+            <DecisionCard tone="green" title="Manage as malaria; VHF unlikely" />
+            <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+              <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
+              <div className="flex gap-2">
+                <button type="button" className={yesNoBtn(amberConcern72h === "yes")} onClick={() => setAmberConcern72h("yes")}>Yes</button>
+                <button type="button" className={yesNoBtn(amberConcern72h === "no")} onClick={() => setAmberConcern72h("no")}>No</button>
+              </div>
+            </div>
+
+            {amberConcern72h === "yes" && (
+              <>
+                <DecisionCard tone="red" title="AT RISK OF VHF">
+                  <ul className="list-disc pl-5">
+                    <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+                    <li>Infection Consultant to discuss VHF test with Imported Fever Service (0844 7788990)</li>
+                    <li>If VHF testing agreed with IFS, notify local Health Protection Team</li>
+                    <li>Consider empiric antimicrobials</li>
+                  </ul>
+                </DecisionCard>
+                {renderSevereChain({
+                  preMalariaSevere,
+                  setPreMalariaSevere,
+                  preMalariaFitOP,
+                  setPreMalariaFitOP,
+                  preMalariaVhfPositive,
+                  setPreMalariaVhfPositive,
+                })}
+              </>
+            )}
+
+            {amberConcern72h === "no" && <DecisionCard tone="green" title="VHF unlikely; manage locally" />}
+          </>
+        )}
+
+        {/* AMBER → malaria NO */}
+        {amberMalariaPositive === "no" && (
+          <>
+            <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+              <div className="text-sm mb-1">Alternative diagnosis established?</div>
+              <div className="flex gap-2">
+                <button type="button" className={yesNoBtn(amberAltDx === "yes")} onClick={() => setAmberAltDx("yes")}>Yes</button>
+                <button type="button" className={yesNoBtn(amberAltDx === "no")} onClick={() => setAmberAltDx("no")}>No</button>
+              </div>
+            </div>
+
+            {amberAltDx === "yes" && <DecisionCard tone="green" title="VHF unlikely; manage locally" />}
+
+            {amberAltDx === "no" && (
+              <>
+                <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+                  <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
+                  <div className="flex gap-2">
+                    <button type="button" className={yesNoBtn(amberConcern72h === "yes")} onClick={() => setAmberConcern72h("yes")}>Yes</button>
+                    <button type="button" className={yesNoBtn(amberConcern72h === "no")} onClick={() => setAmberConcern72h("no")}>No</button>
+                  </div>
+                </div>
+
+                {amberConcern72h === "yes" && (
+                  <>
+                    <DecisionCard tone="red" title="AT RISK OF VHF">
+                      <ul className="list-disc pl-5">
+                        <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+                        <li>Infection Consultant to discuss VHF test with Imported Fever Service (0844 7788990)</li>
+                        <li>If VHF testing agreed with IFS, notify local Health Protection Team</li>
+                        <li>Consider empiric antimicrobials</li>
+                      </ul>
+                    </DecisionCard>
+                    {renderSevereChain({
+                      preMalariaSevere,
+                      setPreMalariaSevere,
+                      preMalariaFitOP,
+                      setPreMalariaFitOP,
+                      preMalariaVhfPositive,
+                      setPreMalariaVhfPositive,
+                    })}
+                  </>
+                )}
+
+                {amberConcern72h === "no" && <DecisionCard tone="green" title="VHF unlikely; manage locally" />}
+              </>
+            )}
+          </>
+        )}
+
+        <Footer onBack={onBackToExposures} onReset={onReset} />
+      </div>
+    );
+  }
+
+  // Branch 4: RED (anyYes)
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+        Outcome of risk assessment
+      </h2>
+
+      <DecisionCard tone="red" title="AT RISK OF VHF">
         <ul className="list-disc pl-5">
-          <li>Inform local HP Team</li>
-          <li>Ensure patient contact details recorded</li>
-          <li>Patient self-isolation and self-transportation</li>
-          <li>Follow up VHF test result</li>
-          <li>Review daily</li>
+          <li>ISOLATE PATIENT IN SIDE ROOM</li>
+          <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+          <li>Urgent Malaria investigation</li>
+          <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
+          <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
         </ul>
       </DecisionCard>
 
+      {/* Malaria test? */}
       <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
-        <div className="text-sm mb-1">VHF test result positive?</div>
+        <div className="text-sm mb-1">Is the malaria test positive?</div>
         <div className="flex gap-2">
           <button
             type="button"
-            className={yesNoBtn(preMalariaVhfPositive === "yes")}
-            onClick={() => setPreMalariaVhfPositive("yes")}
+            className={yesNoBtn(preMalariaMalariaPositive === "yes")}
+            onClick={() => setMalariaResult("yes")}
           >
             Yes
           </button>
           <button
             type="button"
-            className={yesNoBtn(preMalariaVhfPositive === "no")}
-            onClick={() => setPreMalariaVhfPositive("no")}
+            className={yesNoBtn(preMalariaMalariaPositive === "no")}
+            onClick={() => setMalariaResult("no")}
           >
             No
           </button>
+        </div>
+      </div>
+
+      {preMalariaMalariaPositive === "yes" && (
+        <>
+          <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+            <div className="text-sm mb-1">Has the patient returned from a VHF outbreak area?</div>
+            <div className="flex gap-2">
+              <button type="button" className={yesNoBtn(preMalariaOutbreakReturn === "yes")} onClick={() => setOutbreakReturn("yes")}>Yes</button>
+              <button type="button" className={yesNoBtn(preMalariaOutbreakReturn === "no")} onClick={() => setOutbreakReturn("no")}>No</button>
+            </div>
+          </div>
+
+          {preMalariaOutbreakReturn === "no" && (
+            <>
+              <DecisionCard tone="green" title="Manage as malaria; VHF unlikely" />
+              <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+                <div className="text-sm mb-1">Clinical concern OR no improvement after 72 hours?</div>
+                <div className="flex gap-2">
+                  <button type="button" className={yesNoBtn(preMalariaConcern72h === "yes")} onClick={() => setConcern72h("yes")}>Yes</button>
+                  <button type="button" className={yesNoBtn(preMalariaConcern72h === "no")} onClick={() => setConcern72h("no")}>No</button>
+                </div>
+              </div>
+
+              {preMalariaConcern72h === "yes" && (
+                <>
+                  <DecisionCard tone="red" title="AT RISK OF VHF">
+                    <ul className="list-disc pl-5">
+                      <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+                      <li>Infection Consultant to discuss VHF test with Imported Fever Service (0844 7788990)</li>
+                      <li>If VHF testing agreed with IFS, notify local Health Protection Team</li>
+                      <li>Consider empiric antimicrobials</li>
+                    </ul>
+                  </DecisionCard>
+                  {renderSevereChain({
+                    preMalariaSevere,
+                    setPreMalariaSevere,
+                    preMalariaFitOP,
+                    setPreMalariaFitOP,
+                    preMalariaVhfPositive,
+                    setPreMalariaVhfPositive,
+                  })}
+                </>
+              )}
+
+              {preMalariaConcern72h === "no" && <DecisionCard tone="green" title="VHF unlikely; manage locally" />}
+            </>
+          )}
+
+          {preMalariaOutbreakReturn === "yes" && (
+            <>
+              <DecisionCard tone="amber" title="Manage as Malaria, but consider possibility of dual infection with VHF" />
+              <DecisionCard tone="red" title="AT RISK OF VHF">
+                <ul className="list-disc pl-5">
+                  <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+                  <li>Infection Consultant to discuss VHF test with Imported Fever Service (0844 7788990)</li>
+                  <li>If VHF testing agreed with IFS, notify local Health Protection Team</li>
+                  <li>Consider empiric antimicrobials</li>
+                </ul>
+              </DecisionCard>
+              {renderSevereChain({
+                preMalariaSevere,
+                setPreMalariaSevere,
+                preMalariaFitOP,
+                setPreMalariaFitOP,
+                preMalariaVhfPositive,
+                setPreMalariaVhfPositive,
+              })}
+            </>
+          )}
+        </>
+      )}
+
+      {preMalariaMalariaPositive === "no" && (
+        <>
+          <DecisionCard tone="red" title="AT RISK OF VHF">
+            <ul className="list-disc pl-5">
+              <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
+              <li>Infection Consultant to discuss VHF test with Imported Fever Service (0844 7788990)</li>
+              <li>If VHF testing agreed with IFS, notify local Health Protection Team</li>
+              <li>Consider empiric antimicrobials</li>
+            </ul>
+          </DecisionCard>
+          {renderSevereChain({
+            preMalariaSevere,
+            setPreMalariaSevere,
+            preMalariaFitOP,
+            setPreMalariaFitOP,
+            preMalariaVhfPositive,
+            setPreMalariaVhfPositive,
+          })}
+        </>
+      )}
+
+      <Footer onBack={onBackToExposures} onReset={onReset} />
+    </div>
+  );
+}
+
+// ----- shared UI blocks -----
+function Footer({ onBack, onReset }) {
+  return (
+    <div className="flex gap-3">
+      <button
+        type="button"
+        onClick={onBack}
+        className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
+      >
+        Back
+      </button>
+      <button
+        type="button"
+        onClick={onReset}
+        className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
+      >
+        New assessment
+      </button>
+    </div>
+  );
+}
+
+function renderSevereChain({
+  preMalariaSevere,
+  setPreMalariaSevere,
+  preMalariaFitOP,
+  setPreMalariaFitOP,
+  preMalariaVhfPositive,
+  setPreMalariaVhfPositive,
+}) {
+  return (
+    <>
+      {/* Severe features */}
+      <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+        <div className="text-sm mb-1">
+          Does the patient have extensive bruising or active bleeding or uncontrolled diarrhoea or uncontrolled vomiting?
+        </div>
+        <div className="flex gap-2">
+          <button type="button" className={yesNoBtn(preMalariaSevere === "yes")} onClick={() => setPreMalariaSevere("yes")}>Yes</button>
+          <button type="button" className={yesNoBtn(preMalariaSevere === "no")} onClick={() => setPreMalariaSevere("no")}>No</button>
+        </div>
+      </div>
+
+      {preMalariaSevere === "yes" && (
+        <>
+          <DecisionCard tone="red" title="Admit" />
+          <VhfResultBlock
+            preMalariaVhfPositive={preMalariaVhfPositive}
+            setPreMalariaVhfPositive={setPreMalariaVhfPositive}
+          />
+        </>
+      )}
+
+      {preMalariaSevere === "no" && (
+        <>
+          {/* Fit for OP? */}
+          <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+            <div className="text-sm mb-1">Is the patient fit for outpatient management?</div>
+            <div className="flex gap-2">
+              <button type="button" className={yesNoBtn(preMalariaFitOP === "yes")} onClick={() => setPreMalariaFitOP("yes")}>Yes</button>
+              <button type="button" className={yesNoBtn(preMalariaFitOP === "no")} onClick={() => setPreMalariaFitOP("no")}>No</button>
+            </div>
+          </div>
+
+          {preMalariaFitOP === "no" && (
+            <>
+              <DecisionCard tone="red" title="Admit" />
+              <VhfResultBlock
+                preMalariaVhfPositive={preMalariaVhfPositive}
+                setPreMalariaVhfPositive={setPreMalariaVhfPositive}
+              />
+            </>
+          )}
+
+          {preMalariaFitOP === "yes" && (
+            <>
+              <DecisionCard tone="red" title="Outpatient management">
+                <ul className="list-disc pl-5">
+                  <li>Inform local HP Team</li>
+                  <li>Ensure patient contact details recorded</li>
+                  <li>Patient self-isolation and self-transportation</li>
+                  <li>Follow up VHF test result</li>
+                  <li>Review daily</li>
+                </ul>
+              </DecisionCard>
+              <VhfResultBlock
+                preMalariaVhfPositive={preMalariaVhfPositive}
+                setPreMalariaVhfPositive={setPreMalariaVhfPositive}
+              />
+            </>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+function VhfResultBlock({ preMalariaVhfPositive, setPreMalariaVhfPositive }) {
+  return (
+    <>
+      <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
+        <div className="text-sm mb-1">VHF test result positive?</div>
+        <div className="flex gap-2">
+          <button type="button" className={yesNoBtn(preMalariaVhfPositive === "yes")} onClick={() => setPreMalariaVhfPositive("yes")}>Yes</button>
+          <button type="button" className={yesNoBtn(preMalariaVhfPositive === "no")} onClick={() => setPreMalariaVhfPositive("no")}>No</button>
         </div>
       </div>
 
@@ -246,11 +708,4 @@ export default function SummaryStep({
       )}
     </>
   );
-
-  // ---------------- RENDER ----------------
-  if (fromScreeningRed) {
-    /* unchanged content below … */
-  }
-
-  // The rest of your file remains unchanged.
 }
