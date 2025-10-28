@@ -143,6 +143,7 @@ const emptyStop = () => ({
     healthcareFacility: false, healthcareFacilityDetails: '',
     prison: false, prisonDetails: '',
     refugeeCamp: false, refugeeCampDetails: '',
+    unprotectedSex: false, unprotectedSexDetails: '',
     // Misc
     otherText: '',
   },
@@ -1173,6 +1174,8 @@ const removeCity = (i) => {
               <ExposureCheck label="Healthcare facility contact" checked={exp.healthcareFacility} details={exp.healthcareFacilityDetails} onToggle={(v) => onChange({ exposures: { ...exp, healthcareFacility: v } })} onDetails={(v) => onChange({ exposures: { ...exp, healthcareFacilityDetails: v } })} />
               <ExposureCheck label="Prison contact" checked={exp.prison} details={exp.prisonDetails} onToggle={(v) => onChange({ exposures: { ...exp, prison: v } })} onDetails={(v) => onChange({ exposures: { ...exp, prisonDetails: v } })} />
               <ExposureCheck label="Refugee camp contact" checked={exp.refugeeCamp} details={exp.refugeeCampDetails} onToggle={(v) => onChange({ exposures: { ...exp, refugeeCamp: v } })} onDetails={(v) => onChange({ exposures: { ...exp, refugeeCampDetails: v } })} />
+              <ExposureCheck label="Unprotected sex" checked={exp.unprotectedSex} details={exp.unprotectedSexDetails} onToggle={(v) => onChange({ exposures: { ...exp, unprotectedSex: v } })} onDetails={(v) => onChange({ exposures: { ...exp, unprotectedSexDetails: v } })} />
+
             </div>
             <div className="mt-3">
               <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other exposure (free-text)</label>
@@ -1967,6 +1970,7 @@ function exposureBullets(exp) {
   push('healthcare facility contact', exp.healthcareFacility, exp.healthcareFacilityDetails);
   push('prison contact', exp.prison, exp.prisonDetails);
   push('refugee camp contact', exp.refugeeCamp, exp.refugeeCampDetails);
+  push('unprotected sex', exp.unprotectedSex, exp.unprotectedSexDetails);
 
   if (exp.otherText?.trim()) out.push({ label: exp.otherText.trim(), details: '' });
 
