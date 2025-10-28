@@ -18,7 +18,7 @@ export default function Home() {
               Welcome to the Infectious Diseases Portal
             </h1>
             <p className="mt-6 text-lg sm:text-xl text-slate-700 dark:text-slate-300">
-              Practical algorithms, local guidelines, and education for ID clinicians in the North&nbsp;West.
+              Practical algorithms, local guidelines, 
             </p>
 
             {/* Two CTAs */}
