@@ -1,11 +1,12 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v11 (Phase 2: Split Screen Layout)
+// Travel History Generator — v12 (Option 1: Smart Accordion)
 // Changes:
-// - Implemented Responsive Grid Layout (Desktop: Split Screen / Mobile: Stacked)
-// - Made Summary section "Sticky" on desktop for live preview
-// - Preserved all Phase 1.5 logic (Green buttons, Bulleted forms, Split summaries)
+// - Reverted to Single Column Layout (Clean & Focused)
+// - Added "Smart Accordion" logic: Trip Cards are collapsible
+// - collapsed state shows a summary (Countries + Dates)
+// - Summary section moved back to bottom
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -19,15 +20,10 @@ const CSC_COUNTRIES = Country.getAllCountries(); // [{ name, isoCode, ... }]
 function getIsoFromCountryName(name) {
   if (!name) return "";
   const q = name.trim().toLowerCase();
-
-  // 1) direct case-insensitive name match
   let hit = CSC_COUNTRIES.find(c => c.name.toLowerCase() === q);
   if (hit) return hit.isoCode;
-
-  // 2) soft match: strip punctuation/diacritics and compare again
   const norm = (s) =>
     s.normalize?.("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s]/g, "").trim().toLowerCase() || s.toLowerCase();
-
   const qn = norm(q);
   hit = CSC_COUNTRIES.find(c => norm(c.name) === qn);
   return hit ? hit.isoCode : "";
@@ -40,16 +36,9 @@ const ACCOMMODATION_OPTIONS = [
 ];
 
 const VACCINE_OPTIONS = [
-  'Yellow fever',
-  'Hepatitis A',
-  'Hepatitis B',
-  'Typhoid',
-  'Meningitis ACWY',
-  'Rabies (pre-exposure)',
-  'Cholera (oral)',
-  'Japanese encephalitis (JE)',
-  'Tick-borne encephalitis (TBE)',
-  'Other',
+  'Yellow fever', 'Hepatitis A', 'Hepatitis B', 'Typhoid', 'Meningitis ACWY',
+  'Rabies (pre-exposure)', 'Cholera (oral)', 'Japanese encephalitis (JE)',
+  'Tick-borne encephalitis (TBE)', 'Other',
 ];
 
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine'];
@@ -60,17 +49,28 @@ const BTN_PRIMARY =
   "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-white " +
   "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95 " +
   "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70 " +
-  "disabled:opacity-50 disabled:cursor-not-allowed transition";
+  "disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm";
 
 const BTN_SECONDARY =
   "rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 " +
-  "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition";
+  "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition bg-white dark:bg-slate-900";
 
 const LINKISH_SECONDARY =
   "rounded-lg px-3 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 " +
   "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition";
 
 const NODE_COLOR = "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]";
+
+// ---- Icons ----
+const ChevronDownIcon = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m6 9 6 6 6-6"/></svg>
+);
+const ChevronUpIcon = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m18 15-6-6-6 6"/></svg>
+);
+const TrashIcon = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+);
 
 // ---- Helpers ----
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -82,7 +82,6 @@ const parseDate = (dateStr) => {
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
-// Format outputs as DD/MM/YYYY (inputs remain native yyyy-mm-dd)
 const formatDMY = (dateStr) => {
   const d = parseDate(dateStr);
   if (!d) return '';
@@ -92,66 +91,55 @@ const formatDMY = (dateStr) => {
   return `${dd}/${mm}/${yyyy}`;
 };
 
-// Capitalise first letter (leave rest as-is)
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
-// Overlap check (same-day edges allowed)
 function rangesOverlap(aStart, aEnd, bStart, bEnd) {
   if (!aStart || !aEnd || !bStart || !bEnd) return false;
   const aS = parseDate(aStart), aE = parseDate(aEnd), bS = parseDate(bStart), bE = parseDate(bEnd);
   if (!aS || !aE || !bS || !bE) return false;
-  return aS < bE && bS < aE; // edges equal are allowed
+  return aS < bE && bS < aE;
 }
 
 // ---- Initial State ----
 const emptyStop = () => ({
   id: uid(),
   country: '',
-  cities: [{ name: '', arrival: '', departure: '' }], // multiple cities per stop (object shape)
+  cities: [{ name: '', arrival: '', departure: '' }],
   arrival: '',
   departure: '',
-  accommodations: [], // multiple accommodation types
+  accommodations: [],
   accommodationOther: '',
-
-  // Exposures with per-exposure details
   exposures: {
-    // Vector
-    mosquito: 'unknown', mosquitoDetails: '',         // Mosquito bites
-    tick: 'unknown', tickDetails: '',                 // Tick bites
+    mosquito: 'unknown', mosquitoDetails: '',
+    tick: 'unknown', tickDetails: '',
     vectorOtherEnabled: 'unknown', vectorOtherDetails: '',
-    // Environment
     freshwater: 'unknown', freshwaterDetails: '',
-    cavesMines: 'unknown', cavesMinesDetails: '',     // Visited caves/mines
-    ruralForest: 'unknown', ruralForestDetails: '',   // Rural / forest stay
-    hikingWoodlands: 'unknown', hikingWoodlandsDetails: '', // Hiking in forest/bush/woodlands
-    // Animal / procedures
+    cavesMines: 'unknown', cavesMinesDetails: '',
+    ruralForest: 'unknown', ruralForestDetails: '',
+    hikingWoodlands: 'unknown', hikingWoodlandsDetails: '',
     animalContact: 'unknown', animalContactDetails: '',
     animalBiteScratch: 'unknown', animalBiteScratchDetails: '',
-    bushmeat: 'unknown', bushmeatDetails: '',         // Bushmeat consumption
+    bushmeat: 'unknown', bushmeatDetails: '',
     needlesTattoos: 'unknown', needlesTattoosDetails: '',
     safariWildlife: 'unknown', safariWildlifeDetails: '',
-    // Food / water
     streetFood: 'unknown', streetFoodDetails: '',
     untreatedWater: 'unknown', untreatedWaterDetails: '',
     undercookedFood: 'unknown', undercookedFoodDetails: '',
     undercookedSeafood: 'unknown', undercookedSeafoodDetails: '',
     unpasteurisedMilk: 'unknown', unpasteurisedMilkDetails: '',
-    // Social / institutional
-    funerals: 'unknown', funeralsDetails: '',         // Attended funerals
+    funerals: 'unknown', funeralsDetails: '',
     largeGatherings: 'unknown', largeGatheringsDetails: '',
-    sickContacts: 'unknown', sickContactsDetails: '', // Sick contacts (incl. TB)
+    sickContacts: 'unknown', sickContactsDetails: '',
     healthcareFacility: 'unknown', healthcareFacilityDetails: '',
     prison: 'unknown', prisonDetails: '',
     refugeeCamp: 'unknown', refugeeCampDetails: '',
     unprotectedSex: 'unknown', unprotectedSexDetails: '',
-    // Misc
     otherText: '',
   },
 });
 
 const emptyLayover = (tripId) => ({
-  id: uid(), tripId, country: '', city: '', start: '', end: '', leftAirport: 'no',
-  activitiesText: '', // free text if leftAirport = yes
+  id: uid(), tripId, country: '', city: '', start: '', end: '', leftAirport: 'no', activitiesText: '',
 });
 
 const emptyTrip = () => ({
@@ -159,9 +147,8 @@ const emptyTrip = () => ({
   purpose: '',
   originCountry: '',
   originCity: '',
-  // Trip-level vaccines & malaria
   vaccines: [],
-  vaccinesOther: '',            
+  vaccinesOther: '',
   malaria: { indication: 'Not indicated', drug: 'None', adherence: '' },
   stops: [emptyStop()],
   layovers: [],
@@ -172,28 +159,24 @@ const initialState = {
   companions: {
     group: 'Alone',
     otherText: '',
-    companionsWell: 'unknown',  // yes | no | unknown
+    companionsWell: 'unknown',
     companionsUnwellDetails: '',
   },
 };
 
-// ===== Shared chronology builder (used by Timeline and Summary) =====
+// ===== Shared chronology builder =====
 function buildTripEvents(trip, companions) {
-  // Sort stops by arrival
   const stopsSorted = [...trip.stops].sort((a, b) => (parseDate(a.arrival) - parseDate(b.arrival)));
   const layoversSorted = [...trip.layovers].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
-
   const events = [];
 
   if (stopsSorted.length === 0) {
-    // No stops: just layovers in start-time order
     layoversSorted.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l }));
     return events;
   }
 
   const firstStop = stopsSorted[0];
   const lastStop = stopsSorted[stopsSorted.length - 1];
-
   const beforeFirst = [];
   const afterLast = [];
   const betweenByIndex = Array.from({ length: Math.max(0, stopsSorted.length - 1) }, () => []);
@@ -201,36 +184,21 @@ function buildTripEvents(trip, companions) {
   for (const l of layoversSorted) {
     const sTime = parseDate(l.start);
     const eTime = parseDate(l.end);
-
-    if (eTime && eTime <= parseDate(firstStop.arrival)) {
-      beforeFirst.push(l);
-      continue;
-    }
-    if (sTime && sTime >= parseDate(lastStop.departure)) {
-      afterLast.push(l);
-      continue;
-    }
-
+    if (eTime && eTime <= parseDate(firstStop.arrival)) { beforeFirst.push(l); continue; }
+    if (sTime && sTime >= parseDate(lastStop.departure)) { afterLast.push(l); continue; }
     let placed = false;
     for (let i = 0; i < stopsSorted.length - 1; i++) {
       const depI = parseDate(stopsSorted[i].departure);
       const arrIp1 = parseDate(stopsSorted[i + 1].arrival);
       if (depI && arrIp1 && sTime && eTime && depI <= sTime && eTime <= arrIp1) {
-        betweenByIndex[i].push(l);
-        placed = true;
-        break;
+        betweenByIndex[i].push(l); placed = true; break;
       }
     }
-    if (!placed) {
-      (sTime && sTime < parseDate(firstStop.arrival) ? beforeFirst : afterLast).push(l);
-    }
+    if (!placed) { (sTime && sTime < parseDate(firstStop.arrival) ? beforeFirst : afterLast).push(l); }
   }
 
-   // Emit with anchors so Timeline can place layovers near the correct stop
   const firstStopId = firstStop.id;
   const lastStopId = lastStop.id;
-
-  // Sort groups
   beforeFirst.sort((a, b) => (parseDate(a.end) - parseDate(b.end)));
   afterLast.sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
 
@@ -241,60 +209,25 @@ function buildTripEvents(trip, companions) {
       type: 'stop',
       date: parseDate(s.arrival),
       stop: {
-        ...s,
-        isFirstInTrip,
-        isLastInTrip,
+        ...s, isFirstInTrip, isLastInTrip,
         tripPurpose: trip.purpose,
-        tripVaccines: trip.vaccines || [],
-        tripVaccinesOther: trip.vaccinesOther || '',
+        tripVaccines: trip.vaccines || [], tripVaccinesOther: trip.vaccinesOther || '',
         tripMalaria: trip.malaria || { indication: 'Not indicated', drug: 'None', adherence: '' },
         tripCompanions: companions || null,
-        tripOriginCountry: trip.originCountry || '',
-        tripOriginCity: trip.originCity || '',
+        tripOriginCountry: trip.originCountry || '', tripOriginCity: trip.originCity || '',
       },
     });
-
-    // Attach layovers that belong *before the first stop's card*
     if (i === 0 && beforeFirst.length) {
-      beforeFirst.forEach((l) =>
-        events.push({
-          type: 'layover',
-          date: parseDate(l.start),
-          layover: l,
-          anchorStopId: s.id,
-          position: 'before-stop',
-        })
-      );
+      beforeFirst.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l, anchorStopId: s.id, position: 'before-stop' }));
     }
-
-    // Layovers between this stop and the next (render *after* this stop's card)
     if (i < betweenByIndex.length) {
       const group = betweenByIndex[i].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
-      group.forEach((l) =>
-        events.push({
-          type: 'layover',
-          date: parseDate(l.start),
-          layover: l,
-          anchorStopId: s.id,
-          position: 'between',
-        })
-      );
+      group.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l, anchorStopId: s.id, position: 'between' }));
     }
-
-    // Attach layovers that belong *after the last stop's card*
     if (isLastInTrip && afterLast.length) {
-      afterLast.forEach((l) =>
-        events.push({
-          type: 'layover',
-          date: parseDate(l.start),
-          layover: l,
-          anchorStopId: s.id,
-          position: 'after-stop',
-        })
-      );
+      afterLast.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l, anchorStopId: s.id, position: 'after-stop' }));
     }
   });
-
   return events;
 }
 
@@ -307,33 +240,18 @@ export default function TravelHistoryGeneratorPage() {
   const itemRefs = useRef(new Map());
   const setItemRef = (id) => (el) => { if (el) itemRefs.current.set(id, el); };
 
-  // Warn on refresh/close if there is any entered data (memory-only mode)
-useEffect(() => {
-  const hasData = state.trips.some(t => t.stops.length > 0 || t.layovers.length > 0);
+  useEffect(() => {
+    const hasData = state.trips.some(t => t.stops.length > 0 || t.layovers.length > 0);
+    const onBeforeUnload = (e) => { if (!hasData) return; e.preventDefault(); e.returnValue = ""; };
+    if (hasData) window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [state.trips]);
 
-  const onBeforeUnload = (e) => {
-    if (!hasData) return;
-    e.preventDefault();
-    e.returnValue = "";
-  };
-
-  if (hasData) {
-    window.addEventListener("beforeunload", onBeforeUnload);
-  }
-
-  return () => {
-    window.removeEventListener("beforeunload", onBeforeUnload);
-  };
-}, [state.trips]);
-
-  // Validation: strict overlaps, same-day edges allowed
   useEffect(() => {
     const list = [];
     const stopIds = new Set();
     const layIds = new Set();
-
     state.trips.forEach((trip, tIdx) => {
-      // Stop date order sanity
       trip.stops.forEach((s, sIdx) => {
         if (s.arrival && s.departure) {
           const a = parseDate(s.arrival), d = parseDate(s.departure);
@@ -343,62 +261,50 @@ useEffect(() => {
           }
         }
       });
-
-      // Stop vs Stop
       for (let i = 0; i < trip.stops.length; i++) {
         for (let j = i + 1; j < trip.stops.length; j++) {
           const A = trip.stops[i], B = trip.stops[j];
           if (rangesOverlap(A.arrival, A.departure, B.arrival, B.departure)) {
-            list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Stops ${i + 1} and ${j + 1} overlap; adjust dates.` });
+            list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Stops ${i + 1} and ${j + 1} overlap.` });
             stopIds.add(A.id); stopIds.add(B.id);
           }
         }
       }
-
-      // Layover vs Layover
       for (let i = 0; i < trip.layovers.length; i++) {
         for (let j = i + 1; j < trip.layovers.length; j++) {
           const A = trip.layovers[i], B = trip.layovers[j];
           if (rangesOverlap(A.start, A.end, B.start, B.end)) {
-            list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Layovers overlap; adjust times.` });
+            list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Layovers overlap.` });
             layIds.add(A.id); layIds.add(B.id);
           }
         }
       }
-
-      // Layover vs Stop
       trip.layovers.forEach((L, li) => {
         trip.stops.forEach((S, si) => {
           if (rangesOverlap(L.start, L.end, S.arrival, S.departure)) {
-            list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Layover ${li + 1} overlaps Stop ${si + 1}; adjust dates.` });
+            list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Layover ${li + 1} overlaps Stop ${si + 1}.` });
             layIds.add(L.id); stopIds.add(S.id);
           }
         });
       });
     });
-
     setIssues(list);
     setHighlight({ stopIds, layoverIds: layIds });
   }, [state.trips]);
 
-  // Auto-scroll to newly added element
   useEffect(() => {
     if (!pendingScrollId) return;
     const el = itemRefs.current.get(pendingScrollId);
-    if (el && el.scrollIntoView) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     const t = setTimeout(() => setPendingScrollId(null), 600);
     return () => clearTimeout(t);
   }, [pendingScrollId]);
 
-  // Derived: merged chronology across all trips for the timeline component
   const mergedEventsAllTrips = useMemo(() => {
     const merged = [];
     state.trips.forEach((trip) => {
       buildTripEvents(trip, state.companions).forEach((ev) => merged.push({ ...ev, tripId: trip.id }));
     });
-    // Sort by date across trips (nulls last)
     merged.sort((a, b) => {
       if (!a.date && !b.date) return 0;
       if (!a.date) return 1;
@@ -408,64 +314,30 @@ useEffect(() => {
     return merged;
   }, [state.trips, state.companions]);
 
-  // Build summary HTML & plain text using the SAME chronology
   const { summaryHtml, summaryTextPlain } = useMemo(
     () => buildSummaryFromEvents(state, mergedEventsAllTrips),
     [state, mergedEventsAllTrips]
   );
 
-  // Handlers
-  const updateTrip = (tripId, patch) => setState((prev) => ({
-    ...prev, trips: prev.trips.map((t) => (t.id === tripId ? { ...t, ...patch } : t)),
-  }));
-
-  const updateStop = (tripId, stopId, patch) => setState((prev) => ({
-    ...prev,
-    trips: prev.trips.map((t) => (
-      t.id === tripId ? { ...t, stops: t.stops.map((s) => (s.id === stopId ? { ...s, ...patch } : s)) } : t
-    )),
-  }));
-
-  const addTrip = () => {
-    const tr = emptyTrip();
-    setState((p) => ({ ...p, trips: [...p.trips, tr] }));
-    setPendingScrollId(tr.id);
-  };
-
+  const updateTrip = (tripId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, ...patch } : t)) }));
+  const updateStop = (tripId, stopId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, stops: t.stops.map((s) => (s.id === stopId ? { ...s, ...patch } : s)) } : t)) }));
+  const addTrip = () => { const tr = emptyTrip(); setState((p) => ({ ...p, trips: [...p.trips, tr] })); setPendingScrollId(tr.id); };
   const removeTrip = (tripId) => setState((p) => ({ ...p, trips: p.trips.filter((t) => t.id !== tripId) }));
-
-  const addStop = (tripId) => {
-    const s = emptyStop();
-    setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, stops: [...t.stops, s] } : t)) }));
-    setPendingScrollId(s.id);
-  };
-
+  const addStop = (tripId) => { const s = emptyStop(); setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, stops: [...t.stops, s] } : t)) })); setPendingScrollId(s.id); };
   const removeStop = (tripId, stopId) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, stops: t.stops.filter((s) => s.id !== stopId) } : t)) }));
-
-  const addLayover = (tripId) => {
-    const l = emptyLayover(tripId);
-    setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, layovers: [...t.layovers, l] } : t)) }));
-    setPendingScrollId(l.id);
-  };
-
+  const addLayover = (tripId) => { const l = emptyLayover(tripId); setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, layovers: [...t.layovers, l] } : t)) })); setPendingScrollId(l.id); };
   const updateLayover = (tripId, layoverId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, layovers: t.layovers.map((l) => (l.id === layoverId ? { ...l, ...patch } : l)) } : t)) }));
-
   const removeLayover = (tripId, layoverId) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, layovers: t.layovers.filter((l) => l.id !== layoverId) } : t)) }));
 
-  const clearAll = () => {
-    if (confirm('Clear all data? This only affects this browser/session.')) {
-      setState(initialState);
-    }
-  };
+  const clearAll = () => { if (confirm('Clear all data?')) setState(initialState); };
 
   return (
-    <main className="py-10 sm:py-14 max-w-[1600px] mx-auto px-4 sm:px-6">
-      {/* Header */}
+    <main className="py-10 sm:py-14 max-w-5xl mx-auto px-4 sm:px-6">
       <header className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Travel History Generator</h1>
           <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl">
-            Build a clear, concise travel history. Provide as much information as possible to generate accurate history.
+            Build a clear, concise travel history. Provide as much information as possible.
           </p>
         </div>
         <div className="flex gap-2">
@@ -473,13 +345,11 @@ useEffect(() => {
         </div>
       </header>
 
-      {/* Privacy banner */}
       <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 p-4 text-amber-900 dark:text-amber-200 flex items-center gap-3">
         <span aria-hidden="true">⚠️</span>
         <p className="text-sm">Do not enter private or patient-identifiable information.</p>
       </div>
 
-      {/* Validation messages */}
       {issues.length > 0 && (
         <div className="mb-6 space-y-2" aria-live="polite">
           {issues.map((e, i) => (
@@ -490,601 +360,330 @@ useEffect(() => {
         </div>
       )}
 
-      {/* MAIN LAYOUT: Split Screen */}
-      <div className="lg:grid lg:grid-cols-[1fr_450px] gap-8 items-start">
-        
-        {/* LEFT COLUMN: Inputs & Timeline */}
-        <div className="space-y-10 min-w-0">
-          
-          {/* Trip Builder */}
-          <section className="space-y-10">
-            {state.trips.map((trip, tIdx) => (
-              <TripCard
-                key={trip.id}
-                innerRef={setItemRef(trip.id)}
-                trip={trip}
-                index={tIdx}
-                updateTrip={updateTrip}
-                updateStop={updateStop}
-                addStop={addStop}
-                removeStop={removeStop}
-                addLayover={addLayover}
-                updateLayover={updateLayover}
-                removeLayover={removeLayover}
-                removeTrip={removeTrip}
-                highlight={highlight}
-                setItemRef={setItemRef}
-              />
-            ))}
-            <div>
-              <button type="button" onClick={addTrip} className={BTN_PRIMARY}>+ Add another trip</button>
-            </div>
-          </section>
+      {/* Accordion List */}
+      <section className="space-y-6">
+        {state.trips.map((trip, tIdx) => (
+          <TripCard
+            key={trip.id}
+            innerRef={setItemRef(trip.id)}
+            trip={trip}
+            index={tIdx}
+            updateTrip={updateTrip}
+            updateStop={updateStop}
+            addStop={addStop}
+            removeStop={removeStop}
+            addLayover={addLayover}
+            updateLayover={updateLayover}
+            removeLayover={removeLayover}
+            removeTrip={removeTrip}
+            highlight={highlight}
+            setItemRef={setItemRef}
+            defaultOpen={tIdx === state.trips.length - 1} // Open latest by default
+          />
+        ))}
+        <div>
+          <button type="button" onClick={addTrip} className={BTN_PRIMARY}>+ Add another trip</button>
+        </div>
+      </section>
 
-          {/* Companions */}
-          <section className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Companions</h2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-3">
-              <div className="sm:col-span-2">
-                <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Who did you travel with?</label>
-                <div className="flex flex-wrap gap-2">
-                  {['Alone', 'Family', 'Friends', 'Organised tour', 'Other'].map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() =>
-                        setState((p) => {
-                          const next = { ...p.companions, group: opt };
-                          if (opt === 'Alone') {
-                            next.companionsWell = 'unknown';
-                            next.companionsUnwellDetails = '';
-                            next.otherText = '';
-                          }
-                          return { ...p, companions: next };
-                        })
-                      }
-                      className={classNames(
-                        'rounded-md px-3 py-1.5 text-sm border-2 transition',
-                        state.companions.group === opt
-                          ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent'
-                          : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
-                      )}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-                {state.companions.group === 'Other' && (
-                  <div className="mt-2">
-                    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Describe</label>
-                    <input
-                      type="text"
-                      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-                      value={state.companions.otherText}
-                      onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, otherText: e.target.value } }))}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {state.companions.group !== 'Alone' && (
-                <div>
-                  <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Are they well?</label>
-                  <div className="flex gap-2">
-                    {[
-                      { val: 'yes', label: 'Yes' },
-                      { val: 'no', label: 'No' },
-                      { val: 'unknown', label: 'Unknown' },
-                    ].map(({ val, label }) => (
-                      <button
-                        key={val}
-                        type="button"
-                        onClick={() =>
-                          setState((p) => ({
-                            ...p,
-                            companions: {
-                              ...p.companions,
-                              companionsWell: val,
-                              // Clear details if not "No"
-                              companionsUnwellDetails: val === 'no' ? p.companions.companionsUnwellDetails : '',
-                            },
-                          }))
-                        }
-                        className={classNames(
-                          'rounded-md px-3 py-1.5 text-sm border-2 transition',
-                          state.companions.companionsWell === val
-                            ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent'
-                            : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
-                        )}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {state.companions.companionsWell === 'no' && (
-                    <div className="mt-2">
-                      <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
-                        Please provide details
-                      </label>
-                      <textarea
-                        rows={3}
-                        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-                        value={state.companions.companionsUnwellDetails}
-                        onChange={(e) =>
-                          setState((p) => ({
-                            ...p,
-                            companions: { ...p.companions, companionsUnwellDetails: e.target.value },
-                          }))
-                        }
-                      />
-                    </div>
+      {/* Companions */}
+      <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Companions</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="sm:col-span-2">
+            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Who did you travel with?</label>
+            <div className="flex flex-wrap gap-2">
+              {['Alone', 'Family', 'Friends', 'Organised tour', 'Other'].map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setState((p) => {
+                    const next = { ...p.companions, group: opt };
+                    if (opt === 'Alone') { next.companionsWell = 'unknown'; next.companionsUnwellDetails = ''; next.otherText = ''; }
+                    return { ...p, companions: next };
+                  })}
+                  className={classNames(
+                    'rounded-md px-3 py-1.5 text-sm border-2 transition',
+                    state.companions.group === opt
+                      ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent'
+                      : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
                   )}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+            {state.companions.group === 'Other' && (
+              <div className="mt-2">
+                <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Describe</label>
+                <input
+                  type="text"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                  value={state.companions.otherText}
+                  onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, otherText: e.target.value } }))}
+                />
+              </div>
+            )}
+          </div>
+          {state.companions.group !== 'Alone' && (
+            <div>
+              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Are they well?</label>
+              <div className="flex gap-2">
+                {[{ val: 'yes', label: 'Yes' }, { val: 'no', label: 'No' }, { val: 'unknown', label: 'Unknown' }].map(({ val, label }) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setState((p) => ({ ...p, companions: { ...p.companions, companionsWell: val, companionsUnwellDetails: val === 'no' ? p.companions.companionsUnwellDetails : '' } }))}
+                    className={classNames(
+                      'rounded-md px-3 py-1.5 text-sm border-2 transition',
+                      state.companions.companionsWell === val ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent' : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {state.companions.companionsWell === 'no' && (
+                <div className="mt-2">
+                  <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Please provide details</label>
+                  <textarea
+                    rows={3}
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                    value={state.companions.companionsUnwellDetails}
+                    onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, companionsUnwellDetails: e.target.value } }))}
+                  />
                 </div>
               )}
             </div>
-          </section>
-
-          {/* Timeline */}
-          <section id="timeline-section" className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline</h2>
-            </div>
-            <TimelineVertical events={mergedEventsAllTrips} />
-          </section>
+          )}
         </div>
+      </section>
 
-        {/* RIGHT COLUMN: Sticky Summary */}
-        <aside className="sticky top-4 h-[calc(100vh-2rem)] overflow-y-auto rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 shadow-sm flex flex-col">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Summary</h2>
-          </div>
-          <div className="p-4 flex-1 overflow-y-auto">
-            <div className="text-sm text-slate-700 dark:text-slate-300 space-y-4">
-              {/* Only show if empty */}
-              {!summaryHtml && <p className="text-slate-500 italic">History will appear here as you type...</p>}
-              <div dangerouslySetInnerHTML={{ __html: summaryHtml }} />
-            </div>
-          </div>
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-            <button
-              type="button"
-              onClick={() => navigator.clipboard.writeText(summaryTextPlain)}
-              className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 hover:opacity-90 transition font-medium text-sm"
-            >
-              Copy to Clipboard
-            </button>
-          </div>
-        </aside>
+      {/* Timeline */}
+      <section id="timeline-section" className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3">Timeline</h2>
+        <TimelineVertical events={mergedEventsAllTrips} />
+      </section>
 
-      </div>
+      {/* Summary */}
+      <section className="mt-6 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3">Travel History Summary</h2>
+        <div className="text-sm text-slate-700 dark:text-slate-300">
+          <div dangerouslySetInnerHTML={{ __html: summaryHtml }} />
+        </div>
+        <div className="mt-3 flex gap-2">
+          <button type="button" onClick={() => navigator.clipboard.writeText(summaryTextPlain)} className={BTN_SECONDARY}>Copy summary</button>
+        </div>
+      </section>
     </main>
   );
 }
 
-// ===== Trip Card =====
+// ===== Collapsible Trip Card =====
 function TripCard({
   trip, index, updateTrip, updateStop, addStop, removeStop, addLayover, updateLayover, removeLayover, removeTrip,
-  highlight, setItemRef, innerRef
+  highlight, setItemRef, innerRef, defaultOpen
 }) {
-  // Toggle trip-level vaccine
+  const [isOpen, setIsOpen] = useState(defaultOpen ?? true);
+
+  // Generate Quick Summary Text for the header when closed
+  const tripSummary = useMemo(() => {
+    const countries = new Set();
+    let start = null, end = null;
+    trip.stops.forEach(s => {
+      if (s.country) countries.add(s.country);
+      if (s.arrival) { const d = new Date(s.arrival); if (!start || d < start) start = d; }
+      if (s.departure) { const d = new Date(s.departure); if (!end || d > end) end = d; }
+    });
+    const cStr = countries.size > 0 ? Array.from(countries).join(', ') : 'No countries added';
+    const dStr = (start && end) ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : '';
+    return { title: cStr, subtitle: dStr };
+  }, [trip.stops]);
+
   const toggleTripVaccine = (v) => {
     const set = new Set(trip.vaccines || []);
     const had = set.has(v);
     if (had) set.delete(v); else set.add(v);
-
     const patch = { vaccines: Array.from(set) };
-
-    // If "Other" is being unticked, clear the free-text
-    if (v === 'Other' && had) {
-      patch.vaccinesOther = '';
-    }
-
+    if (v === 'Other' && had) patch.vaccinesOther = '';
     updateTrip(trip.id, patch);
   };
 
-  // Update malaria (trip-level) and clean fields when not "Taken"
   const setMalaria = (patch) => {
     const next = { ...trip.malaria, ...patch };
-    if (next.indication !== 'Taken') {
-      next.drug = 'None';
-      next.adherence = '';
-    }
+    if (next.indication !== 'Taken') { next.drug = 'None'; next.adherence = ''; }
     updateTrip(trip.id, { malaria: next });
   };
-   // ---- Trip origin helpers (country -> city list)
-  // ---- Trip origin helpers (country -> city list)
-const originISO2 = useMemo(
-  () => getIsoFromCountryName(trip.originCountry),
-  [trip.originCountry]
-);
 
-const originCityNames = useMemo(() => {
-  const list = originISO2 ? (City.getCitiesOfCountry(originISO2) || []) : [];
-  const names = Array.from(new Set(list.map((c) => c.name)));
-  names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-  return names;
-}, [originISO2]);
+  const originISO2 = useMemo(() => getIsoFromCountryName(trip.originCountry), [trip.originCountry]);
+  const originCityNames = useMemo(() => {
+    const list = originISO2 ? (City.getCitiesOfCountry(originISO2) || []) : [];
+    const names = Array.from(new Set(list.map((c) => c.name)));
+    names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+    return names;
+  }, [originISO2]);
 
   return (
-    <div ref={innerRef} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-      <div className="flex items-start justify-between gap-3">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Trip {index + 1}</h2>
-        <div className="flex gap-2">
-          <button type="button" onClick={() => addStop(trip.id)} className={BTN_PRIMARY}>+ Add stop</button>
-          <button type="button" onClick={() => addLayover(trip.id)} className={BTN_PRIMARY}>+ Add layover</button>
-          <button type="button" onClick={() => removeTrip(trip.id)} className={BTN_SECONDARY}>Remove trip</button>
-        </div>
-      </div>
-
-      {/* Travelling from */}
-      <div className="mt-6">
-        <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
-          Travelling from
-        </label>
-        <div className="mt-2 grid sm:grid-cols-2 gap-4">
-          {/* Country */}
+    <div ref={innerRef} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 overflow-hidden transition-all duration-300">
+      
+      {/* HEADER: Always Visible */}
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between p-4 cursor-pointer bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+      >
+        <div className="flex items-center gap-4">
+          <div className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+             {isOpen ? <ChevronUpIcon className="w-5 h-5 text-slate-500" /> : <ChevronDownIcon className="w-5 h-5 text-slate-500" />}
+          </div>
           <div>
-            <CountryInput
-              value={trip.originCountry}
-              onChange={(val) => updateTrip(trip.id, { originCountry: val, originCity: '' })}
-            />
+            <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100">Trip {index + 1}</h3>
+            {!isOpen && (
+              <p className="text-sm text-slate-500 truncate max-w-md">
+                 <span className="font-medium text-slate-700 dark:text-slate-300">{tripSummary.title}</span> 
+                 {tripSummary.subtitle && <span className="mx-2 opacity-50">|</span>}
+                 {tripSummary.subtitle}
+              </p>
+            )}
           </div>
-          {/* City (input + datalist like StopCard) */}
-          <div className="w-full">
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
-            <input
-              type="text"
-              list={`trip-origin-cities-${trip.id}`}
-              placeholder="Start typing or select city…"
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-              value={trip.originCity || ''}
-              onChange={(e) => updateTrip(trip.id, { originCity: e.target.value })}
-            />
-            <datalist id={`trip-origin-cities-${trip.id}`}>
-              {originCityNames.map((nm) => (
-                <option key={nm} value={nm} />
-              ))}
-            </datalist>
-          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+           <button 
+             type="button" 
+             onClick={(e) => { e.stopPropagation(); removeTrip(trip.id); }} 
+             className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition"
+             title="Remove Trip"
+           >
+             <TrashIcon className="w-5 h-5" />
+           </button>
         </div>
       </div>
 
-      {/* Trip purpose */}
-      <div className="mt-4 grid sm:grid-cols-3 gap-4">
-        <div className="sm:col-span-3">
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Purpose</label>
-          <input
-            type="text"
-            placeholder="Work, VFR, tourism, humanitarian, etc."
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-            value={trip.purpose}
-            onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })}
-          />
-        </div>
-      </div>
+      {/* BODY: Collapsible */}
+      {isOpen && (
+        <div className="p-6 border-t border-slate-200 dark:border-slate-800 animate-in slide-in-from-top-2 duration-200">
+          
+          <div className="flex gap-2 mb-6">
+            <button type="button" onClick={() => addStop(trip.id)} className={BTN_PRIMARY}>+ Add stop</button>
+            <button type="button" onClick={() => addLayover(trip.id)} className={BTN_PRIMARY}>+ Add layover</button>
+          </div>
 
-      {/* Trip-wide Vaccines & Malaria */}
-      <div className="mt-6 grid md:grid-cols-2 gap-6">
-        {/* Vaccines */}
-        <div>
-          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
-            Pre-travel vaccinations
-          </label>
-          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {VACCINE_OPTIONS.map((v) => (
-              <Checkbox
-                key={v}
-                label={v}
-                checked={(trip.vaccines || []).includes(v)}
-                onChange={() => toggleTripVaccine(v)}
-              />
+          <div className="mt-6">
+            <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Travelling from</label>
+            <div className="mt-2 grid sm:grid-cols-2 gap-4">
+              <div><CountryInput value={trip.originCountry} onChange={(val) => updateTrip(trip.id, { originCountry: val, originCity: '' })} /></div>
+              <div className="w-full">
+                <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
+                <input type="text" list={`trip-origin-cities-${trip.id}`} placeholder="Start typing or select city…" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.originCity || ''} onChange={(e) => updateTrip(trip.id, { originCity: e.target.value })} />
+                <datalist id={`trip-origin-cities-${trip.id}`}>{originCityNames.map((nm) => (<option key={nm} value={nm} />))}</datalist>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-3">
+              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Purpose</label>
+              <input type="text" placeholder="Work, VFR, tourism, humanitarian, etc." className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.purpose} onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })} />
+            </div>
+          </div>
+
+          <div className="mt-6 grid md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Pre-travel vaccinations</label>
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {VACCINE_OPTIONS.map((v) => (<Checkbox key={v} label={v} checked={(trip.vaccines || []).includes(v)} onChange={() => toggleTripVaccine(v)} />))}
+              </div>
+              {(trip.vaccines || []).includes('Other') && (
+                <div className="mt-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other vaccination(s)</label><input type="text" placeholder="Enter vaccine name(s)…" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.vaccinesOther || ''} onChange={(e) => updateTrip(trip.id, { vaccinesOther: e.target.value })} /></div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Malaria prophylaxis</label>
+              <div className="mt-2 grid sm:grid-cols-3 gap-2">
+                <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.malaria.indication} onChange={(e) => setMalaria({ indication: e.target.value })}>{MALARIA_INDICATIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}</select>
+                {trip.malaria.indication === 'Taken' && (<select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.malaria.drug} onChange={(e) => setMalaria({ drug: e.target.value })}>{MALARIA_DRUGS.map((d) => (<option key={d} value={d}>{d}</option>))}</select>)}
+                {trip.malaria.indication === 'Taken' && (<select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.malaria.adherence} onChange={(e) => setMalaria({ adherence: e.target.value })}><option value="">Adherence…</option><option value="Good">Good</option><option value="Partial">Partial</option><option value="Poor">Poor</option></select>)}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-6">
+            {trip.stops.map((stop, sIdx) => (
+              <StopCard key={stop.id} innerRef={setItemRef(stop.id)} stop={stop} index={sIdx} onChange={(patch) => updateStop(trip.id, stop.id, patch)} onRemove={() => removeStop(trip.id, stop.id)} highlighted={highlight.stopIds.has(stop.id)} />
             ))}
           </div>
 
-          {/* Free-text for "Other" when selected */}
-          {(trip.vaccines || []).includes('Other') && (
-            <div className="mt-2">
-              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
-                Other vaccination(s)
-              </label>
-              <input
-                type="text"
-                placeholder="Enter vaccine name(s)…"
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-                value={trip.vaccinesOther || ''}
-                onChange={(e) => updateTrip(trip.id, { vaccinesOther: e.target.value })}
-              />
+          {trip.layovers.length > 0 && (
+            <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-6">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-3">Layovers</h3>
+              <div className="space-y-4">
+                {trip.layovers.map((l) => (
+                  <LayoverCard key={l.id} innerRef={setItemRef(l.id)} layover={l} onChange={(patch) => updateLayover(trip.id, l.id, patch)} onRemove={() => removeLayover(trip.id, l.id)} highlighted={highlight.layoverIds.has(l.id)} />
+                ))}
+              </div>
             </div>
           )}
-        </div>
-
-        {/* Malaria */}
-        <div>
-          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
-            Malaria prophylaxis
-          </label>
-          <div className="mt-2 grid sm:grid-cols-3 gap-2">
-            {/* Indication (single dropdown) */}
-            <select
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-              value={trip.malaria.indication}
-              onChange={(e) => setMalaria({ indication: e.target.value })}
-            >
-              {MALARIA_INDICATIONS.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-
-            {/* Drug (only when Taken) */}
-            {trip.malaria.indication === 'Taken' && (
-              <select
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-                value={trip.malaria.drug}
-                onChange={(e) => setMalaria({ drug: e.target.value })}
-              >
-                {MALARIA_DRUGS.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            )}
-
-            {/* Adherence (only when Taken) */}
-            {trip.malaria.indication === 'Taken' && (
-              <select
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-                value={trip.malaria.adherence}
-                onChange={(e) => setMalaria({ adherence: e.target.value })}
-              >
-                <option value="">Adherence…</option>
-                <option value="Good">Good</option>
-                <option value="Partial">Partial</option>
-                <option value="Poor">Poor</option>
-              </select>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Stops */}
-      <div className="mt-6 space-y-6">
-        {trip.stops.map((stop, sIdx) => (
-          <StopCard
-            key={stop.id}
-            innerRef={setItemRef(stop.id)}
-            stop={stop}
-            index={sIdx}
-            onChange={(patch) => updateStop(trip.id, stop.id, patch)}
-            onRemove={() => removeStop(trip.id, stop.id)}
-            highlighted={highlight.stopIds.has(stop.id)}
-          />
-        ))}
-      </div>
-
-      {/* Layovers */}
-      {trip.layovers.length > 0 && (
-        <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-6">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-3">Layovers</h3>
-          <div className="space-y-4">
-            {trip.layovers.map((l) => (
-              <LayoverCard
-                key={l.id}
-                innerRef={setItemRef(l.id)}
-                layover={l}
-                onChange={(patch) => updateLayover(trip.id, l.id, patch)}
-                onRemove={() => removeLayover(trip.id, l.id)}
-                highlighted={highlight.layoverIds.has(l.id)}
-              />
-            ))}
-          </div>
         </div>
       )}
     </div>
   );
 }
 
-
-  function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
+function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
   const exp = stop.exposures;
-
-  // ---- Cities: normalize to objects { name, arrival, departure } ----
   const normalizedCities = (stop.cities || []).map((c) =>
-    typeof c === 'string'
-      ? { name: c || '', arrival: '', departure: '' }
-      : {
-          name: c?.name || '',
-          arrival: c?.arrival || '',
-          departure: c?.departure || '',
-        }
+    typeof c === 'string' ? { name: c || '', arrival: '', departure: '' } : { name: c?.name || '', arrival: c?.arrival || '', departure: c?.departure || '' }
   );
-
-  // === NEW: derive cities from selected country ===
   const countryISO2 = useMemo(() => {
     const name = (stop.country || "").trim().toLowerCase();
     if (!name) return null;
-    const match = Country.getAllCountries().find(
-      (c) => c.name.trim().toLowerCase() === name
-    );
+    const match = Country.getAllCountries().find((c) => c.name.trim().toLowerCase() === name);
     return match?.isoCode || null;
   }, [stop.country]);
-
-  const cityOptions = useMemo(() => {
-    return countryISO2 ? City.getCitiesOfCountry(countryISO2) : [];
-  }, [countryISO2]);
-
-const commitCities = (next) => onChange({ cities: next });
-
-// Update name/arrival/departure for row i
-const setCityName = (i, name) => {
-  const next = [...normalizedCities];
-  next[i] = { ...next[i], name };
-  commitCities(next);
-};
-
-const setCityArrival = (i, arrival) => {
-  const next = [...normalizedCities];
-  next[i] = { ...next[i], arrival };
-  commitCities(next);
-};
-
-const setCityDeparture = (i, departure) => {
-  const next = [...normalizedCities];
-  next[i] = { ...next[i], departure };
-  commitCities(next);
-};
-
-const addCity = () => {
-  commitCities([
-    ...normalizedCities,
-    { name: '', arrival: '', departure: '' },
-  ]);
-};
-
-const removeCity = (i) => {
-  const next = [...normalizedCities];
-  next.splice(i, 1);
-  if (next.length === 0) next.push({ name: '', arrival: '', departure: '' });
-  commitCities(next);
-};
-    
-
-  // Accommodation handlers (checkbox group)
-  const toggleAccommodation = (value) => {
-  const set = new Set(stop.accommodations || []);
-  if (set.has(value)) set.delete(value);
-  else set.add(value);
-  onChange({ accommodations: Array.from(set) });
-};
+  const cityOptions = useMemo(() => { return countryISO2 ? City.getCitiesOfCountry(countryISO2) : []; }, [countryISO2]);
+  const commitCities = (next) => onChange({ cities: next });
+  const setCityName = (i, name) => { const next = [...normalizedCities]; next[i] = { ...next[i], name }; commitCities(next); };
+  const setCityArrival = (i, arrival) => { const next = [...normalizedCities]; next[i] = { ...next[i], arrival }; commitCities(next); };
+  const setCityDeparture = (i, departure) => { const next = [...normalizedCities]; next[i] = { ...next[i], departure }; commitCities(next); };
+  const addCity = () => { commitCities([...normalizedCities, { name: '', arrival: '', departure: '' }]); };
+  const removeCity = (i) => { const next = [...normalizedCities]; next.splice(i, 1); if (next.length === 0) next.push({ name: '', arrival: '', departure: '' }); commitCities(next); };
+  const toggleAccommodation = (value) => { const set = new Set(stop.accommodations || []); if (set.has(value)) set.delete(value); else set.add(value); onChange({ accommodations: Array.from(set) }); };
 
   return (
-    <div
-      ref={innerRef}
-      className={classNames(
-        "rounded-lg border p-4",
-        highlighted
-          ? "border-rose-400 dark:border-rose-600 bg-rose-50/40 dark:bg-rose-900/10"
-          : "border-slate-200 dark:border-slate-800"
-      )}
-    >
+    <div ref={innerRef} className={classNames("rounded-lg border p-4", highlighted ? "border-rose-400 dark:border-rose-600 bg-rose-50/40 dark:bg-rose-900/10" : "border-slate-200 dark:border-slate-800")}>
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Stop {index + 1}</h3>
         <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove stop</button>
       </div>
 
- {/* Top row: Country + country-level dates */}
-<div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-  <CountryInput
-    value={stop.country}
-    onChange={(val) => onChange({ country: val })}
-  />
-
-  <div>
-    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Arrival *</label>
-    <input
-      type="date"
-      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-      value={stop.arrival}
-      onChange={(e) => onChange({ arrival: e.target.value })}
-    />
-  </div>
-
-  <div>
-    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Departure *</label>
-    <input
-      type="date"
-      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-      value={stop.departure}
-      onChange={(e) => onChange({ departure: e.target.value })}
-    />
-  </div>
-</div>
-
-{/* Below: Cities list */}
-<div className="mt-4">
-  {/* Header row — matches country label style + grid */}
-  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-1">
-    <div>
-      <label className="block text-sm text-slate-600 dark:text-slate-300">City</label>
-    </div>
-    <div>
-      <label className="block text-sm text-slate-600 dark:text-slate-300">Arrival</label>
-    </div>
-    <div>
-      <label className="block text-sm text-slate-600 dark:text-slate-300">Departure</label>
-    </div>
-    <div>{/* empty header cell for the Remove button column */}</div>
-  </div>
-
-  {/* Rows */}
-  <div className="space-y-2">
-   {normalizedCities.map((row, i) => {
-  const listId = `city-list-${stop.id}-${i}`;
-  return (
-    <div key={i} className="grid sm:grid-cols-3 lg:grid-cols-4 gap-4">
-      {/* City input + datalist (matches CountryInput look/feel) */}
-      <div className="w-full">
-        <input
-          type="text"
-          list={listId}
-          placeholder="Start typing or select city…"
-          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-          value={row.name}
-          onChange={(e) => setCityName(i, e.target.value)}
-        />
-        <datalist id={listId}>
-          {(cityOptions || []).map((opt) => (
-            <option
-              key={`${opt.name}-${opt.latitude}-${opt.longitude}`}
-              value={opt.name}
-            />
-          ))}
-        </datalist>
+      <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <CountryInput value={stop.country} onChange={(val) => onChange({ country: val })} />
+        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Arrival *</label><input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.arrival} onChange={(e) => onChange({ arrival: e.target.value })} /></div>
+        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Departure *</label><input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.departure} onChange={(e) => onChange({ departure: e.target.value })} /></div>
       </div>
 
-      {/* Arrival */}
-      <input
-        type="date"
-        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-        value={row.arrival}
-        onChange={(e) => setCityArrival(i, e.target.value)}
-        aria-label="City arrival date"
-      />
-
-      {/* Departure */}
-      <input
-        type="date"
-        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-        value={row.departure}
-        onChange={(e) => setCityDeparture(i, e.target.value)}
-        aria-label="City departure date"
-      />
-
-      {/* Remove */}
-      <div className="flex">
-        <button
-          type="button"
-          onClick={() => removeCity(i)}
-          className="w-full sm:w-auto rounded-lg px-3 py-2 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition"
-        >
-          Remove
-        </button>
+      <div className="mt-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-1">
+          <div><label className="block text-sm text-slate-600 dark:text-slate-300">City</label></div>
+          <div><label className="block text-sm text-slate-600 dark:text-slate-300">Arrival</label></div>
+          <div><label className="block text-sm text-slate-600 dark:text-slate-300">Departure</label></div>
+        </div>
+        <div className="space-y-2">
+          {normalizedCities.map((row, i) => {
+            const listId = `city-list-${stop.id}-${i}`;
+            return (
+              <div key={i} className="grid sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="w-full"><input type="text" list={listId} placeholder="Start typing or select city…" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={row.name} onChange={(e) => setCityName(i, e.target.value)} /><datalist id={listId}>{(cityOptions || []).map((opt) => (<option key={`${opt.name}-${opt.latitude}-${opt.longitude}`} value={opt.name} />))}</datalist></div>
+                <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={row.arrival} onChange={(e) => setCityArrival(i, e.target.value)} aria-label="City arrival date" />
+                <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={row.departure} onChange={(e) => setCityDeparture(i, e.target.value)} aria-label="City departure date" />
+                <div className="flex"><button type="button" onClick={() => removeCity(i)} className="w-full sm:w-auto rounded-lg px-3 py-2 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition">Remove</button></div>
+              </div>
+            );
+          })}
+          <button type="button" onClick={addCity} className="rounded-lg px-3 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition">+ Add another city</button>
+        </div>
       </div>
-    </div>
-  );
-})}
 
-
-    <button
-      type="button"
-      onClick={addCity}
-      className="rounded-lg px-3 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition"
-    >
-      + Add another city
-    </button>
-  </div>
-</div>
-
-      {/* Accommodation (checkbox group) */}
       <div className="mt-4">
         <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Accommodation (select one or more)</label>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -1093,77 +692,37 @@ const removeCity = (i) => {
             const id = `${stop.id}-accom-${opt.replace(/\s+/g, '-').toLowerCase()}`;
             return (
               <label key={opt} htmlFor={id} className="flex items-start gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
-                <input
-                  id={id}
-                  type="checkbox"
-                  className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700"
-                  checked={checked}
-                  onChange={() => toggleAccommodation(opt)}
-                />
+                <input id={id} type="checkbox" className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700" checked={checked} onChange={() => toggleAccommodation(opt)} />
                 <span>{opt}</span>
               </label>
             );
           })}
         </div>
         {(stop.accommodations || []).includes('Other') && (
-          <div className="mt-2">
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other (describe)</label>
-            <input
-              type="text"
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-              value={stop.accommodationOther}
-              onChange={(e) => onChange({ accommodationOther: e.target.value })}
-            />
-          </div>
+          <div className="mt-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other (describe)</label><input type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.accommodationOther} onChange={(e) => onChange({ accommodationOther: e.target.value })} /></div>
         )}
       </div>
 
-      {/* Exposures (UPDATED) */}
       <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6">
         <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Activities / Exposures</h4>
-
         <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
-          {/* Vector-borne */}
           <fieldset className="space-y-1">
             <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Vector-borne</legend>
             <ExposureRow label="Mosquito bites" status={exp.mosquito} details={exp.mosquitoDetails} onToggle={(v) => onChange({ exposures: { ...exp, mosquito: v } })} onDetails={(v) => onChange({ exposures: { ...exp, mosquitoDetails: v } })} />
             <ExposureRow label="Tick bites" status={exp.tick} details={exp.tickDetails} onToggle={(v) => onChange({ exposures: { ...exp, tick: v } })} onDetails={(v) => onChange({ exposures: { ...exp, tickDetails: v } })} />
             <div className="space-y-1 pt-2">
               <label className="flex items-center gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
-                {/* Visual bullet for consistency */}
                 <span className="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0" aria-hidden="true" />
                 <span className="flex-1">Other vector</span>
                 <div className="flex gap-1">
                    {['yes', 'no'].map((opt) => (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => onChange({ exposures: { ...exp, vectorOtherEnabled: opt === exp.vectorOtherEnabled ? 'unknown' : opt } })}
-                        className={classNames(
-                          "px-2 py-0.5 text-xs border rounded transition-colors",
-                          exp.vectorOtherEnabled === opt
-                             ? (opt === 'yes' ? "bg-rose-100 border-rose-300 text-rose-800 font-medium" : "bg-emerald-100 border-emerald-300 text-emerald-800 font-medium")
-                             : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400"
-                        )}
-                      >
-                        {cap(opt)}
-                      </button>
+                      <button key={opt} type="button" onClick={() => onChange({ exposures: { ...exp, vectorOtherEnabled: opt === exp.vectorOtherEnabled ? 'unknown' : opt } })} className={classNames("px-2 py-0.5 text-xs border rounded transition-colors", exp.vectorOtherEnabled === opt ? (opt === 'yes' ? "bg-rose-100 border-rose-300 text-rose-800 font-medium" : "bg-emerald-100 border-emerald-300 text-emerald-800 font-medium") : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>{cap(opt)}</button>
                    ))}
                 </div>
               </label>
-             {exp.vectorOtherEnabled === 'yes' && (
-               <input
-                 type="text"
-                 placeholder="Please provide more details."
-                 className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm"
-                 value={exp.vectorOtherDetails}
-                 onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })}
-               />
-             )}
+             {exp.vectorOtherEnabled === 'yes' && (<input type="text" placeholder="Please provide more details." className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm" value={exp.vectorOtherDetails} onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })} />)}
             </div>
           </fieldset>
-
-          {/* Water / Environment */}
           <fieldset className="space-y-1">
             <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Water / Environment</legend>
             <ExposureRow label="Freshwater contact" status={exp.freshwater} details={exp.freshwaterDetails} onToggle={(v) => onChange({ exposures: { ...exp, freshwater: v } })} onDetails={(v) => onChange({ exposures: { ...exp, freshwaterDetails: v } })} />
@@ -1171,8 +730,6 @@ const removeCity = (i) => {
             <ExposureRow label="Rural / forest stay" status={exp.ruralForest} details={exp.ruralForestDetails} onToggle={(v) => onChange({ exposures: { ...exp, ruralForest: v } })} onDetails={(v) => onChange({ exposures: { ...exp, ruralForestDetails: v } })} />
             <ExposureRow label="Hiking in forest/woodlands" status={exp.hikingWoodlands} details={exp.hikingWoodlandsDetails} onToggle={(v) => onChange({ exposures: { ...exp, hikingWoodlands: v } })} onDetails={(v) => onChange({ exposures: { ...exp, hikingWoodlandsDetails: v } })} />
           </fieldset>
-
-          {/* Animal & Procedures */}
           <fieldset className="space-y-1">
             <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Animal & Procedures</legend>
             <ExposureRow label="Animal contact" status={exp.animalContact} details={exp.animalContactDetails} onToggle={(v) => onChange({ exposures: { ...exp, animalContact: v } })} onDetails={(v) => onChange({ exposures: { ...exp, animalContactDetails: v } })} />
@@ -1181,8 +738,6 @@ const removeCity = (i) => {
             <ExposureRow label="Needles / tattoos / piercings" status={exp.needlesTattoos} details={exp.needlesTattoosDetails} onToggle={(v) => onChange({ exposures: { ...exp, needlesTattoos: v } })} onDetails={(v) => onChange({ exposures: { ...exp, needlesTattoosDetails: v } })} />
             <ExposureRow label="Safari / wildlife viewing" status={exp.safariWildlife} details={exp.safariWildlifeDetails} onToggle={(v) => onChange({ exposures: { ...exp, safariWildlife: v } })} onDetails={(v) => onChange({ exposures: { ...exp, safariWildlifeDetails: v } })} />
           </fieldset>
-
-          {/* Food & Water */}
           <fieldset className="space-y-1">
             <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Food & Water</legend>
             <ExposureRow label="Street food" status={exp.streetFood} details={exp.streetFoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, streetFood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, streetFoodDetails: v } })} />
@@ -1191,8 +746,6 @@ const removeCity = (i) => {
             <ExposureRow label="Undercooked seafood" status={exp.undercookedSeafood} details={exp.undercookedSeafoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, undercookedSeafood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, undercookedSeafoodDetails: v } })} />
             <ExposureRow label="Unpasteurised milk" status={exp.unpasteurisedMilk} details={exp.unpasteurisedMilkDetails} onToggle={(v) => onChange({ exposures: { ...exp, unpasteurisedMilk: v } })} onDetails={(v) => onChange({ exposures: { ...exp, unpasteurisedMilkDetails: v } })} />
           </fieldset>
-
-          {/* Institutional / Social */}
           <fieldset className="space-y-1 md:col-span-2">
             <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Institutional / Social</legend>
             <div className="grid sm:grid-cols-2 gap-x-8 gap-y-1">
@@ -1215,131 +768,36 @@ const removeCity = (i) => {
 }
 
 function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
-  // Derive ISO2 from the current country name
-  const countryISO2 = useMemo(
-    () => getIsoFromCountryName(layover.country),
-    [layover.country]
-  );
-
-  // Build city options for that country
-  // Build city options for that country (OBJECTS, like StopCard)
-const cityOptions = useMemo(() => {
-  return countryISO2 ? (City.getCitiesOfCountry(countryISO2) || []) : [];
-}, [countryISO2]);
+  const countryISO2 = useMemo(() => getIsoFromCountryName(layover.country), [layover.country]);
+  const cityOptions = useMemo(() => { return countryISO2 ? (City.getCitiesOfCountry(countryISO2) || []) : []; }, [countryISO2]);
 
   return (
-    <div
-      ref={innerRef}
-      className={classNames(
-        "rounded-lg border p-4",
-        highlighted
-          ? "border-rose-400 dark:border-rose-600 bg-rose-50/40 dark:bg-rose-900/10"
-          : "border-slate-200 dark:border-slate-800"
-      )}
-    >
+    <div ref={innerRef} className={classNames("rounded-lg border p-4", highlighted ? "border-rose-400 dark:border-rose-600 bg-rose-50/40 dark:bg-rose-900/10" : "border-slate-200 dark:border-slate-800")}>
       <div className="flex items-start justify-between gap-3">
         <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Layover</h4>
-        <button
-          type="button"
-          onClick={onRemove}
-          className={LINKISH_SECONDARY}
-        >
-          Remove layover
-        </button>
+        <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove layover</button>
       </div>
-
-      {/* Top row: Country / City / Start / End */}
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Country */}
-        <div>
-          <CountryInput
-            value={layover.country}
-            onChange={(val) => {
-              // when country changes, clear city to avoid mismatch
-              onChange({ country: val, city: "" });
-            }}
-          />
+        <div><CountryInput value={layover.country} onChange={(val) => { onChange({ country: val, city: "" }); }} /></div>
+        <div className="w-full">
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
+          <input type="text" list={`layover-city-options-${layover.id}`} placeholder="Start typing or select city…" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.city || ""} onChange={(e) => onChange({ city: e.target.value })} />
+          <datalist id={`layover-city-options-${layover.id}`}>{cityOptions.map((opt) => (<option key={`${opt.name}-${opt.latitude}-${opt.longitude}`} value={opt.name} />))}</datalist>
         </div>
-
-        {/* City (input + datalist, same as StopCard) */}
-<div className="w-full">
-  <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
-  <input
-    type="text"
-    list={`layover-city-options-${layover.id}`}
-    placeholder="Start typing or select city…"
-    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-    value={layover.city || ""}
-    onChange={(e) => onChange({ city: e.target.value })}
-  />
-  <datalist id={`layover-city-options-${layover.id}`}>
-    {(cityOptions || []).map((opt) => (
-      <option
-        key={`${opt.name}-${opt.latitude}-${opt.longitude}`}
-        value={opt.name}
-      />
-    ))}
-  </datalist>
-</div>
-
-        {/* Start */}
-        <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Start</label>
-          <input
-            type="date"
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-            value={layover.start}
-            onChange={(e) => onChange({ start: e.target.value })}
-          />
-        </div>
-
-        {/* End */}
-        <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">End</label>
-          <input
-            type="date"
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-            value={layover.end}
-            onChange={(e) => onChange({ end: e.target.value })}
-          />
-        </div>
+        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Start</label><input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.start} onChange={(e) => onChange({ start: e.target.value })} /></div>
+        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">End</label><input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.end} onChange={(e) => onChange({ end: e.target.value })} /></div>
       </div>
-
-      {/* Left airport + activities */}
       <div className="mt-4 grid sm:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
-            Did you leave the airport?
-          </label>
-          <select
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-            value={layover.leftAirport}
-            onChange={(e) => onChange({ leftAirport: e.target.value })}
-          >
-            <option value="no">No</option>
-            <option value="yes">Yes</option>
-          </select>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Did you leave the airport?</label>
+          <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.leftAirport} onChange={(e) => onChange({ leftAirport: e.target.value })}><option value="no">No</option><option value="yes">Yes</option></select>
         </div>
-
-        {layover.leftAirport === "yes" && (
-          <div className="sm:col-span-2">
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
-              Please describe any activities undertaken
-            </label>
-            <textarea
-              rows={3}
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-              value={layover.activitiesText}
-              onChange={(e) => onChange({ activitiesText: e.target.value })}
-            />
-          </div>
-        )}
+        {layover.leftAirport === "yes" && (<div className="sm:col-span-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Please describe any activities undertaken</label><textarea rows={3} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.activitiesText} onChange={(e) => onChange({ activitiesText: e.target.value })} /></div>)}
       </div>
     </div>
   );
 }
 
-// Small checkbox
 function Checkbox({ label, checked, onChange }) {
   const id = useMemo(() => uid(), []);
   return (
@@ -1350,81 +808,29 @@ function Checkbox({ label, checked, onChange }) {
   );
 }
 
-// UPDATED: Exposure Row with Green "No" button AND visual bullets
 function ExposureRow({ label, status, details, onToggle, onDetails, placeholder }) {
-  // status: 'unknown' | 'yes' | 'no' (or legacy boolean false/true which we map)
-  // map legacy boolean if exists
   const safeStatus = typeof status === 'boolean' ? (status ? 'yes' : 'unknown') : (status || 'unknown');
-
   return (
     <div className="py-1">
       <div className="flex items-center justify-between gap-4">
         <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
-           {/* Visual bullet for consistency */}
            <span className="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0" aria-hidden="true" />
            {label}
         </span>
         <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={() => onToggle(safeStatus === 'yes' ? 'unknown' : 'yes')}
-            className={classNames(
-              "px-2 py-0.5 text-xs border rounded transition-colors",
-              safeStatus === 'yes'
-                ? "bg-rose-100 border-rose-300 text-rose-800 font-medium"
-                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400"
-            )}
-          >
-            Yes
-          </button>
-          <button
-            type="button"
-            onClick={() => onToggle(safeStatus === 'no' ? 'unknown' : 'no')}
-            className={classNames(
-              "px-2 py-0.5 text-xs border rounded transition-colors",
-              safeStatus === 'no'
-                ? "bg-emerald-100 border-emerald-300 text-emerald-800 font-medium"
-                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400"
-            )}
-          >
-            No
-          </button>
+          <button type="button" onClick={() => onToggle(safeStatus === 'yes' ? 'unknown' : 'yes')} className={classNames("px-2 py-0.5 text-xs border rounded transition-colors", safeStatus === 'yes' ? "bg-rose-100 border-rose-300 text-rose-800 font-medium" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>Yes</button>
+          <button type="button" onClick={() => onToggle(safeStatus === 'no' ? 'unknown' : 'no')} className={classNames("px-2 py-0.5 text-xs border rounded transition-colors", safeStatus === 'no' ? "bg-emerald-100 border-emerald-300 text-emerald-800 font-medium" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>No</button>
         </div>
       </div>
-      {safeStatus === 'yes' && (
-        <div className="mt-1">
-          <input
-            type="text"
-            placeholder={placeholder || "Please provide details..."}
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm"
-            value={details || ''}
-            onChange={(e) => onDetails(e.target.value)}
-          />
-        </div>
-      )}
+      {safeStatus === 'yes' && (<div className="mt-1"><input type="text" placeholder={placeholder || "Please provide details..."} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm" value={details || ''} onChange={(e) => onDetails(e.target.value)} /></div>)}
     </div>
   );
 }
 
-/**
- * Timeline (Vertical) — with anchored layovers
- */
 function TimelineVertical({ events }) {
-
-  // Node component (10px brand with white ring)
-  const Node = () => (
-    <span
-      className={classNames(
-        "relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900",
-        NODE_COLOR
-      )}
-      aria-hidden="true"
-    />
-  );
-
-  // Bucket layovers by their anchor stop and position
+  const Node = () => (<span className={classNames("relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900", NODE_COLOR)} aria-hidden="true" />);
   const layoversByStop = useMemo(() => {
-    const map = new Map(); // stopId -> { 'before-stop': [], between: [], 'after-stop': [] }
+    const map = new Map();
     for (const ev of events || []) {
       if (ev.type !== "layover" || !ev.anchorStopId) continue;
       const id = ev.anchorStopId;
@@ -1435,268 +841,52 @@ function TimelineVertical({ events }) {
     return map;
   }, [events]);
 
-  // Helper to render a layover as start row + strip + end row, using same visual language
   const LayoverRows = ({ l }) => (
     <>
-      {/* Layover start */}
-      <div className="col-[1] relative h-6 z-10">
-        <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-          {/* small grey node (different to stop node) */}
-          <span
-            className="relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900 bg-slate-400 dark:bg-slate-600"
-            aria-hidden="true"
-          />
-        </span>
-      </div>
-      <div className="col-[2] h-6 flex items-center gap-3">
-        <strong className="tabular-nums">{formatDMY(l.start)}</strong>
-        <span className="text-xs text-slate-500">Layover start</span>
-      </div>
-
-      {/* Layover strip */}
+      <div className="col-[1] relative h-6 z-10"><span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2"><span className="relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900 bg-slate-400 dark:bg-slate-600" aria-hidden="true" /></span></div>
+      <div className="col-[2] h-6 flex items-center gap-3"><strong className="tabular-nums">{formatDMY(l.start)}</strong><span className="text-xs text-slate-500">Layover start</span></div>
       <div className="col-[1]" aria-hidden="true" />
-      <div className="col-[2]">
-        <div className="mt-1 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-xs text-slate-700 dark:text-slate-300">
-          {(l.city ? `${l.city}, ` : "") + (l.country || "")}
-          {l.leftAirport === "yes" && l.activitiesText ? ` · ${l.activitiesText}` : ""}
-        </div>
-      </div>
-
-      {/* Layover end */}
-      <div className="col-[1] relative h-6 z-10">
-        <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-          <span
-            className="relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900 bg-slate-400 dark:bg-slate-600"
-            aria-hidden="true"
-          />
-        </span>
-      </div>
-      <div className="col-[2] h-6 flex items-center gap-3">
-        <strong className="tabular-nums">{formatDMY(l.end)}</strong>
-        <span className="text-xs text-slate-500">Layover end</span>
-      </div>
+      <div className="col-[2]"><div className="mt-1 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-xs text-slate-700 dark:text-slate-300">{(l.city ? `${l.city}, ` : "") + (l.country || "")}{l.leftAirport === "yes" && l.activitiesText ? ` · ${l.activitiesText}` : ""}</div></div>
+      <div className="col-[1] relative h-6 z-10"><span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2"><span className="relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900 bg-slate-400 dark:bg-slate-600" aria-hidden="true" /></span></div>
+      <div className="col-[2] h-6 flex items-center gap-3"><strong className="tabular-nums">{formatDMY(l.end)}</strong><span className="text-xs text-slate-500">Layover end</span></div>
     </>
   );
 
   return (
     <div className="relative">
-      {/* Continuous dashed rail centered in the 72px gutter */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-[36px] top-0 bottom-0 z-0 border-l-2 border-dashed border-slate-300 dark:border-slate-600"
-      />
-
-      <ol
-        className="grid"
-        style={{ gridTemplateColumns: "72px 1fr", rowGap: "12px" }}
-      >
+      <div aria-hidden="true" className="pointer-events-none absolute left-[36px] top-0 bottom-0 z-0 border-l-2 border-dashed border-slate-300 dark:border-slate-600" />
+      <ol className="grid" style={{ gridTemplateColumns: "72px 1fr", rowGap: "12px" }}>
         {(events || []).map((ev, idx) => {
-          if (ev.type !== "stop") return null; // layovers are rendered inline via anchors
-
+          if (ev.type !== "stop") return null;
           const it = ev.stop;
-
           return (
             <li key={`stop-${it.id}-${idx}`} className="contents">
-              {/* Arrival row */}
-              <div className="col-[1] relative h-6 z-10">
-                <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-                  <Node />
-                </span>
-              </div>
-              <div className="col-[2] h-6 flex items-center">
-                <div className="flex items-center gap-3">
-                  <strong className="tabular-nums">{formatDMY(it.arrival)}</strong>
-                  {it.isFirstInTrip && (
-                    <span className="text-sm text-slate-600 dark:text-slate-300">
-                      — {it.tripOriginCity || it.tripOriginCountry
-                        ? `Departure from ${[it.tripOriginCity, it.tripOriginCountry].filter(Boolean).join(", ")}`
-                        : "Departure"}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Trip meta + companions under first stop */}
+              <div className="col-[1] relative h-6 z-10"><span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2"><Node /></span></div>
+              <div className="col-[2] h-6 flex items-center"><div className="flex items-center gap-3"><strong className="tabular-nums">{formatDMY(it.arrival)}</strong>{it.isFirstInTrip && (<span className="text-sm text-slate-600 dark:text-slate-300">— {it.tripOriginCity || it.tripOriginCountry ? `Departure from ${[it.tripOriginCity, it.tripOriginCountry].filter(Boolean).join(", ")}` : "Departure"}</span>)}</div></div>
               {it.isFirstInTrip && (
                 <div className="col-[2] mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">
-                  {it.tripPurpose ? (
-                    <div>
-                      <span className="font-semibold">Purpose:</span> {it.tripPurpose}
-                    </div>
-                  ) : null}
-                  <div>
-                    <span className="font-semibold">Malaria prophylaxis:</span>{" "}
-                    {(() => {
-                      const m = it.tripMalaria || {};
-                      if (m.indication === "Taken") {
-                        const drug = m.drug && m.drug !== "None" ? m.drug : "Taken";
-                        return m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug;
-                      }
-                      if (m.indication === "Not taken") return "Not taken";
-                      return "Not indicated";
-                    })()}
-                  </div>
-                  <div>
-                    <span className="font-semibold">Vaccinations:</span>{" "}
-                    {(() => {
-                      const arr = Array.isArray(it.tripVaccines) ? it.tripVaccines : [];
-                      const hasOther = arr.includes("Other");
-                      const base = (hasOther ? arr.filter((v) => v !== "Other") : arr).join(", ");
-                      const otherText = (it.tripVaccinesOther || "").trim();
-
-                      if (hasOther && otherText) {
-                        return base ? `${base}, Other: ${otherText}` : `Other: ${otherText}`;
-                      }
-                      return base ? (hasOther ? `${base}, Other` : base) : hasOther ? "Other" : "None";
-                    })()}
-                  </div>
-                  {it.tripCompanions && (
-                    <>
-                      {it.tripCompanions.group === "Alone" ? (
-                        <div>
-                          <span className="font-semibold">Travelled alone.</span>
-                        </div>
-                      ) : (
-                        <>
-                          <div>
-                            <span className="font-semibold">Travelled with:</span>{" "}
-                            {it.tripCompanions.group === "Other"
-                              ? it.tripCompanions.otherText || "Other"
-                              : it.tripCompanions.group || "—"}
-                          </div>
-                          <div>
-                            <span className="font-semibold">Are they well:</span>{" "}
-                            {it.tripCompanions.companionsWell === "yes"
-                              ? "Yes"
-                              : it.tripCompanions.companionsWell === "no"
-                              ? "No" +
-                                (it.tripCompanions.companionsUnwellDetails?.trim()
-                                  ? ` — ${it.tripCompanions.companionsUnwellDetails.trim()}`
-                                  : "")
-                              : "Unknown"}
-                          </div>
-                        </>
-                      )}
-                    </>
-                  )}
+                  {it.tripPurpose ? (<div><span className="font-semibold">Purpose:</span> {it.tripPurpose}</div>) : null}
+                  <div><span className="font-semibold">Malaria prophylaxis:</span> {(() => { const m = it.tripMalaria || {}; if (m.indication === "Taken") { const drug = m.drug && m.drug !== "None" ? m.drug : "Taken"; return m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug; } if (m.indication === "Not taken") return "Not taken"; return "Not indicated"; })()}</div>
+                  <div><span className="font-semibold">Vaccinations:</span> {(() => { const arr = Array.isArray(it.tripVaccines) ? it.tripVaccines : []; const hasOther = arr.includes("Other"); const base = (hasOther ? arr.filter((v) => v !== "Other") : arr).join(", "); const otherText = (it.tripVaccinesOther || "").trim(); if (hasOther && otherText) { return base ? `${base}, Other: ${otherText}` : `Other: ${otherText}`; } return base ? (hasOther ? `${base}, Other` : base) : hasOther ? "Other" : "None"; })()}</div>
+                  {it.tripCompanions && (<>{it.tripCompanions.group === "Alone" ? (<div><span className="font-semibold">Travelled alone.</span></div>) : (<><div><span className="font-semibold">Travelled with:</span> {it.tripCompanions.group === "Other" ? it.tripCompanions.otherText || "Other" : it.tripCompanions.group || "—"}</div><div><span className="font-semibold">Are they well:</span> {it.tripCompanions.companionsWell === "yes" ? "Yes" : it.tripCompanions.companionsWell === "no" ? "No" + (it.tripCompanions.companionsUnwellDetails?.trim() ? ` — ${it.tripCompanions.companionsUnwellDetails.trim()}` : "") : "Unknown"}</div></>)}</>)}
                 </div>
               )}
-
-              {/* Layovers BEFORE the first stop's country card */}
-              {(layoversByStop.get(it.id)?.["before-stop"] || []).map((l) => (
-                <LayoverRows key={`layover-before-${l.id}`} l={l} />
-              ))}
-
-              {/* Country card */}
+              {(layoversByStop.get(it.id)?.["before-stop"] || []).map((l) => (<LayoverRows key={`layover-before-${l.id}`} l={l} />))}
               <div className="col-[1]" aria-hidden="true" />
               <div className="col-[2]">
                 <div className="relative z-0 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
-                  {/* Country & Cities */}
-                  <h3
-                    className="text-base font-semibold text-slate-900 dark:text-slate-100"
-                    title={it.country || it.label}
-                  >
-                    {it.country || it.label || "—"}
-                  </h3>
-                  {it.cities && it.cities.length > 0 && (
-                    <div className="mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">
-                      {it.cities.map((c, i) => {
-                        const obj = typeof c === "string" ? { name: c } : c || {};
-                        const nm = obj.name || "";
-                        const a = obj.arrival ? formatDMY(obj.arrival) : "";
-                        const d = obj.departure ? formatDMY(obj.departure) : "";
-                        const datePart = a || d ? ` (${a || "—"} to ${d || "—"})` : "";
-                        if (!nm) return null;
-                        return (
-                          <div key={i}>
-                            {nm}
-                            {datePart}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Details grid */}
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100" title={it.country || it.label}>{it.country || it.label || "—"}</h3>
+                  {it.cities && it.cities.length > 0 && (<div className="mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">{it.cities.map((c, i) => { const obj = typeof c === "string" ? { name: c } : c || {}; const nm = obj.name || ""; const a = obj.arrival ? formatDMY(obj.arrival) : ""; const d = obj.departure ? formatDMY(obj.departure) : ""; const datePart = a || d ? ` (${a || "—"} to ${d || "—"})` : ""; if (!nm) return null; return (<div key={i}>{nm}{datePart}</div>); })}</div>)}
                   <div className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-2">
-                    <div className="text-sm">
-                      <span className="font-medium">Accommodation:</span>{" "}
-                      {it.accommodations?.length
-                        ? it.accommodations.includes("Other") && it.accommodationOther
-                          ? [
-                              ...it.accommodations.filter((a) => a !== "Other"),
-                              `Other: ${it.accommodationOther}`,
-                            ].join(", ")
-                          : it.accommodations.join(", ")
-                        : "—"}
-                    </div>
-
-                    {/* Exposures with details */}
-                    <div className="text-sm sm:col-span-2">
-                      <span className="font-medium">Exposures:</span>{" "}
-                      {(() => {
-                        const { positives, negatives } = exposureBullets(it.exposures);
-                        if (!positives.length && !negatives.length) return "—";
-                        
-                        return (
-                          <div className="mt-1 space-y-2">
-                             {positives.length > 0 && (
-                               <ul className="list-disc pl-5">
-                                 {positives.map(({ label, details }, i) => (
-                                   <li key={i} className="text-sm">
-                                     {details ? `${label} — ${details}` : label}
-                                   </li>
-                                 ))}
-                               </ul>
-                             )}
-                             {negatives.length > 0 && (
-                               <div className="mt-2">
-                                 <div className="font-medium">No exposures to:</div>
-                                 <ul className="list-disc pl-5">
-                                   {negatives.map((label, i) => (
-                                      <li key={i} className="text-sm">{label}</li>
-                                   ))}
-                                 </ul>
-                               </div>
-                             )}
-                          </div>
-                        );
-                      })()}
-                    </div>
+                    <div className="text-sm"><span className="font-medium">Accommodation:</span> {it.accommodations?.length ? it.accommodations.includes("Other") && it.accommodationOther ? [...it.accommodations.filter((a) => a !== "Other"), `Other: ${it.accommodationOther}`].join(", ") : it.accommodations.join(", ") : "—"}</div>
+                    <div className="text-sm sm:col-span-2"><span className="font-medium">Exposures:</span> {(() => { const { positives, negatives } = exposureBullets(it.exposures); if (!positives.length && !negatives.length) return "—"; return (<div className="mt-1 space-y-2">{positives.length > 0 && (<ul className="list-disc pl-5">{positives.map(({ label, details }, i) => (<li key={i} className="text-sm">{details ? `${label} — ${details}` : label}</li>))}</ul>)}{negatives.length > 0 && (<div className="mt-2"><div className="font-medium">No exposures to:</div><ul className="list-disc pl-5">{negatives.map((label, i) => (<li key={i} className="text-sm">{label}</li>))}</ul></div>)}</div>); })()}</div>
                   </div>
                 </div>
               </div>
-
-              {/* Layovers BETWEEN this country and the next (immediately after this card) */}
-              {(layoversByStop.get(it.id)?.between || []).map((l) => (
-                <LayoverRows key={`layover-between-${l.id}`} l={l} />
-              ))}
-
-              {/* Layovers AFTER the last country card but BEFORE the departure row */}
-              {it.isLastInTrip &&
-                (layoversByStop.get(it.id)?.["after-stop"] || []).map((l) => (
-                  <LayoverRows key={`layover-after-${l.id}`} l={l} />
-                ))}
-
-              {/* Departure row */}
-              <div className="col-[1] relative h-6 z-10">
-                <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-                  <Node />
-                </span>
-              </div>
-              <div className="col-[2] h-6 flex items-center gap-3">
-                <strong className="tabular-nums">{formatDMY(it.departure)}</strong>
-                {it.isLastInTrip && (
-                  <span className="text-sm text-slate-600 dark:text-slate-300">
-                    —{" "}
-                    {it.tripOriginCity || it.tripOriginCountry
-                      ? `Arrival to ${[it.tripOriginCity, it.tripOriginCountry]
-                          .filter(Boolean)
-                          .join(", ")}`
-                      : "Arrival"}
-                  </span>
-                )}
-              </div>
+              {(layoversByStop.get(it.id)?.between || []).map((l) => (<LayoverRows key={`layover-between-${l.id}`} l={l} />))}
+              {it.isLastInTrip && (layoversByStop.get(it.id)?.["after-stop"] || []).map((l) => (<LayoverRows key={`layover-after-${l.id}`} l={l} />))}
+              <div className="col-[1] relative h-6 z-10"><span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2"><Node /></span></div>
+              <div className="col-[2] h-6 flex items-center gap-3"><strong className="tabular-nums">{formatDMY(it.departure)}</strong>{it.isLastInTrip && (<span className="text-sm text-slate-600 dark:text-slate-300">— {it.tripOriginCity || it.tripOriginCountry ? `Arrival to ${[it.tripOriginCity, it.tripOriginCountry].filter(Boolean).join(", ")}` : "Arrival"}</span>)}</div>
             </li>
           );
         })}
@@ -1704,386 +894,114 @@ function TimelineVertical({ events }) {
     </div>
   );
 }
+
 function buildSummaryFromEvents(state, mergedEventsAllTrips) {
   const html = [];
   const text = [];
-
-  // Group events by trip id to render per-trip sections
   const byTrip = new Map();
-  (mergedEventsAllTrips || []).forEach((ev) => {
-    if (!byTrip.has(ev.tripId)) byTrip.set(ev.tripId, []);
-    byTrip.get(ev.tripId).push(ev);
-  });
+  (mergedEventsAllTrips || []).forEach((ev) => { if (!byTrip.has(ev.tripId)) byTrip.set(ev.tripId, []); byTrip.get(ev.tripId).push(ev); });
   const tripsCount = byTrip.size;
 
   let tripIndex = 1;
   for (const [tripId, events] of byTrip.entries()) {
-    // Stops & date range for this trip
     const stops = events.filter((e) => e.type === "stop").map((e) => e.stop);
     const arrivals = stops.map((s) => parseDate(s.arrival)).filter(Boolean);
     const departures = stops.map((s) => parseDate(s.departure)).filter(Boolean);
     const start = arrivals.length ? formatDMY(new Date(Math.min(...arrivals)).toISOString()) : "—";
     const end = departures.length ? formatDMY(new Date(Math.max(...departures)).toISOString()) : "—";
-
-    // Countries list (unique, ordered)
-    const countriesList = [];
-    const seen = new Set();
-    stops.forEach((s) => {
-      const c = (s.country || "").trim();
-      if (c && !seen.has(c)) {
-        seen.add(c);
-        countriesList.push(c);
-      }
-    });
+    const countriesList = []; const seen = new Set();
+    stops.forEach((s) => { const c = (s.country || "").trim(); if (c && !seen.has(c)) { seen.add(c); countriesList.push(c); } });
     const countriesCsv = countriesList.join(", ") || "—";
 
-    // Trip heading
-    if (tripsCount === 1) {
-      html.push(`<p><strong>Trip details:</strong></p>`);
-      text.push(`Trip details:`);
-    } else {
-      html.push(`<p><strong>Trip ${tripIndex}</strong></p>`);
-      text.push(`Trip ${tripIndex}`);
-    }
+    if (tripsCount === 1) { html.push(`<p><strong>Trip details:</strong></p>`); text.push(`Trip details:`); } else { html.push(`<p><strong>Trip ${tripIndex}</strong></p>`); text.push(`Trip ${tripIndex}`); }
+    html.push(`<div>Dates: ${escapeHtml(`${start} to ${end}`)}</div>`); text.push(`Dates: ${start} to ${end}`);
+    html.push(`<div>Country / countries travelled (See below for details of the countries in this trip): ${escapeHtml(countriesCsv)}</div>`); text.push(`Country / countries travelled (See below for details of the countries in this trip): ${countriesCsv}`);
 
-    // Dates + Countries travelled (unchanged)
-    html.push(`<div>Dates: ${escapeHtml(`${start} to ${end}`)}</div>`);
-    text.push(`Dates: ${start} to ${end}`);
-
-    html.push(
-      `<div>Country / countries travelled (See below for details of the countries in this trip): ${escapeHtml(
-        countriesCsv
-      )}</div>`
-    );
-    text.push(
-      `Country / countries travelled (See below for details of the countries in this trip): ${countriesCsv}`
-    );
-
-    // Pull canonical trip object for trip-level lines
     const tripObj = state.trips.find((t) => t.id === tripId) || {};
+    { const fromCity = (tripObj.originCity || "").trim(); const fromCountry = (tripObj.originCountry || "").trim(); if (fromCity || fromCountry) { const fromLine = [fromCity, fromCountry].filter(Boolean).join(", "); html.push(`<div>Travelling from: ${escapeHtml(fromLine)}</div>`); text.push(`Travelling from: ${fromLine}`); } }
+    if (tripObj.purpose && tripObj.purpose.trim()) { html.push(`<div>Purpose: ${escapeHtml(tripObj.purpose)}</div>`); text.push(`Purpose: ${tripObj.purpose}`); }
 
-    // Travelling from
-    {
-      const fromCity = (tripObj.originCity || "").trim();
-      const fromCountry = (tripObj.originCountry || "").trim();
-      if (fromCity || fromCountry) {
-        const fromLine = [fromCity, fromCountry].filter(Boolean).join(", ");
-        html.push(`<div>Travelling from: ${escapeHtml(fromLine)}</div>`);
-        text.push(`Travelling from: ${fromLine}`);
-      }
-    }
+    { const m = tripObj.malaria || { indication: "Not indicated", drug: "None", adherence: "" }; let malariaText; if (m.indication === "Taken") { const drug = m.drug && m.drug !== "None" ? m.drug : "Taken"; malariaText = m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug; } else if (m.indication === "Not taken") { malariaText = "Not taken"; } else { malariaText = "Not indicated"; } html.push(`<div>Malaria prophylaxis: ${escapeHtml(malariaText)}</div>`); text.push(`Malaria prophylaxis: ${malariaText}`); }
+    { const vaccinesArr = Array.isArray(tripObj.vaccines) ? tripObj.vaccines : []; const hasOther = vaccinesArr.includes("Other"); const baseList = hasOther ? vaccinesArr.filter((v) => v !== "Other") : vaccinesArr; let vaccinesDisplay = baseList.join(", "); const otherText = (tripObj.vaccinesOther || "").trim(); if (hasOther && otherText) { vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other: ${otherText}` : `Other: ${otherText}`; } else if (hasOther) { vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other` : "Other"; } html.push(`<div>Pre-travel vaccinations: ${vaccinesDisplay ? escapeHtml(vaccinesDisplay) : "None"}</div>`); text.push(`Pre-travel vaccinations: ${vaccinesDisplay || "None"}`); }
 
-    // Purpose
-    if (tripObj.purpose && tripObj.purpose.trim()) {
-      html.push(`<div>Purpose: ${escapeHtml(tripObj.purpose)}</div>`);
-      text.push(`Purpose: ${tripObj.purpose}`);
-    }
+    { const cmp = state.companions || {}; if (cmp.group === "Alone") { html.push(`<div>Travelled alone.</div>`); text.push(`Travelled alone.`); } else { const groupStr = cmp.group === "Other" ? cmp.otherText || "Other" : cmp.group || "—"; html.push(`<div>Travelled with: ${escapeHtml(groupStr)}</div>`); text.push(`Travelled with: ${groupStr}`); const wellStr = cmp.companionsWell === "yes" ? "Yes" : cmp.companionsWell === "no" ? "No" : "Unknown"; if (cmp.companionsWell === "no") { const details = (cmp.companionsUnwellDetails || "").trim(); html.push(`<div>Are they well: No${details ? ` — ${escapeHtml(details)}` : ""}</div>`); text.push(`Are they well: No${details ? ` — ${details}` : ""}`); } else { html.push(`<div>Are they well: ${wellStr}</div>`); text.push(`Are they well: ${wellStr}`); } } }
 
-    // Malaria prophylaxis
-    {
-      const m = tripObj.malaria || {
-        indication: "Not indicated",
-        drug: "None",
-        adherence: "",
-      };
-      let malariaText;
-      if (m.indication === "Taken") {
-        const drug = m.drug && m.drug !== "None" ? m.drug : "Taken";
-        malariaText = m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug;
-      } else if (m.indication === "Not taken") {
-        malariaText = "Not taken";
-      } else {
-        malariaText = "Not indicated";
-      }
-      html.push(`<div>Malaria prophylaxis: ${escapeHtml(malariaText)}</div>`);
-      text.push(`Malaria prophylaxis: ${malariaText}`);
-    }
+    const layoversByStop = new Map();
+    events.filter((e) => e.type === "layover" && e.anchorStopId).forEach((e) => { const sid = e.anchorStopId; if (!layoversByStop.has(sid)) layoversByStop.set(sid, { before: [], between: [], after: [] }); const bucket = e.position === "before-stop" ? "before" : e.position === "after-stop" ? "after" : "between"; layoversByStop.get(sid)[bucket].push(e.layover); });
 
-    // Vaccinations
-    {
-      const vaccinesArr = Array.isArray(tripObj.vaccines) ? tripObj.vaccines : [];
-      const hasOther = vaccinesArr.includes("Other");
-      const baseList = hasOther ? vaccinesArr.filter((v) => v !== "Other") : vaccinesArr;
-      let vaccinesDisplay = baseList.join(", ");
-      const otherText = (tripObj.vaccinesOther || "").trim();
-      if (hasOther && otherText) {
-        vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other: ${otherText}` : `Other: ${otherText}`;
-      } else if (hasOther) {
-        vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other` : "Other";
-      }
-      html.push(
-        `<div>Pre-travel vaccinations: ${vaccinesDisplay ? escapeHtml(vaccinesDisplay) : "None"}</div>`
-      );
-      text.push(`Pre-travel vaccinations: ${vaccinesDisplay || "None"}`);
-    }
+    const fmtLayover = (l) => { const place = `${(l.city ? `${l.city}, ` : "") + (l.country || "")}`.trim(); const dates = `(${formatDMY(l.start) || "—"}–${formatDMY(l.end) || "—"})`; const act = l.leftAirport === "yes" && (l.activitiesText || "").trim() ? ` · ${l.activitiesText.trim()}` : ""; const line = `${place} ${dates}${act}`; return { html: escapeHtml(line), text: line }; };
 
-    // Companions
-    {
-      const cmp = state.companions || {};
-      if (cmp.group === "Alone") {
-        html.push(`<div>Travelled alone.</div>`);
-        text.push(`Travelled alone.`);
-      } else {
-        const groupStr = cmp.group === "Other" ? cmp.otherText || "Other" : cmp.group || "—";
-        html.push(`<div>Travelled with: ${escapeHtml(groupStr)}</div>`);
-        text.push(`Travelled with: ${groupStr}`);
-
-        const wellStr =
-          cmp.companionsWell === "yes" ? "Yes" : cmp.companionsWell === "no" ? "No" : "Unknown";
-
-        if (cmp.companionsWell === "no") {
-          const details = (cmp.companionsUnwellDetails || "").trim();
-          html.push(
-            `<div>Are they well: No${details ? ` — ${escapeHtml(details)}` : ""}</div>`
-          );
-          text.push(`Are they well: No${details ? ` — ${details}` : ""}`);
-        } else {
-          html.push(`<div>Are they well: ${wellStr}</div>`);
-          text.push(`Are they well: ${wellStr}`);
-        }
-      }
-    }
-
-    // ===== Layover indexing for this trip (by anchor stop) =====
-    const layoversByStop = new Map(); // stopId -> { before: [], between: [], after: [] }
-    events
-      .filter((e) => e.type === "layover" && e.anchorStopId)
-      .forEach((e) => {
-        const sid = e.anchorStopId;
-        if (!layoversByStop.has(sid)) layoversByStop.set(sid, { before: [], between: [], after: [] });
-        const bucket =
-          e.position === "before-stop"
-            ? "before"
-            : e.position === "after-stop"
-            ? "after"
-            : "between";
-        layoversByStop.get(sid)[bucket].push(e.layover);
-      });
-
-    // Helper: format one layover line (HTML string + text string)
-    const fmtLayover = (l) => {
-      const place = `${(l.city ? `${l.city}, ` : "") + (l.country || "")}`.trim();
-      const dates = `(${formatDMY(l.start) || "—"}–${formatDMY(l.end) || "—"})`;
-      const act =
-        l.leftAirport === "yes" && (l.activitiesText || "").trim()
-          ? ` · ${l.activitiesText.trim()}`
-          : "";
-      const line = `${place} ${dates}${act}`;
-      return {
-        html: escapeHtml(line),
-        text: line,
-      };
-    };
-
-    // Render each country (stop) with attached layovers
     events.forEach((ev, idxInTrip) => {
       if (ev.type !== "stop") return;
       const s = ev.stop;
       const isLastStop = !!s.isLastInTrip;
-
-      // Country heading with dates
       const country = escapeHtml(s.country || "—");
       const countryDates = `${formatDMY(s.arrival) || "—"} to ${formatDMY(s.departure) || "—"}`;
-       // Blank line / spacer before each country block (HTML + plain text)
-      html.push(`<div style="height:8px"></div>`);
-      text.push("");
-      html.push(`<p><strong>${country} (${escapeHtml(countryDates)})</strong></p>`);
-      text.push(`${s.country || "—"} (${countryDates})`);
+      html.push(`<div style="height:8px"></div>`); text.push("");
+      html.push(`<p><strong>${country} (${escapeHtml(countryDates)})</strong></p>`); text.push(`${s.country || "—"} (${countryDates})`);
 
-      // --- Layovers BEFORE this country (only for the first stop) ---
       const beforeList = (layoversByStop.get(s.id)?.before || []).map(fmtLayover);
-      if (beforeList.length) {
-        html.push(`<div>Layovers before this country:</div>`);
-        text.push(`Layovers before this country:`);
-        html.push(`<ul>${beforeList.map((v) => `<li>${v.html}</li>`).join("")}</ul>`);
-        beforeList.forEach((v) => text.push(`- ${v.text}`));
-      }
+      if (beforeList.length) { html.push(`<div>Layovers before this country:</div>`); text.push(`Layovers before this country:`); html.push(`<ul>${beforeList.map((v) => `<li>${v.html}</li>`).join("")}</ul>`); beforeList.forEach((v) => text.push(`- ${v.text}`)); }
 
-    // Cities / regions
-const citiesArr = (s.cities || [])
-  .map((c) =>
-    typeof c === "string"
-      ? { name: c, arrival: "", departure: "" }
-      : {
-          name: c?.name || "",
-          arrival: c?.arrival || "",
-          departure: c?.departure || "",
-        }
-  )
-  .filter((c) => c.name);
+      const citiesArr = (s.cities || []).map((c) => typeof c === "string" ? { name: c, arrival: "", departure: "" } : { name: c?.name || "", arrival: c?.arrival || "", departure: c?.departure || "" }).filter((c) => c.name);
+      if (citiesArr.length) { html.push(`<div>Cities / regions:</div>`); text.push(`Cities / regions:`); text.push(""); html.push('<ul class="list-disc pl-5">'); citiesArr.forEach((cObj) => { const a = cObj.arrival ? formatDMY(cObj.arrival) : ""; const d = cObj.departure ? formatDMY(cObj.departure) : ""; const datePart = a || d ? ` (${a || "—"} to ${d || "—"})` : ""; const line = `${cObj.name}${datePart}`; html.push(`<li>${escapeHtml(line)}</li>`); text.push(`• ${line}`); }); html.push("</ul>"); text.push(""); } else { html.push(`<div>Cities / regions: —</div>`); text.push(`Cities / regions: —`); }
 
-if (citiesArr.length) {
-  html.push(`<div>Cities / regions:</div>`);
-  text.push(`Cities / regions:`);
-  text.push(""); // blank line before bullets
+      const accom = s.accommodations?.length ? (s.accommodations.includes("Other") && s.accommodationOther ? [...s.accommodations.filter((a) => a !== "Other"), `Other: ${s.accommodationOther}`].join(", ") : s.accommodations.join(", ")) : "";
+      if (accom) { html.push(`<div>Accommodation: ${escapeHtml(accom)}</div>`); text.push(`Accommodation: ${accom}`); } else { html.push(`<div>Accommodation: —</div>`); text.push(`Accommodation: —`); }
 
-  // ✅ proper bullets in HTML
-  html.push('<ul class="list-disc pl-5">');
-  citiesArr.forEach((cObj) => {
-    const a = cObj.arrival ? formatDMY(cObj.arrival) : "";
-    const d = cObj.departure ? formatDMY(cObj.departure) : "";
-    const datePart = a || d ? ` (${a || "—"} to ${d || "—"})` : "";
-    const line = `${cObj.name}${datePart}`;
-    html.push(`<li>${escapeHtml(line)}</li>`);
-    text.push(`• ${line}`);
-  });
-  html.push("</ul>");
-  text.push(""); // blank line after list
-} else {
-  html.push(`<div>Cities / regions: —</div>`);
-  text.push(`Cities / regions: —`);
-}
+      const { positives, negatives } = exposureBullets(s.exposures);
+      if (positives.length > 0 || negatives.length > 0) {
+        if (positives.length > 0) { html.push(`<div>Exposures:</div>`); text.push(`Exposures:`); text.push(""); html.push('<ul class="list-disc pl-5">'); positives.forEach(({ label, details }) => { const line = details ? `${label} — ${details}` : label; html.push(`<li>${escapeHtml(line)}</li>`); text.push(`• ${line}`); }); html.push("</ul>"); text.push(""); }
+        if (negatives.length > 0) { html.push(`<div>No exposures to:</div>`); text.push(`No exposures to:`); text.push(""); html.push('<ul class="list-disc pl-5">'); negatives.forEach((label) => { html.push(`<li>${escapeHtml(label)}</li>`); text.push(`• ${label}`); }); html.push("</ul>"); text.push(""); }
+      } else { html.push(`<div>Exposures: —</div>`); text.push(`Exposures: —`); }
 
-// Accommodation
-const accom = s.accommodations?.length
-  ? (s.accommodations.includes("Other") && s.accommodationOther
-      ? [
-          ...s.accommodations.filter((a) => a !== "Other"),
-          `Other: ${s.accommodationOther}`,
-        ].join(", ")
-      : s.accommodations.join(", "))
-  : "";
-if (accom) {
-  html.push(`<div>Accommodation: ${escapeHtml(accom)}</div>`);
-  text.push(`Accommodation: ${accom}`);
-} else {
-  html.push(`<div>Accommodation: —</div>`);
-  text.push(`Accommodation: —`);
-}
-
-// Exposures (bulleted list)
-// UPDATED: Now splits positive and negative findings with uniform headings
-const { positives, negatives } = exposureBullets(s.exposures);
-
-if (positives.length > 0 || negatives.length > 0) {
-  // Positives first
-  if (positives.length > 0) {
-    html.push(`<div>Exposures:</div>`);
-    text.push(`Exposures:`);
-    text.push("");
-
-    html.push('<ul class="list-disc pl-5">');
-    positives.forEach(({ label, details }) => {
-      const line = details ? `${label} — ${details}` : label;
-      html.push(`<li>${escapeHtml(line)}</li>`);
-      text.push(`• ${line}`);
-    });
-    html.push("</ul>");
-    text.push("");
-  }
-
-  // Negatives second (Uniform Header)
-  if (negatives.length > 0) {
-    html.push(`<div>No exposures to:</div>`);
-    text.push(`No exposures to:`);
-    text.push("");
-
-    html.push('<ul class="list-disc pl-5">');
-    negatives.forEach((label) => {
-      html.push(`<li>${escapeHtml(label)}</li>`);
-      text.push(`• ${label}`);
-    });
-    html.push("</ul>");
-    text.push("");
-  }
-
-} else {
-  html.push(`<div>Exposures: —</div>`);
-  text.push(`Exposures: —`);
-}
-
-      // --- Layovers BETWEEN this country and the next ---
       const betweenList = (layoversByStop.get(s.id)?.between || []).map(fmtLayover);
-      if (betweenList.length) {
-        html.push(`<div>Layovers to next destination:</div>`);
-        text.push(`Layovers to next destination:`);
-        html.push(`<ul>${betweenList.map((v) => `<li>${v.html}</li>`).join("")}</ul>`);
-        betweenList.forEach((v) => text.push(`- ${v.text}`));
-      }
+      if (betweenList.length) { html.push(`<div>Layovers to next destination:</div>`); text.push(`Layovers to next destination:`); html.push(`<ul>${betweenList.map((v) => `<li>${v.html}</li>`).join("")}</ul>`); betweenList.forEach((v) => text.push(`- ${v.text}`)); }
 
-      // --- Layovers AFTER this trip (only for last stop) ---
       if (isLastStop) {
         const afterList = (layoversByStop.get(s.id)?.after || []).map(fmtLayover);
-        if (afterList.length) {
-          html.push(`<div>Layovers after this trip:</div>`);
-          text.push(`Layovers after this trip:`);
-          html.push(`<ul>${afterList.map((v) => `<li>${v.html}</li>`).join("")}</ul>`);
-          afterList.forEach((v) => text.push(`- ${v.text}`));
-        }
+        if (afterList.length) { html.push(`<div>Layovers after this trip:</div>`); text.push(`Layovers after this trip:`); html.push(`<ul>${afterList.map((v) => `<li>${v.html}</li>`).join("")}</ul>`); afterList.forEach((v) => text.push(`- ${v.text}`)); }
       }
     });
-
     tripIndex += 1;
   }
-
   return { summaryHtml: html.join("\n"), summaryTextPlain: text.join("\n") };
 }
+
 function escapeHtml(s) {
-  return String(s)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;');
+  return String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
-
-// UPDATED: Split exposure bullets into positives and negatives
 function exposureBullets(exp) {
   if (!exp) return { positives: [], negatives: [] };
-  const positives = [];
-  const negatives = [];
-
+  const positives = []; const negatives = [];
   const push = (label, status, details) => {
-    // status can be 'yes', 'no', 'unknown' (or legacy boolean)
-    let s = status;
-    if (typeof s === 'boolean') s = s ? 'yes' : 'unknown';
-
-    if (s === 'yes') {
-      positives.push({ label: cap(label), details: details?.trim() || '' });
-    } else if (s === 'no') {
-      negatives.push(cap(label));
-    }
+    let s = status; if (typeof s === 'boolean') s = s ? 'yes' : 'unknown';
+    if (s === 'yes') { positives.push({ label: cap(label), details: details?.trim() || '' }); } else if (s === 'no') { negatives.push(cap(label)); }
   };
-
-  // Vector
   push('mosquito bites', exp.mosquito, exp.mosquitoDetails);
   push('tick bites', exp.tick, exp.tickDetails);
-  if (exp.vectorOtherEnabled === 'yes') {
-    positives.push({ label: 'Other vector', details: exp.vectorOtherDetails?.trim() || '' });
-  } else if (exp.vectorOtherEnabled === 'no') {
-    negatives.push('Other vector');
-  }
-
-  // Environment
+  if (exp.vectorOtherEnabled === 'yes') { positives.push({ label: 'Other vector', details: exp.vectorOtherDetails?.trim() || '' }); } else if (exp.vectorOtherEnabled === 'no') { negatives.push('Other vector'); }
   push('freshwater contact', exp.freshwater, exp.freshwaterDetails);
   push('visited caves or mines', exp.cavesMines, exp.cavesMinesDetails);
   push('rural / forest stay', exp.ruralForest, exp.ruralForestDetails);
   push('hiking in forest / bush / woodlands', exp.hikingWoodlands, exp.hikingWoodlandsDetails);
-
-  // Animal & procedures
   push('animal contact', exp.animalContact, exp.animalContactDetails);
   push('animal bite / scratch', exp.animalBiteScratch, exp.animalBiteScratchDetails);
   push('bushmeat consumption', exp.bushmeat, exp.bushmeatDetails);
   push('needles / tattoos / piercings', exp.needlesTattoos, exp.needlesTattoosDetails);
   push('safari / wildlife viewing', exp.safariWildlife, exp.safariWildlifeDetails);
-
-  // Food & water
   push('street food', exp.streetFood, exp.streetFoodDetails);
   push('untreated water', exp.untreatedWater, exp.untreatedWaterDetails);
   push('undercooked food', exp.undercookedFood, exp.undercookedFoodDetails);
   push('undercooked seafood', exp.undercookedSeafood, exp.undercookedSeafoodDetails);
   push('unpasteurised milk', exp.unpasteurisedMilk, exp.unpasteurisedMilkDetails);
-
-  // Social / institutional
   push('attended funerals', exp.funerals, exp.funeralsDetails);
   push('sick contacts (including TB)', exp.sickContacts, exp.sickContactsDetails);
   push('healthcare facility contact', exp.healthcareFacility, exp.healthcareFacilityDetails);
   push('prison contact', exp.prison, exp.prisonDetails);
   push('refugee camp contact', exp.refugeeCamp, exp.refugeeCampDetails);
   push('unprotected sex', exp.unprotectedSex, exp.unprotectedSexDetails);
-
-  if (exp.otherText?.trim()) {
-      positives.push({ label: exp.otherText.trim(), details: '' });
-  }
-
+  if (exp.otherText?.trim()) { positives.push({ label: exp.otherText.trim(), details: '' }); }
   return { positives, negatives };
 }
