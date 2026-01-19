@@ -1,11 +1,11 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v10.2 (Uniform Summaries & Bulleted Form)
+// Travel History Generator — v11 (Phase 2: Split Screen Layout)
 // Changes:
-// - Added visual bullets to the Input Form labels
-// - Made "No exposures to" visually identical to "Exposures" in Timeline & Summary
-// - Removed distinct styling (grey/uppercase) from negative findings to ensure uniformity
+// - Implemented Responsive Grid Layout (Desktop: Split Screen / Mobile: Stacked)
+// - Made Summary section "Sticky" on desktop for live preview
+// - Preserved all Phase 1.5 logic (Green buttons, Bulleted forms, Split summaries)
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -459,7 +459,7 @@ useEffect(() => {
   };
 
   return (
-    <main className="py-10 sm:py-14">
+    <main className="py-10 sm:py-14 max-w-[1600px] mx-auto px-4 sm:px-6">
       {/* Header */}
       <header className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
         <div>
@@ -474,10 +474,10 @@ useEffect(() => {
       </header>
 
       {/* Privacy banner */}
-<div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 p-4 text-amber-900 dark:text-amber-200 flex items-center gap-3">
-  <span aria-hidden="true">⚠️</span>
-  <p className="text-sm">Do not enter private or patient-identifiable information.</p>
-</div>
+      <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 p-4 text-amber-900 dark:text-amber-200 flex items-center gap-3">
+        <span aria-hidden="true">⚠️</span>
+        <p className="text-sm">Do not enter private or patient-identifiable information.</p>
+      </div>
 
       {/* Validation messages */}
       {issues.length > 0 && (
@@ -490,159 +490,174 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Trip Builder */}
-      <section className="space-y-10">
-        {state.trips.map((trip, tIdx) => (
-          <TripCard
-            key={trip.id}
-            innerRef={setItemRef(trip.id)}
-            trip={trip}
-            index={tIdx}
-            updateTrip={updateTrip}
-            updateStop={updateStop}
-            addStop={addStop}
-            removeStop={removeStop}
-            addLayover={addLayover}
-            updateLayover={updateLayover}
-            removeLayover={removeLayover}
-            removeTrip={removeTrip}
-            highlight={highlight}
-            setItemRef={setItemRef}
-          />
-        ))}
-        <div>
-          <button type="button" onClick={addTrip} className={BTN_PRIMARY}>+ Add another trip</button>
-        </div>
-      </section>
-
-      {/* Companions */}
-      <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Companions</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <div className="sm:col-span-2">
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Who did you travel with?</label>
-            <div className="flex flex-wrap gap-2">
-              {['Alone', 'Family', 'Friends', 'Organised tour', 'Other'].map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() =>
-  setState((p) => {
-    const next = { ...p.companions, group: opt };
-    if (opt === 'Alone') {
-      next.companionsWell = 'unknown';
-      next.companionsUnwellDetails = '';
-      next.otherText = '';
-    }
-    return { ...p, companions: next };
-  })
-}
-                  className={classNames(
-                    'rounded-md px-3 py-1.5 text-sm border-2 transition',
-                    state.companions.group === opt
-                      ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent'
-                      : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
-                  )}
-                >
-                  {opt}
-                </button>
-              ))}
+      {/* MAIN LAYOUT: Split Screen */}
+      <div className="lg:grid lg:grid-cols-[1fr_450px] gap-8 items-start">
+        
+        {/* LEFT COLUMN: Inputs & Timeline */}
+        <div className="space-y-10 min-w-0">
+          
+          {/* Trip Builder */}
+          <section className="space-y-10">
+            {state.trips.map((trip, tIdx) => (
+              <TripCard
+                key={trip.id}
+                innerRef={setItemRef(trip.id)}
+                trip={trip}
+                index={tIdx}
+                updateTrip={updateTrip}
+                updateStop={updateStop}
+                addStop={addStop}
+                removeStop={removeStop}
+                addLayover={addLayover}
+                updateLayover={updateLayover}
+                removeLayover={removeLayover}
+                removeTrip={removeTrip}
+                highlight={highlight}
+                setItemRef={setItemRef}
+              />
+            ))}
+            <div>
+              <button type="button" onClick={addTrip} className={BTN_PRIMARY}>+ Add another trip</button>
             </div>
-            {state.companions.group === 'Other' && (
-              <div className="mt-2">
-                <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Describe</label>
-                <input
-                  type="text"
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-                  value={state.companions.otherText}
-                  onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, otherText: e.target.value } }))}
-                />
+          </section>
+
+          {/* Companions */}
+          <section className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Companions</h2>
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              <div className="sm:col-span-2">
+                <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Who did you travel with?</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Alone', 'Family', 'Friends', 'Organised tour', 'Other'].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() =>
+                        setState((p) => {
+                          const next = { ...p.companions, group: opt };
+                          if (opt === 'Alone') {
+                            next.companionsWell = 'unknown';
+                            next.companionsUnwellDetails = '';
+                            next.otherText = '';
+                          }
+                          return { ...p, companions: next };
+                        })
+                      }
+                      className={classNames(
+                        'rounded-md px-3 py-1.5 text-sm border-2 transition',
+                        state.companions.group === opt
+                          ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent'
+                          : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
+                      )}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+                {state.companions.group === 'Other' && (
+                  <div className="mt-2">
+                    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Describe</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                      value={state.companions.otherText}
+                      onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, otherText: e.target.value } }))}
+                    />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {state.companions.group !== 'Alone' && (
-  <div>
-    <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Are they well?</label>
-    <div className="flex gap-2">
-      {[
-        { val: 'yes', label: 'Yes' },
-        { val: 'no', label: 'No' },
-        { val: 'unknown', label: 'Unknown' },
-      ].map(({ val, label }) => (
-        <button
-          key={val}
-          type="button"
-          onClick={() =>
-            setState((p) => ({
-              ...p,
-              companions: {
-                ...p.companions,
-                companionsWell: val,
-                // Clear details if not "No"
-                companionsUnwellDetails: val === 'no' ? p.companions.companionsUnwellDetails : '',
-              },
-            }))
-          }
-          className={classNames(
-            'rounded-md px-3 py-1.5 text-sm border-2 transition',
-            state.companions.companionsWell === val
-              ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent'
-              : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
-          )}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
+              {state.companions.group !== 'Alone' && (
+                <div>
+                  <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Are they well?</label>
+                  <div className="flex gap-2">
+                    {[
+                      { val: 'yes', label: 'Yes' },
+                      { val: 'no', label: 'No' },
+                      { val: 'unknown', label: 'Unknown' },
+                    ].map(({ val, label }) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() =>
+                          setState((p) => ({
+                            ...p,
+                            companions: {
+                              ...p.companions,
+                              companionsWell: val,
+                              // Clear details if not "No"
+                              companionsUnwellDetails: val === 'no' ? p.companions.companionsUnwellDetails : '',
+                            },
+                          }))
+                        }
+                        className={classNames(
+                          'rounded-md px-3 py-1.5 text-sm border-2 transition',
+                          state.companions.companionsWell === val
+                            ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent'
+                            : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
 
-    {state.companions.companionsWell === 'no' && (
-      <div className="mt-2">
-        <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
-          Please provide details
-        </label>
-        <textarea
-          rows={3}
-          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
-          value={state.companions.companionsUnwellDetails}
-          onChange={(e) =>
-            setState((p) => ({
-              ...p,
-              companions: { ...p.companions, companionsUnwellDetails: e.target.value },
-            }))
-          }
-        />
-      </div>
-    )}
-  </div>
-)}
+                  {state.companions.companionsWell === 'no' && (
+                    <div className="mt-2">
+                      <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
+                        Please provide details
+                      </label>
+                      <textarea
+                        rows={3}
+                        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                        value={state.companions.companionsUnwellDetails}
+                        onChange={(e) =>
+                          setState((p) => ({
+                            ...p,
+                            companions: { ...p.companions, companionsUnwellDetails: e.target.value },
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Timeline */}
+          <section id="timeline-section" className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline</h2>
+            </div>
+            <TimelineVertical events={mergedEventsAllTrips} />
+          </section>
         </div>
-      </section>
 
-      {/* Timeline */}
-      <section id="timeline-section" className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-        <div className="flex items-center justify-between mb-3">
-  <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Timeline</h2>
-</div>
-        <TimelineVertical events={mergedEventsAllTrips} />
-      </section>
+        {/* RIGHT COLUMN: Sticky Summary */}
+        <aside className="sticky top-4 h-[calc(100vh-2rem)] overflow-y-auto rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 shadow-sm flex flex-col">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Summary</h2>
+          </div>
+          <div className="p-4 flex-1 overflow-y-auto">
+            <div className="text-sm text-slate-700 dark:text-slate-300 space-y-4">
+              {/* Only show if empty */}
+              {!summaryHtml && <p className="text-slate-500 italic">History will appear here as you type...</p>}
+              <div dangerouslySetInnerHTML={{ __html: summaryHtml }} />
+            </div>
+          </div>
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+            <button
+              type="button"
+              onClick={() => navigator.clipboard.writeText(summaryTextPlain)}
+              className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 hover:opacity-90 transition font-medium text-sm"
+            >
+              Copy to Clipboard
+            </button>
+          </div>
+        </aside>
 
-      {/* Text summary */}
-<section className="mt-6 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-  <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3">Travel History Summary</h2>
-  <div className="text-sm text-slate-700 dark:text-slate-300">
-    <div dangerouslySetInnerHTML={{ __html: summaryHtml }} />
-  </div>
-  <div className="mt-3 flex gap-2">
-    <button
-      type="button"
-      onClick={() => navigator.clipboard.writeText(summaryTextPlain)}
-      className={BTN_SECONDARY}
-    >
-      Copy summary
-    </button>
-  </div>
-</section>
+      </div>
     </main>
   );
 }
