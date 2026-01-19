@@ -1,11 +1,11 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v9
-// Changes in v9:
-// - Companions added to both visual and text summaries
-// - Stops numbered in text summary (Stop 1, Stop 2, …)
-// - Removed separate tripMeta node/card; trip meta shown under first stop’s arrival
+// Travel History Generator — v10 (Phase 1: Exposure Engine Overhaul)
+// Changes:
+// - Converted Exposure logic to Tri-state (Yes/No/Unknown)
+// - Added UI for explicit negative findings ("Denied")
+// - Updated Summary/Timeline to display negative findings
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -114,36 +114,37 @@ const emptyStop = () => ({
   accommodationOther: '',
 
   // Exposures with per-exposure details
+  // UPDATED: booleans replaced with 'unknown' | 'yes' | 'no'
   exposures: {
     // Vector
-    mosquito: false, mosquitoDetails: '',         // Mosquito bites
-    tick: false, tickDetails: '',                 // Tick bites
-    vectorOtherEnabled: false, vectorOther: '', vectorOtherDetails: '',
+    mosquito: 'unknown', mosquitoDetails: '',         // Mosquito bites
+    tick: 'unknown', tickDetails: '',                 // Tick bites
+    vectorOtherEnabled: 'unknown', vectorOtherDetails: '',
     // Environment
-    freshwater: false, freshwaterDetails: '',
-    cavesMines: false, cavesMinesDetails: '',     // Visited caves/mines
-    ruralForest: false, ruralForestDetails: '',   // Rural / forest stay
-    hikingWoodlands: false, hikingWoodlandsDetails: '', // Hiking in forest/bush/woodlands
+    freshwater: 'unknown', freshwaterDetails: '',
+    cavesMines: 'unknown', cavesMinesDetails: '',     // Visited caves/mines
+    ruralForest: 'unknown', ruralForestDetails: '',   // Rural / forest stay
+    hikingWoodlands: 'unknown', hikingWoodlandsDetails: '', // Hiking in forest/bush/woodlands
     // Animal / procedures
-    animalContact: false, animalContactDetails: '',
-    animalBiteScratch: false, animalBiteScratchDetails: '',
-    bushmeat: false, bushmeatDetails: '',         // Bushmeat consumption
-    needlesTattoos: false, needlesTattoosDetails: '',
-    safariWildlife: false, safariWildlifeDetails: '',
+    animalContact: 'unknown', animalContactDetails: '',
+    animalBiteScratch: 'unknown', animalBiteScratchDetails: '',
+    bushmeat: 'unknown', bushmeatDetails: '',         // Bushmeat consumption
+    needlesTattoos: 'unknown', needlesTattoosDetails: '',
+    safariWildlife: 'unknown', safariWildlifeDetails: '',
     // Food / water
-    streetFood: false, streetFoodDetails: '',
-    untreatedWater: false, untreatedWaterDetails: '',
-    undercookedFood: false, undercookedFoodDetails: '',
-    undercookedSeafood: false, undercookedSeafoodDetails: '',
-    unpasteurisedMilk: false, unpasteurisedMilkDetails: '',
+    streetFood: 'unknown', streetFoodDetails: '',
+    untreatedWater: 'unknown', untreatedWaterDetails: '',
+    undercookedFood: 'unknown', undercookedFoodDetails: '',
+    undercookedSeafood: 'unknown', undercookedSeafoodDetails: '',
+    unpasteurisedMilk: 'unknown', unpasteurisedMilkDetails: '',
     // Social / institutional
-    funerals: false, funeralsDetails: '',         // Attended funerals
-    largeGatherings: false, largeGatheringsDetails: '',
-    sickContacts: false, sickContactsDetails: '', // Sick contacts (incl. TB)
-    healthcareFacility: false, healthcareFacilityDetails: '',
-    prison: false, prisonDetails: '',
-    refugeeCamp: false, refugeeCampDetails: '',
-    unprotectedSex: false, unprotectedSexDetails: '',
+    funerals: 'unknown', funeralsDetails: '',         // Attended funerals
+    largeGatherings: 'unknown', largeGatheringsDetails: '',
+    sickContacts: 'unknown', sickContactsDetails: '', // Sick contacts (incl. TB)
+    healthcareFacility: 'unknown', healthcareFacilityDetails: '',
+    prison: 'unknown', prisonDetails: '',
+    refugeeCamp: 'unknown', refugeeCampDetails: '',
+    unprotectedSex: 'unknown', unprotectedSexDetails: '',
     // Misc
     otherText: '',
   },
@@ -173,7 +174,7 @@ const initialState = {
     group: 'Alone',
     otherText: '',
     companionsWell: 'unknown',  // yes | no | unknown
-    companionsUnwellDetails: '', // NEW
+    companionsUnwellDetails: '',
   },
 };
 
@@ -1104,78 +1105,88 @@ const removeCity = (i) => {
         )}
       </div>
 
-      {/* Exposures */}
+      {/* Exposures (UPDATED) */}
       <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6">
         <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Activities / Exposures</h4>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
           {/* Vector-borne */}
-          <fieldset className="space-y-2">
-            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Vector-borne</legend>
-            <ExposureCheck label="Mosquito bites" checked={exp.mosquito} details={exp.mosquitoDetails} onToggle={(v) => onChange({ exposures: { ...exp, mosquito: v } })} onDetails={(v) => onChange({ exposures: { ...exp, mosquitoDetails: v } })} />
-            <ExposureCheck label="Tick bites" checked={exp.tick} details={exp.tickDetails} onToggle={(v) => onChange({ exposures: { ...exp, tick: v } })} onDetails={(v) => onChange({ exposures: { ...exp, tickDetails: v } })} />
-            <div className="space-y-1">
+          <fieldset className="space-y-1">
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Vector-borne</legend>
+            <ExposureRow label="Mosquito bites" status={exp.mosquito} details={exp.mosquitoDetails} onToggle={(v) => onChange({ exposures: { ...exp, mosquito: v } })} onDetails={(v) => onChange({ exposures: { ...exp, mosquitoDetails: v } })} />
+            <ExposureRow label="Tick bites" status={exp.tick} details={exp.tickDetails} onToggle={(v) => onChange({ exposures: { ...exp, tick: v } })} onDetails={(v) => onChange({ exposures: { ...exp, tickDetails: v } })} />
+            <div className="space-y-1 pt-2">
               <label className="flex items-start gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700"
-                  checked={!!exp.vectorOtherEnabled}
-                  onChange={(e) => onChange({ exposures: { ...exp, vectorOtherEnabled: e.target.checked } })}
-                />
-                <span>Other vector</span>
+                <span className="flex-1 font-medium">Other vector</span>
+                <div className="flex gap-1">
+                   {['yes', 'no'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => onChange({ exposures: { ...exp, vectorOtherEnabled: opt === exp.vectorOtherEnabled ? 'unknown' : opt } })}
+                        className={classNames(
+                          "px-2 py-0.5 text-xs border rounded transition-colors",
+                          exp.vectorOtherEnabled === opt
+                             ? (opt === 'yes' ? "bg-rose-100 border-rose-300 text-rose-800 font-medium" : "bg-slate-100 border-slate-300 text-slate-800")
+                             : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400"
+                        )}
+                      >
+                        {cap(opt)}
+                      </button>
+                   ))}
+                </div>
               </label>
-             {exp.vectorOtherEnabled && (
-   <input
-     type="text"
-     placeholder="Please provide more details."
-     className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm"
-     value={exp.vectorOtherDetails}
-     onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })}
-   />
- )}
+             {exp.vectorOtherEnabled === 'yes' && (
+               <input
+                 type="text"
+                 placeholder="Please provide more details."
+                 className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm"
+                 value={exp.vectorOtherDetails}
+                 onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })}
+               />
+             )}
             </div>
           </fieldset>
 
           {/* Water / Environment */}
-          <fieldset className="space-y-2">
-            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Water / Environment</legend>
-            <ExposureCheck label="Freshwater contact" checked={exp.freshwater} details={exp.freshwaterDetails} onToggle={(v) => onChange({ exposures: { ...exp, freshwater: v } })} onDetails={(v) => onChange({ exposures: { ...exp, freshwaterDetails: v } })} />
-            <ExposureCheck label="Visited caves or mines (if yes, any contact with bats or bat droppings?)" checked={exp.cavesMines} details={exp.cavesMinesDetails} onToggle={(v) => onChange({ exposures: { ...exp, cavesMines: v } })} onDetails={(v) => onChange({ exposures: { ...exp, cavesMinesDetails: v } })} />
-            <ExposureCheck label="Rural / forest stay" checked={exp.ruralForest} details={exp.ruralForestDetails} onToggle={(v) => onChange({ exposures: { ...exp, ruralForest: v } })} onDetails={(v) => onChange({ exposures: { ...exp, ruralForestDetails: v } })} />
-            <ExposureCheck label="Went hiking in forest, bush or woodlands" checked={exp.hikingWoodlands} details={exp.hikingWoodlandsDetails} onToggle={(v) => onChange({ exposures: { ...exp, hikingWoodlands: v } })} onDetails={(v) => onChange({ exposures: { ...exp, hikingWoodlandsDetails: v } })} />
+          <fieldset className="space-y-1">
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Water / Environment</legend>
+            <ExposureRow label="Freshwater contact" status={exp.freshwater} details={exp.freshwaterDetails} onToggle={(v) => onChange({ exposures: { ...exp, freshwater: v } })} onDetails={(v) => onChange({ exposures: { ...exp, freshwaterDetails: v } })} />
+            <ExposureRow label="Visited caves or mines" status={exp.cavesMines} details={exp.cavesMinesDetails} onToggle={(v) => onChange({ exposures: { ...exp, cavesMines: v } })} onDetails={(v) => onChange({ exposures: { ...exp, cavesMinesDetails: v } })} placeholder="If yes, any contact with bats?" />
+            <ExposureRow label="Rural / forest stay" status={exp.ruralForest} details={exp.ruralForestDetails} onToggle={(v) => onChange({ exposures: { ...exp, ruralForest: v } })} onDetails={(v) => onChange({ exposures: { ...exp, ruralForestDetails: v } })} />
+            <ExposureRow label="Hiking in forest/woodlands" status={exp.hikingWoodlands} details={exp.hikingWoodlandsDetails} onToggle={(v) => onChange({ exposures: { ...exp, hikingWoodlands: v } })} onDetails={(v) => onChange({ exposures: { ...exp, hikingWoodlandsDetails: v } })} />
           </fieldset>
 
           {/* Animal & Procedures */}
-          <fieldset className="space-y-2">
-            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Animal & Procedures</legend>
-            <ExposureCheck label="Animal contact" checked={exp.animalContact} details={exp.animalContactDetails} onToggle={(v) => onChange({ exposures: { ...exp, animalContact: v } })} onDetails={(v) => onChange({ exposures: { ...exp, animalContactDetails: v } })} />
-            <ExposureCheck label="Animal bite / scratch" checked={exp.animalBiteScratch} details={exp.animalBiteScratchDetails} onToggle={(v) => onChange({ exposures: { ...exp, animalBiteScratch: v } })} onDetails={(v) => onChange({ exposures: { ...exp, animalBiteScratchDetails: v } })} />
-            <ExposureCheck label="Bushmeat consumption" checked={exp.bushmeat} details={exp.bushmeatDetails} onToggle={(v) => onChange({ exposures: { ...exp, bushmeat: v } })} onDetails={(v) => onChange({ exposures: { ...exp, bushmeatDetails: v } })} />
-            <ExposureCheck label="Needles / tattoos / piercings" checked={exp.needlesTattoos} details={exp.needlesTattoosDetails} onToggle={(v) => onChange({ exposures: { ...exp, needlesTattoos: v } })} onDetails={(v) => onChange({ exposures: { ...exp, needlesTattoosDetails: v } })} />
-            <ExposureCheck label="Safari / wildlife viewing" checked={exp.safariWildlife} details={exp.safariWildlifeDetails} onToggle={(v) => onChange({ exposures: { ...exp, safariWildlife: v } })} onDetails={(v) => onChange({ exposures: { ...exp, safariWildlifeDetails: v } })} />
+          <fieldset className="space-y-1">
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Animal & Procedures</legend>
+            <ExposureRow label="Animal contact" status={exp.animalContact} details={exp.animalContactDetails} onToggle={(v) => onChange({ exposures: { ...exp, animalContact: v } })} onDetails={(v) => onChange({ exposures: { ...exp, animalContactDetails: v } })} />
+            <ExposureRow label="Animal bite / scratch" status={exp.animalBiteScratch} details={exp.animalBiteScratchDetails} onToggle={(v) => onChange({ exposures: { ...exp, animalBiteScratch: v } })} onDetails={(v) => onChange({ exposures: { ...exp, animalBiteScratchDetails: v } })} />
+            <ExposureRow label="Bushmeat consumption" status={exp.bushmeat} details={exp.bushmeatDetails} onToggle={(v) => onChange({ exposures: { ...exp, bushmeat: v } })} onDetails={(v) => onChange({ exposures: { ...exp, bushmeatDetails: v } })} />
+            <ExposureRow label="Needles / tattoos / piercings" status={exp.needlesTattoos} details={exp.needlesTattoosDetails} onToggle={(v) => onChange({ exposures: { ...exp, needlesTattoos: v } })} onDetails={(v) => onChange({ exposures: { ...exp, needlesTattoosDetails: v } })} />
+            <ExposureRow label="Safari / wildlife viewing" status={exp.safariWildlife} details={exp.safariWildlifeDetails} onToggle={(v) => onChange({ exposures: { ...exp, safariWildlife: v } })} onDetails={(v) => onChange({ exposures: { ...exp, safariWildlifeDetails: v } })} />
           </fieldset>
 
           {/* Food & Water */}
-          <fieldset className="space-y-2">
-            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Food & Water</legend>
-            <ExposureCheck label="Street food" checked={exp.streetFood} details={exp.streetFoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, streetFood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, streetFoodDetails: v } })} />
-            <ExposureCheck label="Drank untreated water" checked={exp.untreatedWater} details={exp.untreatedWaterDetails} onToggle={(v) => onChange({ exposures: { ...exp, untreatedWater: v } })} onDetails={(v) => onChange({ exposures: { ...exp, untreatedWaterDetails: v } })} />
-            <ExposureCheck label="Undercooked food" checked={exp.undercookedFood} details={exp.undercookedFoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, undercookedFood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, undercookedFoodDetails: v } })} />
-            <ExposureCheck label="Undercooked seafood" checked={exp.undercookedSeafood} details={exp.undercookedSeafoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, undercookedSeafood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, undercookedSeafoodDetails: v } })} />
-            <ExposureCheck label="Unpasteurised milk" checked={exp.unpasteurisedMilk} details={exp.unpasteurisedMilkDetails} onToggle={(v) => onChange({ exposures: { ...exp, unpasteurisedMilk: v } })} onDetails={(v) => onChange({ exposures: { ...exp, unpasteurisedMilkDetails: v } })} />
+          <fieldset className="space-y-1">
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Food & Water</legend>
+            <ExposureRow label="Street food" status={exp.streetFood} details={exp.streetFoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, streetFood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, streetFoodDetails: v } })} />
+            <ExposureRow label="Drank untreated water" status={exp.untreatedWater} details={exp.untreatedWaterDetails} onToggle={(v) => onChange({ exposures: { ...exp, untreatedWater: v } })} onDetails={(v) => onChange({ exposures: { ...exp, untreatedWaterDetails: v } })} />
+            <ExposureRow label="Undercooked food" status={exp.undercookedFood} details={exp.undercookedFoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, undercookedFood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, undercookedFoodDetails: v } })} />
+            <ExposureRow label="Undercooked seafood" status={exp.undercookedSeafood} details={exp.undercookedSeafoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, undercookedSeafood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, undercookedSeafoodDetails: v } })} />
+            <ExposureRow label="Unpasteurised milk" status={exp.unpasteurisedMilk} details={exp.unpasteurisedMilkDetails} onToggle={(v) => onChange({ exposures: { ...exp, unpasteurisedMilk: v } })} onDetails={(v) => onChange({ exposures: { ...exp, unpasteurisedMilkDetails: v } })} />
           </fieldset>
 
           {/* Institutional / Social */}
-          <fieldset className="space-y-2 md:col-span-2">
-            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Institutional / Social</legend>
-            <div className="grid sm:grid-cols-2 gap-2">
-              <ExposureCheck label="Attended funerals" checked={exp.funerals} details={exp.funeralsDetails} onToggle={(v) => onChange({ exposures: { ...exp, funerals: v } })} onDetails={(v) => onChange({ exposures: { ...exp, funeralsDetails: v } })} />
-              <ExposureCheck label="Sick contacts (including TB)" checked={exp.sickContacts} details={exp.sickContactsDetails} onToggle={(v) => onChange({ exposures: { ...exp, sickContacts: v } })} onDetails={(v) => onChange({ exposures: { ...exp, sickContactsDetails: v } })} />
-              <ExposureCheck label="Healthcare facility contact" checked={exp.healthcareFacility} details={exp.healthcareFacilityDetails} onToggle={(v) => onChange({ exposures: { ...exp, healthcareFacility: v } })} onDetails={(v) => onChange({ exposures: { ...exp, healthcareFacilityDetails: v } })} />
-              <ExposureCheck label="Prison contact" checked={exp.prison} details={exp.prisonDetails} onToggle={(v) => onChange({ exposures: { ...exp, prison: v } })} onDetails={(v) => onChange({ exposures: { ...exp, prisonDetails: v } })} />
-              <ExposureCheck label="Refugee camp contact" checked={exp.refugeeCamp} details={exp.refugeeCampDetails} onToggle={(v) => onChange({ exposures: { ...exp, refugeeCamp: v } })} onDetails={(v) => onChange({ exposures: { ...exp, refugeeCampDetails: v } })} />
-              <ExposureCheck label="Unprotected sex" checked={exp.unprotectedSex} details={exp.unprotectedSexDetails} onToggle={(v) => onChange({ exposures: { ...exp, unprotectedSex: v } })} onDetails={(v) => onChange({ exposures: { ...exp, unprotectedSexDetails: v } })} />
-
+          <fieldset className="space-y-1 md:col-span-2">
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Institutional / Social</legend>
+            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-1">
+              <ExposureRow label="Attended funerals" status={exp.funerals} details={exp.funeralsDetails} onToggle={(v) => onChange({ exposures: { ...exp, funerals: v } })} onDetails={(v) => onChange({ exposures: { ...exp, funeralsDetails: v } })} />
+              <ExposureRow label="Sick contacts (including TB)" status={exp.sickContacts} details={exp.sickContactsDetails} onToggle={(v) => onChange({ exposures: { ...exp, sickContacts: v } })} onDetails={(v) => onChange({ exposures: { ...exp, sickContactsDetails: v } })} />
+              <ExposureRow label="Healthcare facility contact" status={exp.healthcareFacility} details={exp.healthcareFacilityDetails} onToggle={(v) => onChange({ exposures: { ...exp, healthcareFacility: v } })} onDetails={(v) => onChange({ exposures: { ...exp, healthcareFacilityDetails: v } })} />
+              <ExposureRow label="Prison contact" status={exp.prison} details={exp.prisonDetails} onToggle={(v) => onChange({ exposures: { ...exp, prison: v } })} onDetails={(v) => onChange({ exposures: { ...exp, prisonDetails: v } })} />
+              <ExposureRow label="Refugee camp contact" status={exp.refugeeCamp} details={exp.refugeeCampDetails} onToggle={(v) => onChange({ exposures: { ...exp, refugeeCamp: v } })} onDetails={(v) => onChange({ exposures: { ...exp, refugeeCampDetails: v } })} />
+              <ExposureRow label="Unprotected sex" status={exp.unprotectedSex} details={exp.unprotectedSexDetails} onToggle={(v) => onChange({ exposures: { ...exp, unprotectedSex: v } })} onDetails={(v) => onChange({ exposures: { ...exp, unprotectedSexDetails: v } })} />
             </div>
             <div className="mt-3">
               <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other exposure (free-text)</label>
@@ -1324,17 +1335,53 @@ function Checkbox({ label, checked, onChange }) {
   );
 }
 
-// Checkbox + details helper
-function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
-  const id = useMemo(() => uid(), []);
+// UPDATED: Exposure Row with Yes/No/Unknown buttons
+function ExposureRow({ label, status, details, onToggle, onDetails, placeholder }) {
+  // status: 'unknown' | 'yes' | 'no' (or legacy boolean false/true which we map)
+  // map legacy boolean if exists
+  const safeStatus = typeof status === 'boolean' ? (status ? 'yes' : 'unknown') : (status || 'unknown');
+
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="flex items-start gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
-        <input id={id} type="checkbox" className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700" checked={!!checked} onChange={(e) => onToggle(e.target.checked)} />
-        <span>{label}</span>
-      </label>
-      {checked && (
-        <input type="text" placeholder="Please provide more details." className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm" value={details || ''} onChange={(e) => onDetails(e.target.value)} />
+    <div className="py-1">
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-sm text-slate-700 dark:text-slate-300">{label}</span>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => onToggle(safeStatus === 'yes' ? 'unknown' : 'yes')}
+            className={classNames(
+              "px-2 py-0.5 text-xs border rounded transition-colors",
+              safeStatus === 'yes'
+                ? "bg-rose-100 border-rose-300 text-rose-800 font-medium"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400"
+            )}
+          >
+            Yes
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggle(safeStatus === 'no' ? 'unknown' : 'no')}
+            className={classNames(
+              "px-2 py-0.5 text-xs border rounded transition-colors",
+              safeStatus === 'no'
+                ? "bg-slate-200 border-slate-300 text-slate-800 font-medium"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400"
+            )}
+          >
+            No
+          </button>
+        </div>
+      </div>
+      {safeStatus === 'yes' && (
+        <div className="mt-1">
+          <input
+            type="text"
+            placeholder={placeholder || "Please provide details..."}
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm"
+            value={details || ''}
+            onChange={(e) => onDetails(e.target.value)}
+          />
+        </div>
       )}
     </div>
   );
@@ -1342,9 +1389,6 @@ function ExposureCheck({ label, checked, details, onToggle, onDetails }) {
 
 /**
  * Timeline (Vertical) — with anchored layovers
- * Layovers are expected to be annotated in buildTripEvents with:
- *   - anchorStopId: string
- *   - position: 'before-stop' | 'between' | 'after-stop'
  */
 function TimelineVertical({ events }) {
 
@@ -1875,13 +1919,13 @@ if (accom) {
 }
 
 // Exposures (bulleted list)
+// UPDATED: Now includes negative findings (Denied)
 const bullets = exposureBullets(s.exposures);
 if (bullets.length) {
   html.push(`<div>Exposures:</div>`);
   text.push(`Exposures:`);
   text.push(""); // blank line before bullets
 
-  // ✅ proper bullets in HTML
   html.push('<ul class="list-disc pl-5">');
   bullets.forEach(({ label, details }) => {
     const line = details ? `${label} — ${details}` : label;
@@ -1929,19 +1973,31 @@ function escapeHtml(s) {
 }
 
 
-// Exposure bullets for the text summary (with details)
+// UPDATED: Exposure bullets logic to include "Denied" when status is 'no'
 function exposureBullets(exp) {
   if (!exp) return [];
   const out = [];
-  const push = (label, flag, details) => {
-  if (flag) out.push({ label: cap(label), details: details?.trim() || '' });
+
+  const push = (label, status, details) => {
+    // status can be 'yes', 'no', 'unknown' (or legacy boolean)
+    // legacy true -> 'yes', false -> 'unknown'
+    let s = status;
+    if (typeof s === 'boolean') s = s ? 'yes' : 'unknown';
+
+    if (s === 'yes') {
+      out.push({ label: cap(label), details: details?.trim() || '' });
+    } else if (s === 'no') {
+      out.push({ label: cap(label), details: 'Denied' });
+    }
   };
 
   // Vector
   push('mosquito bites', exp.mosquito, exp.mosquitoDetails);
   push('tick bites', exp.tick, exp.tickDetails);
-  if (exp.vectorOtherEnabled) {
+  if (exp.vectorOtherEnabled === 'yes') {
   out.push({ label: 'Other vector', details: exp.vectorOtherDetails?.trim() || '' });
+  } else if (exp.vectorOtherEnabled === 'no') {
+     out.push({ label: 'Other vector', details: 'Denied' });
   }
 
   // Environment
