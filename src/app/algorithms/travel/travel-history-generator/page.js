@@ -1,11 +1,10 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v10 (Phase 1: Exposure Engine Overhaul)
+// Travel History Generator — v10.1 (Refined Exposure Logic)
 // Changes:
-// - Converted Exposure logic to Tri-state (Yes/No/Unknown)
-// - Added UI for explicit negative findings ("Denied")
-// - Updated Summary/Timeline to display negative findings
+// - "No" button is now Green (Safe/Negative)
+// - Summaries & Timeline now split "Exposures" and "No exposures to" into separate lists
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -114,7 +113,6 @@ const emptyStop = () => ({
   accommodationOther: '',
 
   // Exposures with per-exposure details
-  // UPDATED: booleans replaced with 'unknown' | 'yes' | 'no'
   exposures: {
     // Vector
     mosquito: 'unknown', mosquitoDetails: '',         // Mosquito bites
@@ -315,7 +313,6 @@ useEffect(() => {
   const onBeforeUnload = (e) => {
     if (!hasData) return;
     e.preventDefault();
-    // Setting returnValue triggers the native "Leave site?" dialog in supported browsers
     e.returnValue = "";
   };
 
@@ -1127,7 +1124,7 @@ const removeCity = (i) => {
                         className={classNames(
                           "px-2 py-0.5 text-xs border rounded transition-colors",
                           exp.vectorOtherEnabled === opt
-                             ? (opt === 'yes' ? "bg-rose-100 border-rose-300 text-rose-800 font-medium" : "bg-slate-100 border-slate-300 text-slate-800")
+                             ? (opt === 'yes' ? "bg-rose-100 border-rose-300 text-rose-800 font-medium" : "bg-emerald-100 border-emerald-300 text-emerald-800 font-medium")
                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400"
                         )}
                       >
@@ -1335,7 +1332,7 @@ function Checkbox({ label, checked, onChange }) {
   );
 }
 
-// UPDATED: Exposure Row with Yes/No/Unknown buttons
+// UPDATED: Exposure Row with Green "No" button
 function ExposureRow({ label, status, details, onToggle, onDetails, placeholder }) {
   // status: 'unknown' | 'yes' | 'no' (or legacy boolean false/true which we map)
   // map legacy boolean if exists
@@ -1364,7 +1361,7 @@ function ExposureRow({ label, status, details, onToggle, onDetails, placeholder 
             className={classNames(
               "px-2 py-0.5 text-xs border rounded transition-colors",
               safeStatus === 'no'
-                ? "bg-slate-200 border-slate-300 text-slate-800 font-medium"
+                ? "bg-emerald-100 border-emerald-300 text-emerald-800 font-medium"
                 : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400"
             )}
           >
@@ -1616,17 +1613,31 @@ function TimelineVertical({ events }) {
                     <div className="text-sm sm:col-span-2">
                       <span className="font-medium">Exposures:</span>{" "}
                       {(() => {
-                        const items = exposureBullets(it.exposures); // [{label, details}]
-                        return items.length ? (
-                          <ul className="mt-1 list-disc pl-5">
-                            {items.map(({ label, details }, i) => (
-                              <li key={i} className="text-sm">
-                                {details ? `${label} — ${details}` : label}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          "—"
+                        const { positives, negatives } = exposureBullets(it.exposures);
+                        if (!positives.length && !negatives.length) return "—";
+                        
+                        return (
+                          <div className="mt-1 space-y-2">
+                             {positives.length > 0 && (
+                               <ul className="list-disc pl-5">
+                                 {positives.map(({ label, details }, i) => (
+                                   <li key={i} className="text-sm">
+                                     {details ? `${label} — ${details}` : label}
+                                   </li>
+                                 ))}
+                               </ul>
+                             )}
+                             {negatives.length > 0 && (
+                               <div>
+                                 <div className="font-semibold text-xs uppercase tracking-wide text-slate-500 mt-2">No exposures to</div>
+                                 <ul className="list-disc pl-5 text-slate-500">
+                                   {negatives.map((label, i) => (
+                                      <li key={i} className="text-sm">{label}</li>
+                                   ))}
+                                 </ul>
+                               </div>
+                             )}
+                          </div>
                         );
                       })()}
                     </div>
@@ -1919,21 +1930,41 @@ if (accom) {
 }
 
 // Exposures (bulleted list)
-// UPDATED: Now includes negative findings (Denied)
-const bullets = exposureBullets(s.exposures);
-if (bullets.length) {
-  html.push(`<div>Exposures:</div>`);
-  text.push(`Exposures:`);
-  text.push(""); // blank line before bullets
+// UPDATED: Now splits positive and negative findings
+const { positives, negatives } = exposureBullets(s.exposures);
 
-  html.push('<ul class="list-disc pl-5">');
-  bullets.forEach(({ label, details }) => {
-    const line = details ? `${label} — ${details}` : label;
-    html.push(`<li>${escapeHtml(line)}</li>`);
-    text.push(`• ${line}`);
-  });
-  html.push("</ul>");
-  text.push(""); // blank line after list
+if (positives.length > 0 || negatives.length > 0) {
+  // Positives first
+  if (positives.length > 0) {
+    html.push(`<div>Exposures:</div>`);
+    text.push(`Exposures:`);
+    text.push("");
+
+    html.push('<ul class="list-disc pl-5">');
+    positives.forEach(({ label, details }) => {
+      const line = details ? `${label} — ${details}` : label;
+      html.push(`<li>${escapeHtml(line)}</li>`);
+      text.push(`• ${line}`);
+    });
+    html.push("</ul>");
+    text.push("");
+  }
+
+  // Negatives second (with new heading)
+  if (negatives.length > 0) {
+    html.push(`<div><strong>No exposures to:</strong></div>`);
+    text.push(`No exposures to:`);
+    text.push("");
+
+    html.push('<ul class="list-disc pl-5">');
+    negatives.forEach((label) => {
+      html.push(`<li>${escapeHtml(label)}</li>`);
+      text.push(`• ${label}`);
+    });
+    html.push("</ul>");
+    text.push("");
+  }
+
 } else {
   html.push(`<div>Exposures: —</div>`);
   text.push(`Exposures: —`);
@@ -1973,21 +2004,21 @@ function escapeHtml(s) {
 }
 
 
-// UPDATED: Exposure bullets logic to include "Denied" when status is 'no'
+// UPDATED: Split exposure bullets into positives and negatives
 function exposureBullets(exp) {
-  if (!exp) return [];
-  const out = [];
+  if (!exp) return { positives: [], negatives: [] };
+  const positives = [];
+  const negatives = [];
 
   const push = (label, status, details) => {
     // status can be 'yes', 'no', 'unknown' (or legacy boolean)
-    // legacy true -> 'yes', false -> 'unknown'
     let s = status;
     if (typeof s === 'boolean') s = s ? 'yes' : 'unknown';
 
     if (s === 'yes') {
-      out.push({ label: cap(label), details: details?.trim() || '' });
+      positives.push({ label: cap(label), details: details?.trim() || '' });
     } else if (s === 'no') {
-      out.push({ label: cap(label), details: 'Denied' });
+      negatives.push(cap(label));
     }
   };
 
@@ -1995,9 +2026,9 @@ function exposureBullets(exp) {
   push('mosquito bites', exp.mosquito, exp.mosquitoDetails);
   push('tick bites', exp.tick, exp.tickDetails);
   if (exp.vectorOtherEnabled === 'yes') {
-  out.push({ label: 'Other vector', details: exp.vectorOtherDetails?.trim() || '' });
+    positives.push({ label: 'Other vector', details: exp.vectorOtherDetails?.trim() || '' });
   } else if (exp.vectorOtherEnabled === 'no') {
-     out.push({ label: 'Other vector', details: 'Denied' });
+    negatives.push('Other vector');
   }
 
   // Environment
@@ -2028,7 +2059,9 @@ function exposureBullets(exp) {
   push('refugee camp contact', exp.refugeeCamp, exp.refugeeCampDetails);
   push('unprotected sex', exp.unprotectedSex, exp.unprotectedSexDetails);
 
-  if (exp.otherText?.trim()) out.push({ label: exp.otherText.trim(), details: '' });
+  if (exp.otherText?.trim()) {
+      positives.push({ label: exp.otherText.trim(), details: '' });
+  }
 
-  return out;
+  return { positives, negatives };
 }
