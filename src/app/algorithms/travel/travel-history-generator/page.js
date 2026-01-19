@@ -1,12 +1,12 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v13 (Phase 3: Manchester Tech Polish)
+// Travel History Generator — v14 (Revert to Classic Layout + Defaults)
 // Changes:
-// - Default Origin: United Kingdom / Manchester
-// - Added SVGs for Plane, MapPin, Calendar, Trash, etc.
-// - Added "Empty State" UI for trips with no stops
-// - Refined typography and focus states (Manchester Tech vibe)
+// - Reverted Accordions/Icons (Back to full vertical form)
+// - Kept: Green "No" buttons & Split Summary logic
+// - Kept: Bulleted input labels
+// - ADDED: Default Origin = United Kingdom / Manchester
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -44,42 +44,22 @@ const VACCINE_OPTIONS = [
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine'];
 const MALARIA_INDICATIONS = ['Not indicated', 'Taken', 'Not taken'];
 
-// ---- Theme Classes ----
+// ---- Theme helpers ----
 const BTN_PRIMARY =
-  "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white " +
-  "bg-slate-900 dark:bg-slate-100 dark:text-slate-900 hover:opacity-90 transition shadow-sm " +
-  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 dark:focus:ring-slate-100";
+  "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-white " +
+  "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95 " +
+  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70 " +
+  "disabled:opacity-50 disabled:cursor-not-allowed transition";
 
 const BTN_SECONDARY =
-  "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium " +
-  "border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 " +
-  "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900 transition shadow-sm";
+  "rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 " +
+  "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition";
 
-const BTN_GHOST_DANGER = 
-  "inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-medium " +
-  "text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20 transition";
-
-const INPUT_CLASS = 
-  "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm " +
-  "placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))] focus:border-transparent transition shadow-sm";
-
-const CHECKBOX_CLASS = 
-  "h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700 text-[hsl(var(--brand))] focus:ring-[hsl(var(--brand))]";
+const LINKISH_SECONDARY =
+  "rounded-lg px-3 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 " +
+  "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition";
 
 const NODE_COLOR = "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]";
-
-// ---- Icons (Inline SVGs for copy-paste reliability) ----
-const Icons = {
-  Plane: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M2 12h20"/><path d="M13 2a9 9 0 0 0-9 9H2"/><path d="M20 22a9 9 0 0 0-9-9h11"/><circle cx="12" cy="12" r="10"/></svg>, 
-  MapPin: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>,
-  Calendar: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
-  Trash: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
-  Plus: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
-  ChevronDown: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m6 9 6 6 6-6"/></svg>,
-  ChevronUp: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m18 15-6-6-6 6"/></svg>,
-  Alert: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>,
-  Copy: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-};
 
 // ---- Helpers ----
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -151,7 +131,7 @@ const emptyLayover = (tripId) => ({
   id: uid(), tripId, country: '', city: '', start: '', end: '', leftAirport: 'no', activitiesText: '',
 });
 
-// DEFAULT OVERRIDES APPLIED HERE
+// DEFAULT VALUES SET HERE
 const emptyTrip = () => ({
   id: uid(),
   purpose: '',
@@ -342,14 +322,11 @@ export default function TravelHistoryGeneratorPage() {
   const clearAll = () => { if (confirm('Clear all data?')) setState(initialState); };
 
   return (
-    <main className="py-10 sm:py-14 max-w-5xl mx-auto px-4 sm:px-6">
-      <header className="mb-8 flex items-start justify-between gap-4">
+    <main className="py-10 sm:py-14">
+      <header className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-3">
-            <Icons.Plane className="text-[hsl(var(--brand))] w-8 h-8" />
-            Travel History Generator
-          </h1>
-          <p className="mt-2 text-base text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Travel History Generator</h1>
+          <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl">
             Build a clear, concise travel history. Provide as much information as possible.
           </p>
         </div>
@@ -358,24 +335,23 @@ export default function TravelHistoryGeneratorPage() {
         </div>
       </header>
 
-      <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-800 p-4 text-amber-900 dark:text-amber-200 flex items-start gap-3 shadow-sm">
-        <Icons.Alert className="w-5 h-5 mt-0.5 shrink-0" />
-        <p className="text-sm font-medium">Do not enter private or patient-identifiable information.</p>
+      <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 p-4 text-amber-900 dark:text-amber-200 flex items-center gap-3">
+        <span aria-hidden="true">⚠️</span>
+        <p className="text-sm">Do not enter private or patient-identifiable information.</p>
       </div>
 
       {issues.length > 0 && (
         <div className="mb-6 space-y-2" aria-live="polite">
           {issues.map((e, i) => (
-            <div key={i} className={classNames('rounded-lg border px-3 py-2 text-sm font-medium flex items-center gap-2', e.level === 'error' ? 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200' : 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200')}>
-              <Icons.Alert className="w-4 h-4" />
+            <div key={i} className={classNames('rounded-lg border px-3 py-2 text-sm', e.level === 'error' ? 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-700/60 dark:bg-rose-900/20 dark:text-rose-200' : 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600/60 dark:bg-amber-900/20 dark:text-amber-200')}>
               {e.msg}
             </div>
           ))}
         </div>
       )}
 
-      {/* Accordion List */}
-      <section className="space-y-6">
+      {/* Trip Builder */}
+      <section className="space-y-10">
         {state.trips.map((trip, tIdx) => (
           <TripCard
             key={trip.id}
@@ -392,22 +368,16 @@ export default function TravelHistoryGeneratorPage() {
             removeTrip={removeTrip}
             highlight={highlight}
             setItemRef={setItemRef}
-            defaultOpen={tIdx === state.trips.length - 1} 
           />
         ))}
-        <div className="pt-2">
-          <button type="button" onClick={addTrip} className={BTN_PRIMARY}>
-            <Icons.Plus className="w-4 h-4" />
-            Add another trip
-          </button>
+        <div>
+          <button type="button" onClick={addTrip} className={BTN_PRIMARY}>+ Add another trip</button>
         </div>
       </section>
 
       {/* Companions */}
-      <section className="mt-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          Companions
-        </h2>
+      <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Companions</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <div className="sm:col-span-2">
             <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Who did you travel with?</label>
@@ -422,10 +392,10 @@ export default function TravelHistoryGeneratorPage() {
                     return { ...p, companions: next };
                   })}
                   className={classNames(
-                    'rounded-lg px-3 py-1.5 text-sm border transition',
+                    'rounded-md px-3 py-1.5 text-sm border-2 transition',
                     state.companions.group === opt
-                      ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent shadow-sm'
-                      : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900'
+                      ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent'
+                      : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
                   )}
                 >
                   {opt}
@@ -437,7 +407,7 @@ export default function TravelHistoryGeneratorPage() {
                 <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Describe</label>
                 <input
                   type="text"
-                  className={INPUT_CLASS}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
                   value={state.companions.otherText}
                   onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, otherText: e.target.value } }))}
                 />
@@ -454,8 +424,8 @@ export default function TravelHistoryGeneratorPage() {
                     type="button"
                     onClick={() => setState((p) => ({ ...p, companions: { ...p.companions, companionsWell: val, companionsUnwellDetails: val === 'no' ? p.companions.companionsUnwellDetails : '' } }))}
                     className={classNames(
-                      'rounded-lg px-3 py-1.5 text-sm border transition',
-                      state.companions.companionsWell === val ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent shadow-sm' : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900'
+                      'rounded-md px-3 py-1.5 text-sm border-2 transition',
+                      state.companions.companionsWell === val ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent' : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
                     )}
                   >
                     {label}
@@ -467,7 +437,7 @@ export default function TravelHistoryGeneratorPage() {
                   <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Please provide details</label>
                   <textarea
                     rows={3}
-                    className={INPUT_CLASS}
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
                     value={state.companions.companionsUnwellDetails}
                     onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, companionsUnwellDetails: e.target.value } }))}
                   />
@@ -479,54 +449,30 @@ export default function TravelHistoryGeneratorPage() {
       </section>
 
       {/* Timeline */}
-      <section id="timeline-section" className="mt-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-2">
-          <Icons.Calendar className="w-5 h-5 text-slate-500" />
-          Timeline
-        </h2>
+      <section id="timeline-section" className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3">Timeline</h2>
         <TimelineVertical events={mergedEventsAllTrips} />
       </section>
 
       {/* Summary */}
-      <section className="mt-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
-          <Icons.Copy className="w-5 h-5 text-slate-500" />
-          Summary
-        </h2>
-        <div className="text-sm text-slate-700 dark:text-slate-300 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+      <section className="mt-6 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3">Travel History Summary</h2>
+        <div className="text-sm text-slate-700 dark:text-slate-300">
           <div dangerouslySetInnerHTML={{ __html: summaryHtml }} />
         </div>
-        <div className="mt-4 flex gap-2">
-          <button type="button" onClick={() => navigator.clipboard.writeText(summaryTextPlain)} className={BTN_SECONDARY}>
-            <Icons.Copy className="w-4 h-4" />
-            Copy summary
-          </button>
+        <div className="mt-3 flex gap-2">
+          <button type="button" onClick={() => navigator.clipboard.writeText(summaryTextPlain)} className={BTN_SECONDARY}>Copy summary</button>
         </div>
       </section>
     </main>
   );
 }
 
-// ===== Collapsible Trip Card =====
+// ===== Trip Card =====
 function TripCard({
   trip, index, updateTrip, updateStop, addStop, removeStop, addLayover, updateLayover, removeLayover, removeTrip,
-  highlight, setItemRef, innerRef, defaultOpen
+  highlight, setItemRef, innerRef
 }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen ?? true);
-
-  const tripSummary = useMemo(() => {
-    const countries = new Set();
-    let start = null, end = null;
-    trip.stops.forEach(s => {
-      if (s.country) countries.add(s.country);
-      if (s.arrival) { const d = new Date(s.arrival); if (!start || d < start) start = d; }
-      if (s.departure) { const d = new Date(s.departure); if (!end || d > end) end = d; }
-    });
-    const cStr = countries.size > 0 ? Array.from(countries).join(', ') : 'No countries added';
-    const dStr = (start && end) ? `${start.toLocaleDateString()} - ${end.toLocaleDateString()}` : '';
-    return { title: cStr, subtitle: dStr };
-  }, [trip.stops]);
-
   const toggleTripVaccine = (v) => {
     const set = new Set(trip.vaccines || []);
     const had = set.has(v);
@@ -551,117 +497,68 @@ function TripCard({
   }, [originISO2]);
 
   return (
-    <div ref={innerRef} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden transition-all duration-300 shadow-sm">
-      
-      {/* HEADER */}
-      <div 
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between p-4 cursor-pointer bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-      >
-        <div className="flex items-center gap-4">
-          <div className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-             {isOpen ? <Icons.ChevronUp className="w-5 h-5 text-slate-500" /> : <Icons.ChevronDown className="w-5 h-5 text-slate-500" />}
-          </div>
-          <div>
-            <h3 className="font-semibold text-base text-slate-900 dark:text-slate-100">Trip {index + 1}</h3>
-            {!isOpen && (
-              <p className="text-sm text-slate-500 truncate max-w-md">
-                 <span className="font-medium text-slate-700 dark:text-slate-300">{tripSummary.title}</span> 
-                 {tripSummary.subtitle && <span className="mx-2 opacity-50">|</span>}
-                 {tripSummary.subtitle}
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-           <button 
-             type="button" 
-             onClick={(e) => { e.stopPropagation(); removeTrip(trip.id); }} 
-             className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition"
-             title="Remove Trip"
-           >
-             <Icons.Trash className="w-4 h-4" />
-           </button>
+    <div ref={innerRef} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Trip {index + 1}</h2>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => addStop(trip.id)} className={BTN_PRIMARY}>+ Add stop</button>
+          <button type="button" onClick={() => addLayover(trip.id)} className={BTN_PRIMARY}>+ Add layover</button>
+          <button type="button" onClick={() => removeTrip(trip.id)} className={BTN_SECONDARY}>Remove trip</button>
         </div>
       </div>
 
-      {/* BODY */}
-      {isOpen && (
-        <div className="p-6 border-t border-slate-200 dark:border-slate-800 animate-in slide-in-from-top-2 duration-200">
-          
-          <div className="grid sm:grid-cols-2 gap-4 mb-8 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800/50">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Travelling from</label>
-              <div className="grid gap-2">
-                 <CountryInput value={trip.originCountry} onChange={(val) => updateTrip(trip.id, { originCountry: val, originCity: '' })} />
-                 <div className="relative">
-                   <input type="text" list={`trip-origin-cities-${trip.id}`} placeholder="City..." className={INPUT_CLASS} value={trip.originCity || ''} onChange={(e) => updateTrip(trip.id, { originCity: e.target.value })} />
-                   <datalist id={`trip-origin-cities-${trip.id}`}>{originCityNames.map((nm) => (<option key={nm} value={nm} />))}</datalist>
-                 </div>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Purpose</label>
-              <input type="text" placeholder="Work, VFR, tourism, etc." className={INPUT_CLASS} value={trip.purpose} onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })} />
-            </div>
+      <div className="mt-6">
+        <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Travelling from</label>
+        <div className="mt-2 grid sm:grid-cols-2 gap-4">
+          <div><CountryInput value={trip.originCountry} onChange={(val) => updateTrip(trip.id, { originCountry: val, originCity: '' })} /></div>
+          <div className="w-full">
+            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
+            <input type="text" list={`trip-origin-cities-${trip.id}`} placeholder="Start typing or select city…" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.originCity || ''} onChange={(e) => updateTrip(trip.id, { originCity: e.target.value })} />
+            <datalist id={`trip-origin-cities-${trip.id}`}>{originCityNames.map((nm) => (<option key={nm} value={nm} />))}</datalist>
           </div>
+        </div>
+      </div>
 
-          <div className="mb-8 grid md:grid-cols-2 gap-8">
-            <div>
-              <label className="block text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Vaccinations</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {VACCINE_OPTIONS.map((v) => (<Checkbox key={v} label={v} checked={(trip.vaccines || []).includes(v)} onChange={() => toggleTripVaccine(v)} />))}
-              </div>
-              {(trip.vaccines || []).includes('Other') && (
-                <div className="mt-2"><input type="text" placeholder="Enter vaccine name(s)…" className={INPUT_CLASS} value={trip.vaccinesOther || ''} onChange={(e) => updateTrip(trip.id, { vaccinesOther: e.target.value })} /></div>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Malaria Prophylaxis</label>
-              <div className="grid gap-3">
-                <select className={INPUT_CLASS} value={trip.malaria.indication} onChange={(e) => setMalaria({ indication: e.target.value })}>{MALARIA_INDICATIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}</select>
-                {trip.malaria.indication === 'Taken' && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <select className={INPUT_CLASS} value={trip.malaria.drug} onChange={(e) => setMalaria({ drug: e.target.value })}>{MALARIA_DRUGS.map((d) => (<option key={d} value={d}>{d}</option>))}</select>
-                    <select className={INPUT_CLASS} value={trip.malaria.adherence} onChange={(e) => setMalaria({ adherence: e.target.value })}><option value="">Adherence…</option><option value="Good">Good</option><option value="Partial">Partial</option><option value="Poor">Poor</option></select>
-                  </div>
-                )}
-              </div>
-            </div>
+      <div className="mt-4 grid sm:grid-cols-3 gap-4">
+        <div className="sm:col-span-3">
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Purpose</label>
+          <input type="text" placeholder="Work, VFR, tourism, humanitarian, etc." className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.purpose} onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })} />
+        </div>
+      </div>
+
+      <div className="mt-6 grid md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Pre-travel vaccinations</label>
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {VACCINE_OPTIONS.map((v) => (<Checkbox key={v} label={v} checked={(trip.vaccines || []).includes(v)} onChange={() => toggleTripVaccine(v)} />))}
           </div>
+          {(trip.vaccines || []).includes('Other') && (
+            <div className="mt-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other vaccination(s)</label><input type="text" placeholder="Enter vaccine name(s)…" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.vaccinesOther || ''} onChange={(e) => updateTrip(trip.id, { vaccinesOther: e.target.value })} /></div>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Malaria prophylaxis</label>
+          <div className="mt-2 grid sm:grid-cols-3 gap-2">
+            <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.malaria.indication} onChange={(e) => setMalaria({ indication: e.target.value })}>{MALARIA_INDICATIONS.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}</select>
+            {trip.malaria.indication === 'Taken' && (<select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.malaria.drug} onChange={(e) => setMalaria({ drug: e.target.value })}>{MALARIA_DRUGS.map((d) => (<option key={d} value={d}>{d}</option>))}</select>)}
+            {trip.malaria.indication === 'Taken' && (<select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={trip.malaria.adherence} onChange={(e) => setMalaria({ adherence: e.target.value })}><option value="">Adherence…</option><option value="Good">Good</option><option value="Partial">Partial</option><option value="Poor">Poor</option></select>)}
+          </div>
+        </div>
+      </div>
 
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide">Destinations</h4>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => addStop(trip.id)} className={BTN_SECONDARY}><Icons.Plus className="w-4 h-4" /> Add stop</button>
-                <button type="button" onClick={() => addLayover(trip.id)} className={BTN_SECONDARY}><Icons.Plus className="w-4 h-4" /> Add layover</button>
-              </div>
-            </div>
-            
-            {trip.stops.length === 0 && trip.layovers.length === 0 ? (
-              <div className="text-center py-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50">
-                <Icons.MapPin className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                <p className="text-slate-500">No destinations added yet.</p>
-                <button onClick={() => addStop(trip.id)} className="text-[hsl(var(--brand))] font-medium text-sm hover:underline mt-1">Add your first stop</button>
-              </div>
-            ) : (
-              <>
-                {trip.stops.map((stop, sIdx) => (
-                  <StopCard key={stop.id} innerRef={setItemRef(stop.id)} stop={stop} index={sIdx} onChange={(patch) => updateStop(trip.id, stop.id, patch)} onRemove={() => removeStop(trip.id, stop.id)} highlighted={highlight.stopIds.has(stop.id)} />
-                ))}
-                {trip.layovers.length > 0 && (
-                  <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-6">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide mb-4">Layovers</h3>
-                    <div className="space-y-4">
-                      {trip.layovers.map((l) => (
-                        <LayoverCard key={l.id} innerRef={setItemRef(l.id)} layover={l} onChange={(patch) => updateLayover(trip.id, l.id, patch)} onRemove={() => removeLayover(trip.id, l.id)} highlighted={highlight.layoverIds.has(l.id)} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+      <div className="mt-6 space-y-6">
+        {trip.stops.map((stop, sIdx) => (
+          <StopCard key={stop.id} innerRef={setItemRef(stop.id)} stop={stop} index={sIdx} onChange={(patch) => updateStop(trip.id, stop.id, patch)} onRemove={() => removeStop(trip.id, stop.id)} highlighted={highlight.stopIds.has(stop.id)} />
+        ))}
+      </div>
+
+      {trip.layovers.length > 0 && (
+        <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-6">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-3">Layovers</h3>
+          <div className="space-y-4">
+            {trip.layovers.map((l) => (
+              <LayoverCard key={l.id} innerRef={setItemRef(l.id)} layover={l} onChange={(patch) => updateLayover(trip.id, l.id, patch)} onRemove={() => removeLayover(trip.id, l.id)} highlighted={highlight.layoverIds.has(l.id)} />
+            ))}
           </div>
         </div>
       )}
@@ -690,66 +587,69 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
   const toggleAccommodation = (value) => { const set = new Set(stop.accommodations || []); if (set.has(value)) set.delete(value); else set.add(value); onChange({ accommodations: Array.from(set) }); };
 
   return (
-    <div ref={innerRef} className={classNames("rounded-xl border p-5 shadow-sm transition bg-slate-50/50 dark:bg-slate-900/20", highlighted ? "border-rose-400 dark:border-rose-600 bg-rose-50/40 dark:bg-rose-900/10" : "border-slate-200 dark:border-slate-800")}>
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Icons.MapPin className="w-4 h-4 text-[hsl(var(--brand))]" />
-          Stop {index + 1}
-        </h3>
-        <button type="button" onClick={onRemove} className={BTN_GHOST_DANGER}><Icons.Trash className="w-3.5 h-3.5" /> Remove</button>
+    <div ref={innerRef} className={classNames("rounded-lg border p-4", highlighted ? "border-rose-400 dark:border-rose-600 bg-rose-50/40 dark:bg-rose-900/10" : "border-slate-200 dark:border-slate-800")}>
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Stop {index + 1}</h3>
+        <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove stop</button>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <CountryInput value={stop.country} onChange={(val) => onChange({ country: val })} />
-        <div><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Arrival</label><input type="date" className={INPUT_CLASS} value={stop.arrival} onChange={(e) => onChange({ arrival: e.target.value })} /></div>
-        <div><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Departure</label><input type="date" className={INPUT_CLASS} value={stop.departure} onChange={(e) => onChange({ departure: e.target.value })} /></div>
+        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Arrival *</label><input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.arrival} onChange={(e) => onChange({ arrival: e.target.value })} /></div>
+        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Departure *</label><input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.departure} onChange={(e) => onChange({ departure: e.target.value })} /></div>
       </div>
 
-      <div className="mt-4 pl-4 border-l-2 border-slate-200 dark:border-slate-700">
-        <div className="space-y-3">
+      <div className="mt-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-1">
+          <div><label className="block text-sm text-slate-600 dark:text-slate-300">City</label></div>
+          <div><label className="block text-sm text-slate-600 dark:text-slate-300">Arrival</label></div>
+          <div><label className="block text-sm text-slate-600 dark:text-slate-300">Departure</label></div>
+        </div>
+        <div className="space-y-2">
           {normalizedCities.map((row, i) => {
             const listId = `city-list-${stop.id}-${i}`;
             return (
-              <div key={i} className="grid sm:grid-cols-3 lg:grid-cols-4 gap-3 items-end">
-                <div className="w-full">
-                   <label className="block text-xs text-slate-400 mb-1">City / Region</label>
-                   <input type="text" list={listId} placeholder="City..." className={INPUT_CLASS} value={row.name} onChange={(e) => setCityName(i, e.target.value)} />
-                   <datalist id={listId}>{(cityOptions || []).map((opt) => (<option key={`${opt.name}-${opt.latitude}-${opt.longitude}`} value={opt.name} />))}</datalist>
-                </div>
-                <div><label className="block text-xs text-slate-400 mb-1">Arrival</label><input type="date" className={INPUT_CLASS} value={row.arrival} onChange={(e) => setCityArrival(i, e.target.value)} /></div>
-                <div><label className="block text-xs text-slate-400 mb-1">Departure</label><input type="date" className={INPUT_CLASS} value={row.departure} onChange={(e) => setCityDeparture(i, e.target.value)} /></div>
-                <div className="flex pb-0.5"><button type="button" onClick={() => removeCity(i)} className="text-slate-400 hover:text-rose-500 transition p-2"><Icons.Trash className="w-4 h-4" /></button></div>
+              <div key={i} className="grid sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="w-full"><input type="text" list={listId} placeholder="Start typing or select city…" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={row.name} onChange={(e) => setCityName(i, e.target.value)} /><datalist id={listId}>{(cityOptions || []).map((opt) => (<option key={`${opt.name}-${opt.latitude}-${opt.longitude}`} value={opt.name} />))}</datalist></div>
+                <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={row.arrival} onChange={(e) => setCityArrival(i, e.target.value)} aria-label="City arrival date" />
+                <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={row.departure} onChange={(e) => setCityDeparture(i, e.target.value)} aria-label="City departure date" />
+                <div className="flex"><button type="button" onClick={() => removeCity(i)} className="w-full sm:w-auto rounded-lg px-3 py-2 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition">Remove</button></div>
               </div>
             );
           })}
-          <button type="button" onClick={addCity} className="text-xs font-medium text-[hsl(var(--brand))] hover:underline">+ Add another city</button>
+          <button type="button" onClick={addCity} className="rounded-lg px-3 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition">+ Add another city</button>
         </div>
       </div>
 
-      <div className="mt-6">
-        <label className="block text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Accommodation</label>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-2 gap-y-3">
+      <div className="mt-4">
+        <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Accommodation (select one or more)</label>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {ACCOMMODATION_OPTIONS.map((opt) => {
             const checked = (stop.accommodations || []).includes(opt);
             const id = `${stop.id}-accom-${opt.replace(/\s+/g, '-').toLowerCase()}`;
-            return (<label key={opt} htmlFor={id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300"><input id={id} type="checkbox" className={CHECKBOX_CLASS} checked={checked} onChange={() => toggleAccommodation(opt)} /><span>{opt}</span></label>);
+            return (
+              <label key={opt} htmlFor={id} className="flex items-start gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
+                <input id={id} type="checkbox" className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700" checked={checked} onChange={() => toggleAccommodation(opt)} />
+                <span>{opt}</span>
+              </label>
+            );
           })}
         </div>
         {(stop.accommodations || []).includes('Other') && (
-          <div className="mt-3"><input type="text" placeholder="Describe other accommodation..." className={INPUT_CLASS} value={stop.accommodationOther} onChange={(e) => onChange({ accommodationOther: e.target.value })} /></div>
+          <div className="mt-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other (describe)</label><input type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={stop.accommodationOther} onChange={(e) => onChange({ accommodationOther: e.target.value })} /></div>
         )}
       </div>
 
       <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6">
-        <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4">Activities / Exposures</h4>
-        <div className="grid md:grid-cols-2 gap-x-12 gap-y-6">
+        <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Activities / Exposures</h4>
+        <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
           <fieldset className="space-y-1">
-            <legend className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Vector-borne</legend>
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Vector-borne</legend>
             <ExposureRow label="Mosquito bites" status={exp.mosquito} details={exp.mosquitoDetails} onToggle={(v) => onChange({ exposures: { ...exp, mosquito: v } })} onDetails={(v) => onChange({ exposures: { ...exp, mosquitoDetails: v } })} />
             <ExposureRow label="Tick bites" status={exp.tick} details={exp.tickDetails} onToggle={(v) => onChange({ exposures: { ...exp, tick: v } })} onDetails={(v) => onChange({ exposures: { ...exp, tickDetails: v } })} />
             <div className="space-y-1 pt-2">
               <label className="flex items-center gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-slate-300 shrink-0" aria-hidden="true" />
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0" aria-hidden="true" />
                 <span className="flex-1">Other vector</span>
                 <div className="flex gap-1">
                    {['yes', 'no'].map((opt) => (
@@ -757,18 +657,18 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
                    ))}
                 </div>
               </label>
-             {exp.vectorOtherEnabled === 'yes' && (<input type="text" placeholder="Please provide more details." className={INPUT_CLASS} value={exp.vectorOtherDetails} onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })} />)}
+             {exp.vectorOtherEnabled === 'yes' && (<input type="text" placeholder="Please provide more details." className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm" value={exp.vectorOtherDetails} onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })} />)}
             </div>
           </fieldset>
           <fieldset className="space-y-1">
-            <legend className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Water / Environment</legend>
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Water / Environment</legend>
             <ExposureRow label="Freshwater contact" status={exp.freshwater} details={exp.freshwaterDetails} onToggle={(v) => onChange({ exposures: { ...exp, freshwater: v } })} onDetails={(v) => onChange({ exposures: { ...exp, freshwaterDetails: v } })} />
             <ExposureRow label="Visited caves or mines" status={exp.cavesMines} details={exp.cavesMinesDetails} onToggle={(v) => onChange({ exposures: { ...exp, cavesMines: v } })} onDetails={(v) => onChange({ exposures: { ...exp, cavesMinesDetails: v } })} placeholder="If yes, any contact with bats?" />
             <ExposureRow label="Rural / forest stay" status={exp.ruralForest} details={exp.ruralForestDetails} onToggle={(v) => onChange({ exposures: { ...exp, ruralForest: v } })} onDetails={(v) => onChange({ exposures: { ...exp, ruralForestDetails: v } })} />
             <ExposureRow label="Hiking in forest/woodlands" status={exp.hikingWoodlands} details={exp.hikingWoodlandsDetails} onToggle={(v) => onChange({ exposures: { ...exp, hikingWoodlands: v } })} onDetails={(v) => onChange({ exposures: { ...exp, hikingWoodlandsDetails: v } })} />
           </fieldset>
           <fieldset className="space-y-1">
-            <legend className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Animal & Procedures</legend>
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Animal & Procedures</legend>
             <ExposureRow label="Animal contact" status={exp.animalContact} details={exp.animalContactDetails} onToggle={(v) => onChange({ exposures: { ...exp, animalContact: v } })} onDetails={(v) => onChange({ exposures: { ...exp, animalContactDetails: v } })} />
             <ExposureRow label="Animal bite / scratch" status={exp.animalBiteScratch} details={exp.animalBiteScratchDetails} onToggle={(v) => onChange({ exposures: { ...exp, animalBiteScratch: v } })} onDetails={(v) => onChange({ exposures: { ...exp, animalBiteScratchDetails: v } })} />
             <ExposureRow label="Bushmeat consumption" status={exp.bushmeat} details={exp.bushmeatDetails} onToggle={(v) => onChange({ exposures: { ...exp, bushmeat: v } })} onDetails={(v) => onChange({ exposures: { ...exp, bushmeatDetails: v } })} />
@@ -776,7 +676,7 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
             <ExposureRow label="Safari / wildlife viewing" status={exp.safariWildlife} details={exp.safariWildlifeDetails} onToggle={(v) => onChange({ exposures: { ...exp, safariWildlife: v } })} onDetails={(v) => onChange({ exposures: { ...exp, safariWildlifeDetails: v } })} />
           </fieldset>
           <fieldset className="space-y-1">
-            <legend className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Food & Water</legend>
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Food & Water</legend>
             <ExposureRow label="Street food" status={exp.streetFood} details={exp.streetFoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, streetFood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, streetFoodDetails: v } })} />
             <ExposureRow label="Drank untreated water" status={exp.untreatedWater} details={exp.untreatedWaterDetails} onToggle={(v) => onChange({ exposures: { ...exp, untreatedWater: v } })} onDetails={(v) => onChange({ exposures: { ...exp, untreatedWaterDetails: v } })} />
             <ExposureRow label="Undercooked food" status={exp.undercookedFood} details={exp.undercookedFoodDetails} onToggle={(v) => onChange({ exposures: { ...exp, undercookedFood: v } })} onDetails={(v) => onChange({ exposures: { ...exp, undercookedFoodDetails: v } })} />
@@ -784,8 +684,8 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
             <ExposureRow label="Unpasteurised milk" status={exp.unpasteurisedMilk} details={exp.unpasteurisedMilkDetails} onToggle={(v) => onChange({ exposures: { ...exp, unpasteurisedMilk: v } })} onDetails={(v) => onChange({ exposures: { ...exp, unpasteurisedMilkDetails: v } })} />
           </fieldset>
           <fieldset className="space-y-1 md:col-span-2">
-            <legend className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Institutional / Social</legend>
-            <div className="grid sm:grid-cols-2 gap-x-12 gap-y-1">
+            <legend className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Institutional / Social</legend>
+            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-1">
               <ExposureRow label="Attended funerals" status={exp.funerals} details={exp.funeralsDetails} onToggle={(v) => onChange({ exposures: { ...exp, funerals: v } })} onDetails={(v) => onChange({ exposures: { ...exp, funeralsDetails: v } })} />
               <ExposureRow label="Sick contacts (including TB)" status={exp.sickContacts} details={exp.sickContactsDetails} onToggle={(v) => onChange({ exposures: { ...exp, sickContacts: v } })} onDetails={(v) => onChange({ exposures: { ...exp, sickContactsDetails: v } })} />
               <ExposureRow label="Healthcare facility contact" status={exp.healthcareFacility} details={exp.healthcareFacilityDetails} onToggle={(v) => onChange({ exposures: { ...exp, healthcareFacility: v } })} onDetails={(v) => onChange({ exposures: { ...exp, healthcareFacilityDetails: v } })} />
@@ -793,9 +693,9 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
               <ExposureRow label="Refugee camp contact" status={exp.refugeeCamp} details={exp.refugeeCampDetails} onToggle={(v) => onChange({ exposures: { ...exp, refugeeCamp: v } })} onDetails={(v) => onChange({ exposures: { ...exp, refugeeCampDetails: v } })} />
               <ExposureRow label="Unprotected sex" status={exp.unprotectedSex} details={exp.unprotectedSexDetails} onToggle={(v) => onChange({ exposures: { ...exp, unprotectedSex: v } })} onDetails={(v) => onChange({ exposures: { ...exp, unprotectedSexDetails: v } })} />
             </div>
-            <div className="mt-4">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Other exposure (free-text)</label>
-              <input type="text" className={INPUT_CLASS} value={exp.otherText} onChange={(e) => onChange({ exposures: { ...exp, otherText: e.target.value } })} />
+            <div className="mt-3">
+              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other exposure (free-text)</label>
+              <input type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm" value={exp.otherText} onChange={(e) => onChange({ exposures: { ...exp, otherText: e.target.value } })} />
             </div>
           </fieldset>
         </div>
@@ -809,29 +709,27 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
   const cityOptions = useMemo(() => { return countryISO2 ? (City.getCitiesOfCountry(countryISO2) || []) : []; }, [countryISO2]);
 
   return (
-    <div ref={innerRef} className={classNames("rounded-xl border p-5 shadow-sm transition bg-slate-50/50 dark:bg-slate-900/20", highlighted ? "border-rose-400 dark:border-rose-600 bg-rose-50/40 dark:bg-rose-900/10" : "border-slate-200 dark:border-slate-800")}>
+    <div ref={innerRef} className={classNames("rounded-lg border p-4", highlighted ? "border-rose-400 dark:border-rose-600 bg-rose-50/40 dark:bg-rose-900/10" : "border-slate-200 dark:border-slate-800")}>
       <div className="flex items-start justify-between gap-3">
-        <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Icons.Plane className="w-4 h-4 text-slate-400" /> Layover
-        </h4>
-        <button type="button" onClick={onRemove} className={BTN_GHOST_DANGER}><Icons.Trash className="w-3.5 h-3.5" /> Remove</button>
+        <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Layover</h4>
+        <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove layover</button>
       </div>
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div><CountryInput value={layover.country} onChange={(val) => { onChange({ country: val, city: "" }); }} /></div>
         <div className="w-full">
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">City</label>
-          <input type="text" list={`layover-city-options-${layover.id}`} placeholder="City..." className={INPUT_CLASS} value={layover.city || ""} onChange={(e) => onChange({ city: e.target.value })} />
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
+          <input type="text" list={`layover-city-options-${layover.id}`} placeholder="Start typing or select city…" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.city || ""} onChange={(e) => onChange({ city: e.target.value })} />
           <datalist id={`layover-city-options-${layover.id}`}>{cityOptions.map((opt) => (<option key={`${opt.name}-${opt.latitude}-${opt.longitude}`} value={opt.name} />))}</datalist>
         </div>
-        <div><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Start</label><input type="date" className={INPUT_CLASS} value={layover.start} onChange={(e) => onChange({ start: e.target.value })} /></div>
-        <div><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">End</label><input type="date" className={INPUT_CLASS} value={layover.end} onChange={(e) => onChange({ end: e.target.value })} /></div>
+        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Start</label><input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.start} onChange={(e) => onChange({ start: e.target.value })} /></div>
+        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">End</label><input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.end} onChange={(e) => onChange({ end: e.target.value })} /></div>
       </div>
       <div className="mt-4 grid sm:grid-cols-3 gap-4">
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Left airport?</label>
-          <select className={INPUT_CLASS} value={layover.leftAirport} onChange={(e) => onChange({ leftAirport: e.target.value })}><option value="no">No</option><option value="yes">Yes</option></select>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Did you leave the airport?</label>
+          <select className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.leftAirport} onChange={(e) => onChange({ leftAirport: e.target.value })}><option value="no">No</option><option value="yes">Yes</option></select>
         </div>
-        {layover.leftAirport === "yes" && (<div className="sm:col-span-2"><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Activities</label><textarea rows={2} className={INPUT_CLASS} value={layover.activitiesText} onChange={(e) => onChange({ activitiesText: e.target.value })} /></div>)}
+        {layover.leftAirport === "yes" && (<div className="sm:col-span-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Please describe any activities undertaken</label><textarea rows={3} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" value={layover.activitiesText} onChange={(e) => onChange({ activitiesText: e.target.value })} /></div>)}
       </div>
     </div>
   );
@@ -840,8 +738,8 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
 function Checkbox({ label, checked, onChange }) {
   const id = useMemo(() => uid(), []);
   return (
-    <label htmlFor={id} className="flex items-center gap-2 py-1 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
-      <input id={id} type="checkbox" className={CHECKBOX_CLASS} checked={!!checked} onChange={(e) => onChange(e.target.checked)} />
+    <label htmlFor={id} className="flex items-start gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
+      <input id={id} type="checkbox" className="h-4 w-4 mt-0.5 rounded border-slate-300 dark:border-slate-700" checked={!!checked} onChange={(e) => onChange(e.target.checked)} />
       <span>{label}</span>
     </label>
   );
@@ -853,21 +751,21 @@ function ExposureRow({ label, status, details, onToggle, onDetails, placeholder 
     <div className="py-1">
       <div className="flex items-center justify-between gap-4">
         <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
-           <span className="h-1.5 w-1.5 rounded-full bg-slate-300 shrink-0" aria-hidden="true" />
+           <span className="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0" aria-hidden="true" />
            {label}
         </span>
         <div className="flex items-center gap-1 shrink-0">
-          <button type="button" onClick={() => onToggle(safeStatus === 'yes' ? 'unknown' : 'yes')} className={classNames("px-2.5 py-1 text-xs font-medium border rounded-md transition-colors", safeStatus === 'yes' ? "bg-rose-100 border-rose-300 text-rose-800" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>Yes</button>
-          <button type="button" onClick={() => onToggle(safeStatus === 'no' ? 'unknown' : 'no')} className={classNames("px-2.5 py-1 text-xs font-medium border rounded-md transition-colors", safeStatus === 'no' ? "bg-emerald-100 border-emerald-300 text-emerald-800" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>No</button>
+          <button type="button" onClick={() => onToggle(safeStatus === 'yes' ? 'unknown' : 'yes')} className={classNames("px-2 py-0.5 text-xs border rounded transition-colors", safeStatus === 'yes' ? "bg-rose-100 border-rose-300 text-rose-800 font-medium" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>Yes</button>
+          <button type="button" onClick={() => onToggle(safeStatus === 'no' ? 'unknown' : 'no')} className={classNames("px-2 py-0.5 text-xs border rounded transition-colors", safeStatus === 'no' ? "bg-emerald-100 border-emerald-300 text-emerald-800 font-medium" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>No</button>
         </div>
       </div>
-      {safeStatus === 'yes' && (<div className="mt-2"><input type="text" placeholder={placeholder || "Please provide details..."} className={INPUT_CLASS} value={details || ''} onChange={(e) => onDetails(e.target.value)} /></div>)}
+      {safeStatus === 'yes' && (<div className="mt-1"><input type="text" placeholder={placeholder || "Please provide details..."} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm" value={details || ''} onChange={(e) => onDetails(e.target.value)} /></div>)}
     </div>
   );
 }
 
 function TimelineVertical({ events }) {
-  const Node = () => (<span className={classNames("relative z-10 inline-block h-3 w-3 rounded-full ring-4 ring-white dark:ring-slate-950", NODE_COLOR)} aria-hidden="true" />);
+  const Node = () => (<span className={classNames("relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900", NODE_COLOR)} aria-hidden="true" />);
   const layoversByStop = useMemo(() => {
     const map = new Map();
     for (const ev of events || []) {
@@ -882,50 +780,50 @@ function TimelineVertical({ events }) {
 
   const LayoverRows = ({ l }) => (
     <>
-      <div className="col-[1] relative h-8 z-10"><span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2"><span className="relative z-10 inline-block h-2 w-2 rounded-full ring-4 ring-white dark:ring-slate-950 bg-slate-300 dark:bg-slate-700" aria-hidden="true" /></span></div>
-      <div className="col-[2] h-8 flex items-center gap-3"><strong className="tabular-nums text-sm">{formatDMY(l.start)}</strong><span className="text-xs text-slate-500 uppercase tracking-wide">Layover start</span></div>
+      <div className="col-[1] relative h-6 z-10"><span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2"><span className="relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900 bg-slate-400 dark:bg-slate-600" aria-hidden="true" /></span></div>
+      <div className="col-[2] h-6 flex items-center gap-3"><strong className="tabular-nums">{formatDMY(l.start)}</strong><span className="text-xs text-slate-500">Layover start</span></div>
       <div className="col-[1]" aria-hidden="true" />
-      <div className="col-[2]"><div className="my-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 shadow-sm">{(l.city ? `${l.city}, ` : "") + (l.country || "")}{l.leftAirport === "yes" && l.activitiesText ? ` · ${l.activitiesText}` : ""}</div></div>
-      <div className="col-[1] relative h-8 z-10"><span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2"><span className="relative z-10 inline-block h-2 w-2 rounded-full ring-4 ring-white dark:ring-slate-950 bg-slate-300 dark:bg-slate-700" aria-hidden="true" /></span></div>
-      <div className="col-[2] h-8 flex items-center gap-3"><strong className="tabular-nums text-sm">{formatDMY(l.end)}</strong><span className="text-xs text-slate-500 uppercase tracking-wide">Layover end</span></div>
+      <div className="col-[2]"><div className="mt-1 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 px-3 py-2 text-xs text-slate-700 dark:text-slate-300">{(l.city ? `${l.city}, ` : "") + (l.country || "")}{l.leftAirport === "yes" && l.activitiesText ? ` · ${l.activitiesText}` : ""}</div></div>
+      <div className="col-[1] relative h-6 z-10"><span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2"><span className="relative z-10 inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900 bg-slate-400 dark:bg-slate-600" aria-hidden="true" /></span></div>
+      <div className="col-[2] h-6 flex items-center gap-3"><strong className="tabular-nums">{formatDMY(l.end)}</strong><span className="text-xs text-slate-500">Layover end</span></div>
     </>
   );
 
   return (
     <div className="relative">
-      <div aria-hidden="true" className="pointer-events-none absolute left-[28px] top-0 bottom-0 z-0 border-l-2 border-slate-200 dark:border-slate-800" />
-      <ol className="grid" style={{ gridTemplateColumns: "56px 1fr", rowGap: "0px" }}>
+      <div aria-hidden="true" className="pointer-events-none absolute left-[36px] top-0 bottom-0 z-0 border-l-2 border-dashed border-slate-300 dark:border-slate-600" />
+      <ol className="grid" style={{ gridTemplateColumns: "72px 1fr", rowGap: "12px" }}>
         {(events || []).map((ev, idx) => {
           if (ev.type !== "stop") return null;
           const it = ev.stop;
           return (
             <li key={`stop-${it.id}-${idx}`} className="contents">
-              <div className="col-[1] relative h-10 z-10"><span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2"><Node /></span></div>
-              <div className="col-[2] h-10 flex items-center"><div className="flex items-center gap-3"><strong className="tabular-nums font-bold text-slate-900 dark:text-slate-100">{formatDMY(it.arrival)}</strong>{it.isFirstInTrip && (<span className="text-xs text-slate-500 uppercase tracking-wide">— {it.tripOriginCity || it.tripOriginCountry ? `Departure from ${[it.tripOriginCity, it.tripOriginCountry].filter(Boolean).join(", ")}` : "Departure"}</span>)}</div></div>
+              <div className="col-[1] relative h-6 z-10"><span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2"><Node /></span></div>
+              <div className="col-[2] h-6 flex items-center"><div className="flex items-center gap-3"><strong className="tabular-nums">{formatDMY(it.arrival)}</strong>{it.isFirstInTrip && (<span className="text-sm text-slate-600 dark:text-slate-300">— {it.tripOriginCity || it.tripOriginCountry ? `Departure from ${[it.tripOriginCity, it.tripOriginCountry].filter(Boolean).join(", ")}` : "Departure"}</span>)}</div></div>
               {it.isFirstInTrip && (
-                <div className="col-[2] mb-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 text-sm text-slate-700 dark:text-slate-300 space-y-1">
-                  {it.tripPurpose ? (<div><span className="font-semibold text-slate-900 dark:text-slate-100">Purpose:</span> {it.tripPurpose}</div>) : null}
-                  <div><span className="font-semibold text-slate-900 dark:text-slate-100">Malaria:</span> {(() => { const m = it.tripMalaria || {}; if (m.indication === "Taken") { const drug = m.drug && m.drug !== "None" ? m.drug : "Taken"; return m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug; } if (m.indication === "Not taken") return "Not taken"; return "Not indicated"; })()}</div>
-                  <div><span className="font-semibold text-slate-900 dark:text-slate-100">Vaccines:</span> {(() => { const arr = Array.isArray(it.tripVaccines) ? it.tripVaccines : []; const hasOther = arr.includes("Other"); const base = (hasOther ? arr.filter((v) => v !== "Other") : arr).join(", "); const otherText = (it.tripVaccinesOther || "").trim(); if (hasOther && otherText) { return base ? `${base}, Other: ${otherText}` : `Other: ${otherText}`; } return base ? (hasOther ? `${base}, Other` : base) : hasOther ? "Other" : "None"; })()}</div>
-                  {it.tripCompanions && (<>{it.tripCompanions.group === "Alone" ? (<div><span className="font-semibold text-slate-900 dark:text-slate-100">Travelled alone.</span></div>) : (<><div><span className="font-semibold text-slate-900 dark:text-slate-100">With:</span> {it.tripCompanions.group === "Other" ? it.tripCompanions.otherText || "Other" : it.tripCompanions.group || "—"}</div><div><span className="font-semibold text-slate-900 dark:text-slate-100">Well:</span> {it.tripCompanions.companionsWell === "yes" ? "Yes" : it.tripCompanions.companionsWell === "no" ? "No" + (it.tripCompanions.companionsUnwellDetails?.trim() ? ` — ${it.tripCompanions.companionsUnwellDetails.trim()}` : "") : "Unknown"}</div></>)}</>)}
+                <div className="col-[2] mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">
+                  {it.tripPurpose ? (<div><span className="font-semibold">Purpose:</span> {it.tripPurpose}</div>) : null}
+                  <div><span className="font-semibold">Malaria prophylaxis:</span> {(() => { const m = it.tripMalaria || {}; if (m.indication === "Taken") { const drug = m.drug && m.drug !== "None" ? m.drug : "Taken"; return m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug; } if (m.indication === "Not taken") return "Not taken"; return "Not indicated"; })()}</div>
+                  <div><span className="font-semibold">Vaccinations:</span> {(() => { const arr = Array.isArray(it.tripVaccines) ? it.tripVaccines : []; const hasOther = arr.includes("Other"); const base = (hasOther ? arr.filter((v) => v !== "Other") : arr).join(", "); const otherText = (it.tripVaccinesOther || "").trim(); if (hasOther && otherText) { return base ? `${base}, Other: ${otherText}` : `Other: ${otherText}`; } return base ? (hasOther ? `${base}, Other` : base) : hasOther ? "Other" : "None"; })()}</div>
+                  {it.tripCompanions && (<>{it.tripCompanions.group === "Alone" ? (<div><span className="font-semibold">Travelled alone.</span></div>) : (<><div><span className="font-semibold">Travelled with:</span> {it.tripCompanions.group === "Other" ? it.tripCompanions.otherText || "Other" : it.tripCompanions.group || "—"}</div><div><span className="font-semibold">Are they well:</span> {it.tripCompanions.companionsWell === "yes" ? "Yes" : it.tripCompanions.companionsWell === "no" ? "No" + (it.tripCompanions.companionsUnwellDetails?.trim() ? ` — ${it.tripCompanions.companionsUnwellDetails.trim()}` : "") : "Unknown"}</div></>)}</>)}
                 </div>
               )}
               {(layoversByStop.get(it.id)?.["before-stop"] || []).map((l) => (<LayoverRows key={`layover-before-${l.id}`} l={l} />))}
               <div className="col-[1]" aria-hidden="true" />
-              <div className="col-[2] pb-6">
-                <div className="relative z-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 p-5 shadow-sm hover:shadow-md transition-shadow">
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100" title={it.country || it.label}>{it.country || it.label || "—"}</h3>
-                  {it.cities && it.cities.length > 0 && (<div className="mt-1 space-y-0.5 text-sm text-slate-600 dark:text-slate-400">{it.cities.map((c, i) => { const obj = typeof c === "string" ? { name: c } : c || {}; const nm = obj.name || ""; const a = obj.arrival ? formatDMY(obj.arrival) : ""; const d = obj.departure ? formatDMY(obj.departure) : ""; const datePart = a || d ? ` (${a || "—"} to ${d || "—"})` : ""; if (!nm) return null; return (<div key={i}>{nm}{datePart}</div>); })}</div>)}
-                  <div className="mt-4 grid sm:grid-cols-2 gap-x-6 gap-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <div className="text-sm"><span className="font-semibold text-slate-900 dark:text-slate-100 block mb-1">Accommodation</span> {it.accommodations?.length ? it.accommodations.includes("Other") && it.accommodationOther ? [...it.accommodations.filter((a) => a !== "Other"), `Other: ${it.accommodationOther}`].join(", ") : it.accommodations.join(", ") : "—"}</div>
-                    <div className="text-sm sm:col-span-2 mt-2"><span className="font-semibold text-slate-900 dark:text-slate-100 block mb-1">Exposures</span> {(() => { const { positives, negatives } = exposureBullets(it.exposures); if (!positives.length && !negatives.length) return "—"; return (<div>{positives.length > 0 && (<ul className="list-disc pl-5 space-y-1 mb-2">{positives.map(({ label, details }, i) => (<li key={i} className="text-slate-700 dark:text-slate-300">{details ? <span>{label} <span className="text-slate-400">—</span> {details}</span> : label}</li>))}</ul>)}{negatives.length > 0 && (<div><div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mt-3 mb-1">No exposures to</div><ul className="list-disc pl-5 text-slate-500">{negatives.map((label, i) => (<li key={i}>{label}</li>))}</ul></div>)}</div>); })()}</div>
+              <div className="col-[2]">
+                <div className="relative z-0 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4">
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100" title={it.country || it.label}>{it.country || it.label || "—"}</h3>
+                  {it.cities && it.cities.length > 0 && (<div className="mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">{it.cities.map((c, i) => { const obj = typeof c === "string" ? { name: c } : c || {}; const nm = obj.name || ""; const a = obj.arrival ? formatDMY(obj.arrival) : ""; const d = obj.departure ? formatDMY(obj.departure) : ""; const datePart = a || d ? ` (${a || "—"} to ${d || "—"})` : ""; if (!nm) return null; return (<div key={i}>{nm}{datePart}</div>); })}</div>)}
+                  <div className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-2">
+                    <div className="text-sm"><span className="font-medium">Accommodation:</span> {it.accommodations?.length ? it.accommodations.includes("Other") && it.accommodationOther ? [...it.accommodations.filter((a) => a !== "Other"), `Other: ${it.accommodationOther}`].join(", ") : it.accommodations.join(", ") : "—"}</div>
+                    <div className="text-sm sm:col-span-2"><span className="font-medium">Exposures:</span> {(() => { const { positives, negatives } = exposureBullets(it.exposures); if (!positives.length && !negatives.length) return "—"; return (<div className="mt-1 space-y-2">{positives.length > 0 && (<ul className="list-disc pl-5">{positives.map(({ label, details }, i) => (<li key={i} className="text-sm">{details ? `${label} — ${details}` : label}</li>))}</ul>)}{negatives.length > 0 && (<div className="mt-2"><div className="font-medium">No exposures to:</div><ul className="list-disc pl-5">{negatives.map((label, i) => (<li key={i} className="text-sm">{label}</li>))}</ul></div>)}</div>); })()}</div>
                   </div>
                 </div>
               </div>
               {(layoversByStop.get(it.id)?.between || []).map((l) => (<LayoverRows key={`layover-between-${l.id}`} l={l} />))}
               {it.isLastInTrip && (layoversByStop.get(it.id)?.["after-stop"] || []).map((l) => (<LayoverRows key={`layover-after-${l.id}`} l={l} />))}
-              <div className="col-[1] relative h-10 z-10"><span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2"><Node /></span></div>
-              <div className="col-[2] h-10 flex items-center gap-3"><strong className="tabular-nums font-bold text-slate-900 dark:text-slate-100">{formatDMY(it.departure)}</strong>{it.isLastInTrip && (<span className="text-xs text-slate-500 uppercase tracking-wide">— {it.tripOriginCity || it.tripOriginCountry ? `Arrival to ${[it.tripOriginCity, it.tripOriginCountry].filter(Boolean).join(", ")}` : "Arrival"}</span>)}</div>
+              <div className="col-[1] relative h-6 z-10"><span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2"><Node /></span></div>
+              <div className="col-[2] h-6 flex items-center gap-3"><strong className="tabular-nums">{formatDMY(it.departure)}</strong>{it.isLastInTrip && (<span className="text-sm text-slate-600 dark:text-slate-300">— {it.tripOriginCity || it.tripOriginCountry ? `Arrival to ${[it.tripOriginCity, it.tripOriginCountry].filter(Boolean).join(", ")}` : "Arrival"}</span>)}</div>
             </li>
           );
         })}
