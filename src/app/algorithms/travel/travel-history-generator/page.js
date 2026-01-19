@@ -1,10 +1,11 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v10.1 (Refined Exposure Logic)
+// Travel History Generator — v10.2 (Uniform Summaries & Bulleted Form)
 // Changes:
-// - "No" button is now Green (Safe/Negative)
-// - Summaries & Timeline now split "Exposures" and "No exposures to" into separate lists
+// - Added visual bullets to the Input Form labels
+// - Made "No exposures to" visually identical to "Exposures" in Timeline & Summary
+// - Removed distinct styling (grey/uppercase) from negative findings to ensure uniformity
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -1113,8 +1114,10 @@ const removeCity = (i) => {
             <ExposureRow label="Mosquito bites" status={exp.mosquito} details={exp.mosquitoDetails} onToggle={(v) => onChange({ exposures: { ...exp, mosquito: v } })} onDetails={(v) => onChange({ exposures: { ...exp, mosquitoDetails: v } })} />
             <ExposureRow label="Tick bites" status={exp.tick} details={exp.tickDetails} onToggle={(v) => onChange({ exposures: { ...exp, tick: v } })} onDetails={(v) => onChange({ exposures: { ...exp, tickDetails: v } })} />
             <div className="space-y-1 pt-2">
-              <label className="flex items-start gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
-                <span className="flex-1 font-medium">Other vector</span>
+              <label className="flex items-center gap-2 py-1 text-sm text-slate-700 dark:text-slate-300">
+                {/* Visual bullet for consistency */}
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0" aria-hidden="true" />
+                <span className="flex-1">Other vector</span>
                 <div className="flex gap-1">
                    {['yes', 'no'].map((opt) => (
                       <button
@@ -1332,7 +1335,7 @@ function Checkbox({ label, checked, onChange }) {
   );
 }
 
-// UPDATED: Exposure Row with Green "No" button
+// UPDATED: Exposure Row with Green "No" button AND visual bullets
 function ExposureRow({ label, status, details, onToggle, onDetails, placeholder }) {
   // status: 'unknown' | 'yes' | 'no' (or legacy boolean false/true which we map)
   // map legacy boolean if exists
@@ -1341,7 +1344,11 @@ function ExposureRow({ label, status, details, onToggle, onDetails, placeholder 
   return (
     <div className="py-1">
       <div className="flex items-center justify-between gap-4">
-        <span className="text-sm text-slate-700 dark:text-slate-300">{label}</span>
+        <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
+           {/* Visual bullet for consistency */}
+           <span className="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0" aria-hidden="true" />
+           {label}
+        </span>
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
@@ -1628,9 +1635,9 @@ function TimelineVertical({ events }) {
                                </ul>
                              )}
                              {negatives.length > 0 && (
-                               <div>
-                                 <div className="font-semibold text-xs uppercase tracking-wide text-slate-500 mt-2">No exposures to</div>
-                                 <ul className="list-disc pl-5 text-slate-500">
+                               <div className="mt-2">
+                                 <div className="font-medium">No exposures to:</div>
+                                 <ul className="list-disc pl-5">
                                    {negatives.map((label, i) => (
                                       <li key={i} className="text-sm">{label}</li>
                                    ))}
@@ -1930,7 +1937,7 @@ if (accom) {
 }
 
 // Exposures (bulleted list)
-// UPDATED: Now splits positive and negative findings
+// UPDATED: Now splits positive and negative findings with uniform headings
 const { positives, negatives } = exposureBullets(s.exposures);
 
 if (positives.length > 0 || negatives.length > 0) {
@@ -1950,9 +1957,9 @@ if (positives.length > 0 || negatives.length > 0) {
     text.push("");
   }
 
-  // Negatives second (with new heading)
+  // Negatives second (Uniform Header)
   if (negatives.length > 0) {
-    html.push(`<div><strong>No exposures to:</strong></div>`);
+    html.push(`<div>No exposures to:</div>`);
     text.push(`No exposures to:`);
     text.push("");
 
