@@ -13,6 +13,8 @@
     "react-dom": "^18.3.1",
     "world-countries": "^5.0.0",
     "country-state-city": "^3.2.1",
+    "@headlessui/react": "^2.0.0",
+    "clsx": "^2.1.1"
     "next": "14.2.5"
   },
   "devDependencies": {
