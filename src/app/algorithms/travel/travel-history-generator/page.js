@@ -1,16 +1,15 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v15 (Phase 4: Fluid Inputs / Headless UI)
+// Travel History Generator — v16 (Performance Fix + Alignment)
 // Changes:
-// - Replaced native inputs with Headless UI Combobox (Fuzzy Search for Country/City)
-// - Replaced native selects with Headless UI Listbox (Custom Dropdowns)
-// - Integrated "Manchester Tech" aesthetic (Shadows, Ring Focus, Fluid Animations)
-// - Removed dependency on external CountryInput component (Self-contained)
+// - Fixed horizontal alignment in "Travelling From" (Added explicit Country label)
+// - Fixed "Browser Stuck" issue by capping search results to 100 items (Virtualization-lite)
+// - Maintained "Manchester Tech" aesthetic and custom Headless UI components
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { Combobox, Listbox, Transition } from '@headlessui/react';
-import { clsx } from 'clsx'; // Utility for cleaner class logic
+import { clsx } from 'clsx'; 
 
 // ---- Data Sources ----
 import { Country, City } from "country-state-city";
@@ -104,18 +103,21 @@ function rangesOverlap(aStart, aEnd, bStart, bEnd) {
 
 // ---- Custom UI Components (Headless UI) ----
 
-// 1. Searchable Combobox (For Country / City)
+// 1. Searchable Combobox (PERFORMANCE OPTIMIZED)
 function SearchableSelect({ value, onChange, options, placeholder }) {
   const [query, setQuery] = useState('');
 
-  // Filter logic: fuzzy-ish (includes, case-insensitive)
-  const filteredOptions =
-    query === ''
-      ? options
+  // PERFORMANCE: Limit results to 100 to prevent browser freeze
+  const filteredOptions = useMemo(() => {
+    const q = query.toLowerCase().replace(/\s+/g, '');
+    const fullList = query === '' 
+      ? options 
       : options.filter((opt) => {
           const str = typeof opt === 'string' ? opt : opt.name;
-          return str.toLowerCase().replace(/\s+/g, '').includes(query.toLowerCase().replace(/\s+/g, ''));
+          return str.toLowerCase().replace(/\s+/g, '').includes(q);
         });
+    return fullList.slice(0, 100);
+  }, [query, options]);
 
   return (
     <Combobox value={value} onChange={onChange} nullable>
@@ -138,7 +140,7 @@ function SearchableSelect({ value, onChange, options, placeholder }) {
           leaveTo="opacity-0"
           afterLeave={() => setQuery('')}
         >
-          <Combobox.Options className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+          <Combobox.Options className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
             {filteredOptions.length === 0 && query !== '' ? (
               <div className="relative cursor-default select-none px-4 py-2 text-slate-500">
                 Nothing found.
@@ -146,6 +148,7 @@ function SearchableSelect({ value, onChange, options, placeholder }) {
             ) : (
               filteredOptions.map((opt, idx) => {
                 const label = typeof opt === 'string' ? opt : opt.name;
+                // Use a stable key if possible, fallback to index
                 const key = typeof opt === 'string' ? `${opt}-${idx}` : `${opt.name}-${opt.id || idx}`;
                 return (
                   <Combobox.Option
@@ -186,13 +189,13 @@ function SearchableSelect({ value, onChange, options, placeholder }) {
   );
 }
 
-// 2. Simple Select Dropdown (For Malaria / Yes-No)
+// 2. Simple Select Dropdown
 function SimpleSelect({ value, onChange, options }) {
   return (
     <Listbox value={value} onChange={onChange}>
       <div className="relative mt-1">
         <Listbox.Button className={CONTAINER_BASE}>
-          <span className="block truncate py-2 pl-3 pr-10">{value}</span>
+          <span className="block truncate py-2 pl-3 pr-10 min-h-[36px]">{value}</span>
           <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
             <Icons.ChevronUpDown aria-hidden="true" />
           </span>
@@ -203,7 +206,7 @@ function SimpleSelect({ value, onChange, options }) {
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <Listbox.Options className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+          <Listbox.Options className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
             {options.map((opt, idx) => (
               <Listbox.Option
                 key={idx}
@@ -662,6 +665,7 @@ function TripCard({
         <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Travelling from</label>
         <div className="mt-2 grid sm:grid-cols-2 gap-4">
           <div>
+            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Country</label>
             <SearchableSelect 
               value={trip.originCountry} 
               onChange={(val) => updateTrip(trip.id, { originCountry: val, originCity: '' })} 
