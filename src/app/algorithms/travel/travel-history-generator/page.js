@@ -1,16 +1,18 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v17 (Free Text City + Smart Search)
+// Travel History Generator — v18 (Pro Date Picker)
 // Changes:
-// - Added `allowCustom` prop to SearchableSelect
-// - Enabled Free Text for Cities (Users can type anything)
-// - Improved Search Algorithm (Ignores accents: "Istanbul" finds "İstanbul")
-// - Fixed horizontal alignment in "Travelling From"
+// - Added `ResponsiveDatePicker`: Native on Mobile, Custom Popover on Desktop
+// - Integrated `react-day-picker` for the desktop calendar
+// - Formatted all dates to European standard (DD/MM/YYYY) in display
+// - Maintained all previous logic (Free Text City, Manchester Defaults, etc.)
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
-import { Combobox, Listbox, Transition } from '@headlessui/react';
+import { Combobox, Listbox, Popover, Transition } from '@headlessui/react';
 import { clsx } from 'clsx'; 
+import { DayPicker } from 'react-day-picker';
+import { format, parse, isValid } from 'date-fns';
 
 // ---- Data Sources ----
 import { Country, City } from "country-state-city";
@@ -18,19 +20,15 @@ import { Country, City } from "country-state-city";
 // --- Helpers ---
 const CSC_COUNTRIES = Country.getAllCountries();
 
-// Normalization helper: removes accents/diacritics and lowercases
-// e.g. "İstanbul" -> "istanbul", "Crème" -> "creme"
+// Normalization helper
 const normalize = (str) => 
   str?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() || "";
 
 function getIsoFromCountryName(name) {
   if (!name) return "";
   const q = normalize(name.trim());
-  
-  // 1. Try exact match on normalized name
   let hit = CSC_COUNTRIES.find(c => normalize(c.name) === q);
   if (hit) return hit.isoCode;
-
   return "";
 }
 
@@ -54,11 +52,11 @@ const BTN_PRIMARY =
   "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-white " +
   "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95 " +
   "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70 " +
-  "disabled:opacity-50 disabled:cursor-not-allowed transition";
+  "disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm";
 
 const BTN_SECONDARY =
   "rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 " +
-  "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition";
+  "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition bg-white dark:bg-slate-950";
 
 const LINKISH_SECONDARY =
   "rounded-lg px-3 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 " +
@@ -76,26 +74,28 @@ const CONTAINER_BASE =
 const Icons = {
   ChevronUpDown: (p) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-slate-400" {...p}><path fillRule="evenodd" d="M10 3a.75.75 0 01.55.24l3.25 3.5a.75.75 0 11-1.1 1.02L10 4.852 7.3 7.76a.75.75 0 01-1.1-1.02l3.25-3.5A.75.75 0 0110 3zm-3.76 9.2a.75.75 0 011.06.04l2.7 2.908 2.7-2.908a.75.75 0 111.1 1.02l-3.25 3.5a.75.75 0 01-1.1 0l-3.25-3.5a.75.75 0 01.04-1.06z" clipRule="evenodd" /></svg>,
   Check: (p) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5" {...p}><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>,
-  Plus: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+  Plus: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+  Calendar: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
+  ChevronLeft: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m15 18-6-6 6-6"/></svg>,
+  ChevronRight: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m9 18 6-6-6-6"/></svg>
 };
 
 // ---- Helpers ----
 const uid = () => Math.random().toString(36).slice(2, 9);
 const classNames = (...parts) => parts.filter(Boolean).join(' ');
 
+// Internal date helper for logic
 const parseDate = (dateStr) => {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
+// Format outputs as DD/MM/YYYY
 const formatDMY = (dateStr) => {
   const d = parseDate(dateStr);
   if (!d) return '';
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
+  return format(d, 'dd/MM/yyyy');
 };
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
@@ -109,12 +109,102 @@ function rangesOverlap(aStart, aEnd, bStart, bEnd) {
 
 // ---- Custom UI Components (Headless UI) ----
 
-// 1. Searchable Combobox (with Optional Free Text)
-// - allowCustom: if true, user can type a value not in the list and select it
+// 1. Responsive Date Picker (Native on Mobile, Custom Popover on Desktop)
+function ResponsiveDatePicker({ value, onChange }) {
+  // value is string "YYYY-MM-DD"
+  // internal state for Popover
+  const dateObj = value ? parseDate(value) : undefined;
+
+  const handleDaySelect = (d) => {
+    if (!d) {
+      onChange(''); // clear
+      return;
+    }
+    // format as YYYY-MM-DD for storage
+    onChange(format(d, 'yyyy-MM-dd'));
+  };
+
+  return (
+    <>
+      {/* MOBILE: Native Input (Hidden on Desktop) */}
+      <div className="block md:hidden">
+        <div className={CONTAINER_BASE}>
+          <input
+            type="date"
+            className={INPUT_BASE}
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* DESKTOP: Custom Popover (Hidden on Mobile) */}
+      <div className="hidden md:block">
+        <Popover className="relative w-full">
+          <Popover.Button className={clsx(CONTAINER_BASE, "flex items-center justify-between text-left")}>
+            <span className={clsx("block truncate py-2 pl-3", !value && "text-slate-400")}>
+              {value ? formatDMY(value) : "Select date"}
+            </span>
+            <span className="pr-3 text-slate-400">
+              <Icons.Calendar className="w-4 h-4" />
+            </span>
+          </Popover.Button>
+
+          <Transition
+            as={Fragment}
+            enter="transition ease-out duration-200"
+            enterFrom="opacity-0 translate-y-1"
+            enterTo="opacity-100 translate-y-0"
+            leave="transition ease-in duration-150"
+            leaveFrom="opacity-100 translate-y-0"
+            leaveTo="opacity-0 translate-y-1"
+          >
+            <Popover.Panel className="absolute z-50 mt-2 p-3 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800">
+              {({ close }) => (
+                <DayPicker
+                  mode="single"
+                  selected={dateObj}
+                  onSelect={(d) => {
+                    handleDaySelect(d);
+                    close(); // Close popover after selection
+                  }}
+                  showOutsideDays
+                  classNames={{
+                    months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                    month: "space-y-4",
+                    caption: "flex justify-center pt-1 relative items-center",
+                    caption_label: "text-sm font-medium text-slate-900 dark:text-slate-100",
+                    nav: "space-x-1 flex items-center",
+                    nav_button: "h-7 w-7 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md flex items-center justify-center text-slate-500 transition",
+                    nav_button_previous: "absolute left-1",
+                    nav_button_next: "absolute right-1",
+                    table: "w-full border-collapse space-y-1",
+                    head_row: "flex",
+                    head_cell: "text-slate-400 rounded-md w-9 font-normal text-[0.8rem]",
+                    row: "flex w-full mt-2",
+                    cell: "text-center text-sm relative p-0 focus-within:relative focus-within:z-20",
+                    day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-900 dark:text-slate-100",
+                    day_selected: "!bg-[hsl(var(--brand))] !text-white hover:!bg-[hsl(var(--brand))]/90",
+                    day_today: "bg-slate-100 dark:bg-slate-800 font-bold text-[hsl(var(--brand))]",
+                  }}
+                  components={{
+                    IconLeft: () => <Icons.ChevronLeft className="w-4 h-4" />,
+                    IconRight: () => <Icons.ChevronRight className="w-4 h-4" />,
+                  }}
+                />
+              )}
+            </Popover.Panel>
+          </Transition>
+        </Popover>
+      </div>
+    </>
+  );
+}
+
+// 2. Searchable Combobox (PERFORMANCE OPTIMIZED)
 function SearchableSelect({ value, onChange, options, placeholder, allowCustom = false }) {
   const [query, setQuery] = useState('');
 
-  // Improved Filter: Normalize strings to match accents (e.g., Istanbul matches İstanbul)
   const filteredOptions = useMemo(() => {
     const q = normalize(query);
     const fullList = query === '' 
@@ -123,7 +213,7 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
           const str = typeof opt === 'string' ? opt : opt.name;
           return normalize(str).includes(q);
         });
-    return fullList.slice(0, 100); // Performance Cap
+    return fullList.slice(0, 100);
   }, [query, options]);
 
   return (
@@ -148,8 +238,6 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
           afterLeave={() => setQuery('')}
         >
           <Combobox.Options className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
-            
-            {/* "No results" or "Create custom" logic */}
             {filteredOptions.length === 0 && query !== '' ? (
               allowCustom ? (
                 <Combobox.Option
@@ -159,7 +247,7 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
                       active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100'
                     )
                   }
-                  value={query} // Allows selecting the raw text
+                  value={query}
                 >
                   <div className="flex items-center gap-2">
                     <Icons.Plus className="h-4 w-4" />
@@ -172,48 +260,40 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
                 </div>
               )
             ) : (
-              <>
-                {/* Standard Options */}
-                {filteredOptions.map((opt, idx) => {
-                  const label = typeof opt === 'string' ? opt : opt.name;
-                  const key = typeof opt === 'string' ? `${opt}-${idx}` : `${opt.name}-${opt.id || idx}`;
-                  return (
-                    <Combobox.Option
-                      key={key}
-                      className={({ active }) =>
-                        clsx(
-                          'relative cursor-default select-none py-2 pl-10 pr-4',
-                          active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100'
-                        )
-                      }
-                      value={label}
-                    >
-                      {({ selected, active }) => (
-                        <>
-                          <span className={clsx('block truncate', selected ? 'font-medium' : 'font-normal')}>
-                            {label}
+              filteredOptions.map((opt, idx) => {
+                const label = typeof opt === 'string' ? opt : opt.name;
+                const key = typeof opt === 'string' ? `${opt}-${idx}` : `${opt.name}-${opt.id || idx}`;
+                return (
+                  <Combobox.Option
+                    key={key}
+                    className={({ active }) =>
+                      clsx(
+                        'relative cursor-default select-none py-2 pl-10 pr-4',
+                        active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100'
+                      )
+                    }
+                    value={label}
+                  >
+                    {({ selected, active }) => (
+                      <>
+                        <span className={clsx('block truncate', selected ? 'font-medium' : 'font-normal')}>
+                          {label}
+                        </span>
+                        {selected ? (
+                          <span
+                            className={clsx(
+                              'absolute inset-y-0 left-0 flex items-center pl-3',
+                              active ? 'text-white' : 'text-[hsl(var(--brand))]'
+                            )}
+                          >
+                            <Icons.Check aria-hidden="true" />
                           </span>
-                          {selected ? (
-                            <span
-                              className={clsx(
-                                'absolute inset-y-0 left-0 flex items-center pl-3',
-                                active ? 'text-white' : 'text-[hsl(var(--brand))]'
-                              )}
-                            >
-                              <Icons.Check aria-hidden="true" />
-                            </span>
-                          ) : null}
-                        </>
-                      )}
-                    </Combobox.Option>
-                  );
-                })}
-                {/* Allow creating custom even if there ARE results, but strictly at bottom? 
-                    Usually standard behavior is enough, but if they want to override 'Paris' with 'Paris region', 
-                    standard combobox behavior selects 'Paris' if they type it exact. 
-                    We'll stick to the "No results" create mode for simplicity unless requested. 
-                */}
-              </>
+                        ) : null}
+                      </>
+                    )}
+                  </Combobox.Option>
+                );
+              })
             )}
           </Combobox.Options>
         </Transition>
@@ -222,7 +302,7 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
   );
 }
 
-// 2. Simple Select Dropdown
+// 3. Simple Select Dropdown
 function SimpleSelect({ value, onChange, options }) {
   return (
     <Listbox value={value} onChange={onChange}>
@@ -825,8 +905,8 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
               placeholder="Select country"
            />
         </div>
-        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Arrival *</label><input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" value={stop.arrival} onChange={(e) => onChange({ arrival: e.target.value })} /></div>
-        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Departure *</label><input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" value={stop.departure} onChange={(e) => onChange({ departure: e.target.value })} /></div>
+        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Arrival *</label><ResponsiveDatePicker value={stop.arrival} onChange={(val) => onChange({ arrival: val })} /></div>
+        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Departure *</label><ResponsiveDatePicker value={stop.departure} onChange={(val) => onChange({ departure: val })} /></div>
       </div>
 
       <div className="mt-4">
@@ -848,8 +928,8 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
                     allowCustom={true} 
                   />
                 </div>
-                <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" value={row.arrival} onChange={(e) => setCityArrival(i, e.target.value)} aria-label="City arrival date" />
-                <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" value={row.departure} onChange={(e) => setCityDeparture(i, e.target.value)} aria-label="City departure date" />
+                <ResponsiveDatePicker value={row.arrival} onChange={(val) => setCityArrival(i, val)} />
+                <ResponsiveDatePicker value={row.departure} onChange={(val) => setCityDeparture(i, val)} />
                 <div className="flex"><button type="button" onClick={() => removeCity(i)} className="w-full sm:w-auto rounded-lg px-3 py-2 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition">Remove</button></div>
               </div>
             );
@@ -971,8 +1051,8 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
               allowCustom={true} 
            />
         </div>
-        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Start</label><input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" value={layover.start} onChange={(e) => onChange({ start: e.target.value })} /></div>
-        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">End</label><input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" value={layover.end} onChange={(e) => onChange({ end: e.target.value })} /></div>
+        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Start</label><ResponsiveDatePicker value={layover.start} onChange={(val) => onChange({ start: val })} /></div>
+        <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">End</label><ResponsiveDatePicker value={layover.end} onChange={(val) => onChange({ end: val })} /></div>
       </div>
       <div className="mt-4 grid sm:grid-cols-3 gap-4">
         <div>
