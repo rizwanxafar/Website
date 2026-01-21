@@ -1,12 +1,12 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v20 (Past Travels + Textareas)
+// Travel History Generator — v21 (Uniformity Polish + Unsure Options)
 // Changes:
-// - Added "Significant Past Travel" section (Country, Year, Details)
-// - Changed "Other exposure" input to Textarea with updated label
-// - Appended Past Travel to the Summary output
-// - Maintained all previous logic (Headless UI, Performance caps, Formatting)
+// - Standardized Button Radius (rounded-lg) and Padding across the board
+// - Created unified `TEXT_INPUT_CLASS` for perfect alignment with Headless UI containers
+// - Added "Unsure" / "Unknown" to Malaria Indication, Drug, and Adherence
+// - Updated Summary generation to reflect "Unsure" states explicitly
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { Combobox, Listbox, Popover, Transition } from '@headlessui/react';
@@ -20,7 +20,6 @@ import { Country, City } from "country-state-city";
 // --- Helpers ---
 const CSC_COUNTRIES = Country.getAllCountries();
 
-// Normalization helper
 const normalize = (str) => 
   str?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() || "";
 
@@ -44,34 +43,41 @@ const VACCINE_OPTIONS = [
   'Tick-borne encephalitis (TBE)', 'Other',
 ];
 
-const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine'];
-const MALARIA_INDICATIONS = ['Not indicated', 'Taken', 'Not taken'];
+// UPDATED: Added Unknown/Unsure options
+const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine', 'Unknown'];
+const MALARIA_INDICATIONS = ['Not indicated', 'Taken', 'Not taken', 'Unsure'];
+const ADHERENCE_OPTIONS = ['Good', 'Partial', 'Poor', 'Unknown'];
 
-// ---- Theme Classes ----
-const BTN_PRIMARY =
-  "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-white " +
-  "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95 " +
-  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70 " +
-  "disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm";
+// ---- Theme Classes (Standardized) ----
+const BTN_BASE = "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2";
 
-const BTN_SECONDARY =
-  "rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 " +
-  "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition bg-white dark:bg-slate-950";
+const BTN_PRIMARY = clsx(BTN_BASE, 
+  "text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95 focus:ring-[hsl(var(--brand))]/70 disabled:opacity-50 disabled:cursor-not-allowed"
+);
+
+const BTN_SECONDARY = clsx(BTN_BASE,
+  "border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900 focus:ring-slate-400"
+);
 
 const LINKISH_SECONDARY =
-  "rounded-lg px-3 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 " +
-  "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition";
+  "rounded-lg px-3 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition text-slate-600 dark:text-slate-400";
 
 const NODE_COLOR = "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]";
 
 const INPUT_BASE = 
   "w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-slate-900 dark:text-slate-100 bg-transparent focus:ring-0";
 
+// Unified container look for Headless UI & Native Inputs
 const CONTAINER_BASE =
   "relative w-full cursor-default overflow-hidden rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-left focus-within:border-[hsl(var(--brand))] focus-within:ring-1 focus-within:ring-[hsl(var(--brand))] sm:text-sm transition-all";
 
+// Native input wrapper to match dropdowns exactly
+const TEXT_INPUT_CLASS = clsx(CONTAINER_BASE, "flex items-center");
+
 const TEXTAREA_CLASS = 
-  "w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))] focus:border-transparent transition";
+  "w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))] focus:border-[hsl(var(--brand))] transition";
+
+const SECTION_HEADING = "text-lg font-semibold text-slate-900 dark:text-slate-100";
 
 // ---- Icons ----
 const Icons = {
@@ -113,7 +119,7 @@ function rangesOverlap(aStart, aEnd, bStart, bEnd) {
 
 // ---- Custom UI Components (Headless UI) ----
 
-// 1. Responsive Date Picker (Native on Mobile, Custom Popover on Desktop)
+// 1. Responsive Date Picker
 function ResponsiveDatePicker({ value, onChange }) {
   const dateObj = value ? parseDate(value) : undefined;
 
@@ -628,8 +634,8 @@ export default function TravelHistoryGeneratorPage() {
 
       {/* NEW: Significant Past Travel */}
       <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Significant Past Travel</h2>
-        <div className="space-y-4">
+        <h2 className={SECTION_HEADING}>Significant Past Travel</h2>
+        <div className="space-y-4 mt-4">
           {state.pastTravels.length === 0 && (
             <p className="text-sm text-slate-500 italic">No past travels added.</p>
           )}
@@ -646,13 +652,15 @@ export default function TravelHistoryGeneratorPage() {
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Year / Time</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. 2012" 
-                  className={clsx(INPUT_BASE, "bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2")}
-                  value={pt.year}
-                  onChange={(e) => updatePastTravel(pt.id, { year: e.target.value })} 
-                />
+                <div className={TEXT_INPUT_CLASS}>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. 2012" 
+                    className={INPUT_BASE}
+                    value={pt.year}
+                    onChange={(e) => updatePastTravel(pt.id, { year: e.target.value })} 
+                  />
+                </div>
               </div>
               <div className="sm:col-span-5">
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Details</label>
@@ -677,7 +685,7 @@ export default function TravelHistoryGeneratorPage() {
 
       {/* Companions */}
       <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Companions</h2>
+        <h2 className={SECTION_HEADING}>Companions</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <div className="sm:col-span-2">
             <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Who did you travel with?</label>
@@ -692,9 +700,9 @@ export default function TravelHistoryGeneratorPage() {
                     return { ...p, companions: next };
                   })}
                   className={classNames(
-                    'rounded-md px-3 py-1.5 text-sm border-2 transition',
+                    'rounded-lg px-3 py-1.5 text-sm font-medium border transition',
                     state.companions.group === opt
-                      ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent'
+                      ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent shadow-sm'
                       : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
                   )}
                 >
@@ -705,12 +713,14 @@ export default function TravelHistoryGeneratorPage() {
             {state.companions.group === 'Other' && (
               <div className="mt-2">
                 <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Describe</label>
-                <input
-                  type="text"
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]"
-                  value={state.companions.otherText}
-                  onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, otherText: e.target.value } }))}
-                />
+                <div className={TEXT_INPUT_CLASS}>
+                  <input
+                    type="text"
+                    className={INPUT_BASE}
+                    value={state.companions.otherText}
+                    onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, otherText: e.target.value } }))}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -724,8 +734,8 @@ export default function TravelHistoryGeneratorPage() {
                     type="button"
                     onClick={() => setState((p) => ({ ...p, companions: { ...p.companions, companionsWell: val, companionsUnwellDetails: val === 'no' ? p.companions.companionsUnwellDetails : '' } }))}
                     className={classNames(
-                      'rounded-md px-3 py-1.5 text-sm border-2 transition',
-                      state.companions.companionsWell === val ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent' : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
+                      'rounded-lg px-3 py-1.5 text-sm font-medium border transition',
+                      state.companions.companionsWell === val ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent shadow-sm' : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
                     )}
                   >
                     {label}
@@ -737,7 +747,7 @@ export default function TravelHistoryGeneratorPage() {
                   <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Please provide details</label>
                   <textarea
                     rows={3}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]"
+                    className={TEXTAREA_CLASS}
                     value={state.companions.companionsUnwellDetails}
                     onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, companionsUnwellDetails: e.target.value } }))}
                   />
@@ -750,17 +760,19 @@ export default function TravelHistoryGeneratorPage() {
 
       {/* Timeline */}
       <section id="timeline-section" className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3">Timeline</h2>
-        <TimelineVertical events={mergedEventsAllTrips} />
+        <h2 className={SECTION_HEADING}>Timeline</h2>
+        <div className="mt-4">
+          <TimelineVertical events={mergedEventsAllTrips} />
+        </div>
       </section>
 
       {/* Summary */}
       <section className="mt-6 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3">Travel History Summary</h2>
-        <div className="text-sm text-slate-700 dark:text-slate-300">
+        <h2 className={SECTION_HEADING}>Travel History Summary</h2>
+        <div className="mt-3 text-sm text-slate-700 dark:text-slate-300">
           <div dangerouslySetInnerHTML={{ __html: summaryHtml }} />
         </div>
-        <div className="mt-3 flex gap-2">
+        <div className="mt-4 flex gap-2">
           <button type="button" onClick={() => navigator.clipboard.writeText(summaryTextPlain)} className={BTN_SECONDARY}>Copy summary</button>
         </div>
       </section>
@@ -799,7 +811,7 @@ function TripCard({
   return (
     <div ref={innerRef} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Trip {index + 1}</h2>
+        <h2 className={SECTION_HEADING}>Trip {index + 1}</h2>
         <div className="flex gap-2">
           <button type="button" onClick={() => addStop(trip.id)} className={BTN_PRIMARY}>+ Add stop</button>
           <button type="button" onClick={() => addLayover(trip.id)} className={BTN_PRIMARY}>+ Add layover</button>
@@ -835,13 +847,15 @@ function TripCard({
       <div className="mt-4 grid sm:grid-cols-3 gap-4">
         <div className="sm:col-span-3">
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Purpose</label>
-          <input 
-            type="text" 
-            placeholder="Work, VFR, tourism, humanitarian, etc." 
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" 
-            value={trip.purpose} 
-            onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })} 
-          />
+          <div className={TEXT_INPUT_CLASS}>
+            <input 
+              type="text" 
+              placeholder="Work, VFR, tourism, humanitarian, etc." 
+              className={INPUT_BASE} 
+              value={trip.purpose} 
+              onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })} 
+            />
+          </div>
         </div>
       </div>
 
@@ -852,7 +866,12 @@ function TripCard({
             {VACCINE_OPTIONS.map((v) => (<Checkbox key={v} label={v} checked={(trip.vaccines || []).includes(v)} onChange={() => toggleTripVaccine(v)} />))}
           </div>
           {(trip.vaccines || []).includes('Other') && (
-            <div className="mt-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other vaccination(s)</label><input type="text" placeholder="Enter vaccine name(s)…" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" value={trip.vaccinesOther || ''} onChange={(e) => updateTrip(trip.id, { vaccinesOther: e.target.value })} /></div>
+            <div className="mt-2">
+              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other vaccination(s)</label>
+              <div className={TEXT_INPUT_CLASS}>
+                <input type="text" placeholder="Enter vaccine name(s)…" className={INPUT_BASE} value={trip.vaccinesOther || ''} onChange={(e) => updateTrip(trip.id, { vaccinesOther: e.target.value })} />
+              </div>
+            </div>
           )}
         </div>
         <div>
@@ -874,7 +893,7 @@ function TripCard({
               <SimpleSelect 
                 value={trip.malaria.adherence} 
                 onChange={(val) => setMalaria({ adherence: val })} 
-                options={['Good', 'Partial', 'Poor']}
+                options={ADHERENCE_OPTIONS}
               />
             )}
           </div>
@@ -967,7 +986,7 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
               </div>
             );
           })}
-          <button type="button" onClick={addCity} className="rounded-lg px-3 py-1.5 text-xs border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition">+ Add another city</button>
+          <button type="button" onClick={addCity} className="rounded-lg px-3 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition text-slate-600 dark:text-slate-400">+ Add another city</button>
         </div>
       </div>
 
@@ -986,7 +1005,12 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
           })}
         </div>
         {(stop.accommodations || []).includes('Other') && (
-          <div className="mt-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other (describe)</label><input type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" value={stop.accommodationOther} onChange={(e) => onChange({ accommodationOther: e.target.value })} /></div>
+          <div className="mt-2">
+            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other (describe)</label>
+            <div className={TEXT_INPUT_CLASS}>
+              <input type="text" className={INPUT_BASE} value={stop.accommodationOther} onChange={(e) => onChange({ accommodationOther: e.target.value })} />
+            </div>
+          </div>
         )}
       </div>
 
@@ -1007,7 +1031,7 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
                    ))}
                 </div>
               </label>
-             {exp.vectorOtherEnabled === 'yes' && (<input type="text" placeholder="Please provide more details." className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" value={exp.vectorOtherDetails} onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })} />)}
+             {exp.vectorOtherEnabled === 'yes' && (<div className={TEXT_INPUT_CLASS}><input type="text" placeholder="Please provide more details." className={INPUT_BASE} value={exp.vectorOtherDetails} onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })} /></div>)}
             </div>
           </fieldset>
           <fieldset className="space-y-1">
@@ -1101,7 +1125,7 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
             options={['no', 'yes']}
           />
         </div>
-        {layover.leftAirport === "yes" && (<div className="sm:col-span-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Please describe any activities undertaken</label><textarea rows={3} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" value={layover.activitiesText} onChange={(e) => onChange({ activitiesText: e.target.value })} /></div>)}
+        {layover.leftAirport === "yes" && (<div className="sm:col-span-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Please describe any activities undertaken</label><textarea rows={3} className={TEXTAREA_CLASS} value={layover.activitiesText} onChange={(e) => onChange({ activitiesText: e.target.value })} /></div>)}
       </div>
     </div>
   );
@@ -1131,7 +1155,7 @@ function ExposureRow({ label, status, details, onToggle, onDetails, placeholder 
           <button type="button" onClick={() => onToggle(safeStatus === 'no' ? 'unknown' : 'no')} className={classNames("px-2 py-0.5 text-xs border rounded transition-colors", safeStatus === 'no' ? "bg-emerald-100 border-emerald-300 text-emerald-800 font-medium" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>No</button>
         </div>
       </div>
-      {safeStatus === 'yes' && (<div className="mt-1"><input type="text" placeholder={placeholder || "Please provide details..."} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" value={details || ''} onChange={(e) => onDetails(e.target.value)} /></div>)}
+      {safeStatus === 'yes' && (<div className="mt-1 relative"><div className={TEXT_INPUT_CLASS}><input type="text" placeholder={placeholder || "Please provide details..."} className={INPUT_BASE} value={details || ''} onChange={(e) => onDetails(e.target.value)} /></div></div>)}
     </div>
   );
 }
@@ -1175,7 +1199,16 @@ function TimelineVertical({ events }) {
               {it.isFirstInTrip && (
                 <div className="col-[2] mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">
                   {it.tripPurpose ? (<div><span className="font-semibold">Purpose:</span> {it.tripPurpose}</div>) : null}
-                  <div><span className="font-semibold">Malaria prophylaxis:</span> {(() => { const m = it.tripMalaria || {}; if (m.indication === "Taken") { const drug = m.drug && m.drug !== "None" ? m.drug : "Taken"; return m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug; } if (m.indication === "Not taken") return "Not taken"; return "Not indicated"; })()}</div>
+                  <div><span className="font-semibold">Malaria prophylaxis:</span> {(() => { 
+                    const m = it.tripMalaria || {};
+                    if (m.indication === "Unsure") return "Unsure";
+                    if (m.indication === "Taken") { 
+                      const drug = m.drug && m.drug !== "None" ? m.drug : "Taken"; 
+                      return m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug; 
+                    } 
+                    if (m.indication === "Not taken") return "Not taken"; 
+                    return "Not indicated"; 
+                  })()}</div>
                   <div><span className="font-semibold">Vaccinations:</span> {(() => { const arr = Array.isArray(it.tripVaccines) ? it.tripVaccines : []; const hasOther = arr.includes("Other"); const base = (hasOther ? arr.filter((v) => v !== "Other") : arr).join(", "); const otherText = (it.tripVaccinesOther || "").trim(); if (hasOther && otherText) { return base ? `${base}, Other: ${otherText}` : `Other: ${otherText}`; } return base ? (hasOther ? `${base}, Other` : base) : hasOther ? "Other" : "None"; })()}</div>
                   {it.tripCompanions && (<>{it.tripCompanions.group === "Alone" ? (<div><span className="font-semibold">Travelled alone.</span></div>) : (<><div><span className="font-semibold">Travelled with:</span> {it.tripCompanions.group === "Other" ? it.tripCompanions.otherText || "Other" : it.tripCompanions.group || "—"}</div><div><span className="font-semibold">Are they well:</span> {it.tripCompanions.companionsWell === "yes" ? "Yes" : it.tripCompanions.companionsWell === "no" ? "No" + (it.tripCompanions.companionsUnwellDetails?.trim() ? ` — ${it.tripCompanions.companionsUnwellDetails.trim()}` : "") : "Unknown"}</div></>)}</>)}
                 </div>
@@ -1230,7 +1263,23 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
     { const fromCity = (tripObj.originCity || "").trim(); const fromCountry = (tripObj.originCountry || "").trim(); if (fromCity || fromCountry) { const fromLine = [fromCity, fromCountry].filter(Boolean).join(", "); html.push(`<div>Travelling from: ${escapeHtml(fromLine)}</div>`); text.push(`Travelling from: ${fromLine}`); } }
     if (tripObj.purpose && tripObj.purpose.trim()) { html.push(`<div>Purpose: ${escapeHtml(tripObj.purpose)}</div>`); text.push(`Purpose: ${tripObj.purpose}`); }
 
-    { const m = tripObj.malaria || { indication: "Not indicated", drug: "None", adherence: "" }; let malariaText; if (m.indication === "Taken") { const drug = m.drug && m.drug !== "None" ? m.drug : "Taken"; malariaText = m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug; } else if (m.indication === "Not taken") { malariaText = "Not taken"; } else { malariaText = "Not indicated"; } html.push(`<div>Malaria prophylaxis: ${escapeHtml(malariaText)}</div>`); text.push(`Malaria prophylaxis: ${malariaText}`); }
+    { 
+      const m = tripObj.malaria || { indication: "Not indicated", drug: "None", adherence: "" }; 
+      let malariaText = "Not indicated";
+      
+      if (m.indication === "Unsure") {
+        malariaText = "Unsure";
+      } else if (m.indication === "Taken") {
+        const drug = (m.drug && m.drug !== "None") ? m.drug : "Taken";
+        malariaText = m.adherence ? `${drug}. Adherence: ${m.adherence}` : drug;
+      } else if (m.indication === "Not taken") {
+        malariaText = "Not taken";
+      }
+      
+      html.push(`<div>Malaria prophylaxis: ${escapeHtml(malariaText)}</div>`); 
+      text.push(`Malaria prophylaxis: ${malariaText}`); 
+    }
+    
     { const vaccinesArr = Array.isArray(tripObj.vaccines) ? tripObj.vaccines : []; const hasOther = vaccinesArr.includes("Other"); const baseList = hasOther ? vaccinesArr.filter((v) => v !== "Other") : vaccinesArr; let vaccinesDisplay = baseList.join(", "); const otherText = (tripObj.vaccinesOther || "").trim(); if (hasOther && otherText) { vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other: ${otherText}` : `Other: ${otherText}`; } else if (hasOther) { vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other` : "Other"; } html.push(`<div>Pre-travel vaccinations: ${vaccinesDisplay ? escapeHtml(vaccinesDisplay) : "None"}</div>`); text.push(`Pre-travel vaccinations: ${vaccinesDisplay || "None"}`); }
 
     { const cmp = state.companions || {}; if (cmp.group === "Alone") { html.push(`<div>Travelled alone.</div>`); text.push(`Travelled alone.`); } else { const groupStr = cmp.group === "Other" ? cmp.otherText || "Other" : cmp.group || "—"; html.push(`<div>Travelled with: ${escapeHtml(groupStr)}</div>`); text.push(`Travelled with: ${groupStr}`); const wellStr = cmp.companionsWell === "yes" ? "Yes" : cmp.companionsWell === "no" ? "No" : "Unknown"; if (cmp.companionsWell === "no") { const details = (cmp.companionsUnwellDetails || "").trim(); html.push(`<div>Are they well: No${details ? ` — ${escapeHtml(details)}` : ""}</div>`); text.push(`Are they well: No${details ? ` — ${details}` : ""}`); } else { html.push(`<div>Are they well: ${wellStr}</div>`); text.push(`Are they well: ${wellStr}`); } } }
