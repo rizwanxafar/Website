@@ -1,10 +1,12 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v19 (Alignment Fix)
+// Travel History Generator — v20 (Past Travels + Textareas)
 // Changes:
-// - Fixed vertical alignment: Added `relative mt-1` wrapper to DatePicker to match City input
-// - Maintained all previous logic (Free text cities, Pro Date Picker, etc.)
+// - Added "Significant Past Travel" section (Country, Year, Details)
+// - Changed "Other exposure" input to Textarea with updated label
+// - Appended Past Travel to the Summary output
+// - Maintained all previous logic (Headless UI, Performance caps, Formatting)
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { Combobox, Listbox, Popover, Transition } from '@headlessui/react';
@@ -68,6 +70,9 @@ const INPUT_BASE =
 const CONTAINER_BASE =
   "relative w-full cursor-default overflow-hidden rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-left focus-within:border-[hsl(var(--brand))] focus-within:ring-1 focus-within:ring-[hsl(var(--brand))] sm:text-sm transition-all";
 
+const TEXTAREA_CLASS = 
+  "w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))] focus:border-transparent transition";
+
 // ---- Icons ----
 const Icons = {
   ChevronUpDown: (p) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-slate-400" {...p}><path fillRule="evenodd" d="M10 3a.75.75 0 01.55.24l3.25 3.5a.75.75 0 11-1.1 1.02L10 4.852 7.3 7.76a.75.75 0 01-1.1-1.02l3.25-3.5A.75.75 0 0110 3zm-3.76 9.2a.75.75 0 011.06.04l2.7 2.908 2.7-2.908a.75.75 0 111.1 1.02l-3.25 3.5a.75.75 0 01-1.1 0l-3.25-3.5a.75.75 0 01.04-1.06z" clipRule="evenodd" /></svg>,
@@ -75,7 +80,8 @@ const Icons = {
   Plus: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
   Calendar: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
   ChevronLeft: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m15 18-6-6 6-6"/></svg>,
-  ChevronRight: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m9 18 6-6-6-6"/></svg>
+  ChevronRight: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m9 18 6-6-6-6"/></svg>,
+  Trash: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
 };
 
 // ---- Helpers ----
@@ -109,22 +115,16 @@ function rangesOverlap(aStart, aEnd, bStart, bEnd) {
 
 // 1. Responsive Date Picker (Native on Mobile, Custom Popover on Desktop)
 function ResponsiveDatePicker({ value, onChange }) {
-  // value is string "YYYY-MM-DD"
-  // internal state for Popover
   const dateObj = value ? parseDate(value) : undefined;
 
   const handleDaySelect = (d) => {
-    if (!d) {
-      onChange(''); // clear
-      return;
-    }
-    // format as YYYY-MM-DD for storage
+    if (!d) { onChange(''); return; }
     onChange(format(d, 'yyyy-MM-dd'));
   };
 
   return (
     <div className="relative mt-1">
-      {/* MOBILE: Native Input (Hidden on Desktop) */}
+      {/* MOBILE: Native Input */}
       <div className="block md:hidden">
         <div className={CONTAINER_BASE}>
           <input
@@ -136,7 +136,7 @@ function ResponsiveDatePicker({ value, onChange }) {
         </div>
       </div>
 
-      {/* DESKTOP: Custom Popover (Hidden on Mobile) */}
+      {/* DESKTOP: Custom Popover */}
       <div className="hidden md:block">
         <Popover className="relative w-full">
           <Popover.Button className={clsx(CONTAINER_BASE, "flex items-center justify-between text-left")}>
@@ -162,10 +162,7 @@ function ResponsiveDatePicker({ value, onChange }) {
                 <DayPicker
                   mode="single"
                   selected={dateObj}
-                  onSelect={(d) => {
-                    handleDaySelect(d);
-                    close(); // Close popover after selection
-                  }}
+                  onSelect={(d) => { handleDaySelect(d); close(); }}
                   showOutsideDays
                   classNames={{
                     months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
@@ -199,7 +196,7 @@ function ResponsiveDatePicker({ value, onChange }) {
   );
 }
 
-// 2. Searchable Combobox (PERFORMANCE OPTIMIZED)
+// 2. Searchable Combobox
 function SearchableSelect({ value, onChange, options, placeholder, allowCustom = false }) {
   const [query, setQuery] = useState('');
 
@@ -240,10 +237,7 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
               allowCustom ? (
                 <Combobox.Option
                   className={({ active }) =>
-                    clsx(
-                      'relative cursor-pointer select-none py-2 pl-4 pr-4',
-                      active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100'
-                    )
+                    clsx('relative cursor-pointer select-none py-2 pl-4 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
                   }
                   value={query}
                 >
@@ -253,9 +247,7 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
                   </div>
                 </Combobox.Option>
               ) : (
-                <div className="relative cursor-default select-none px-4 py-2 text-slate-500">
-                  Nothing found.
-                </div>
+                <div className="relative cursor-default select-none px-4 py-2 text-slate-500">Nothing found.</div>
               )
             ) : (
               filteredOptions.map((opt, idx) => {
@@ -265,25 +257,15 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
                   <Combobox.Option
                     key={key}
                     className={({ active }) =>
-                      clsx(
-                        'relative cursor-default select-none py-2 pl-10 pr-4',
-                        active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100'
-                      )
+                      clsx('relative cursor-default select-none py-2 pl-10 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
                     }
                     value={label}
                   >
                     {({ selected, active }) => (
                       <>
-                        <span className={clsx('block truncate', selected ? 'font-medium' : 'font-normal')}>
-                          {label}
-                        </span>
+                        <span className={clsx('block truncate', selected ? 'font-medium' : 'font-normal')}>{label}</span>
                         {selected ? (
-                          <span
-                            className={clsx(
-                              'absolute inset-y-0 left-0 flex items-center pl-3',
-                              active ? 'text-white' : 'text-[hsl(var(--brand))]'
-                            )}
-                          >
+                          <span className={clsx('absolute inset-y-0 left-0 flex items-center pl-3', active ? 'text-white' : 'text-[hsl(var(--brand))]')}>
                             <Icons.Check aria-hidden="true" />
                           </span>
                         ) : null}
@@ -322,25 +304,15 @@ function SimpleSelect({ value, onChange, options }) {
               <Listbox.Option
                 key={idx}
                 className={({ active }) =>
-                  clsx(
-                    'relative cursor-default select-none py-2 pl-10 pr-4',
-                    active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100'
-                  )
+                  clsx('relative cursor-default select-none py-2 pl-10 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
                 }
                 value={opt}
               >
                 {({ selected, active }) => (
                   <>
-                    <span className={clsx('block truncate', selected ? 'font-medium' : 'font-normal')}>
-                      {opt}
-                    </span>
+                    <span className={clsx('block truncate', selected ? 'font-medium' : 'font-normal')}>{opt}</span>
                     {selected ? (
-                      <span
-                        className={clsx(
-                          'absolute inset-y-0 left-0 flex items-center pl-3',
-                          active ? 'text-white' : 'text-[hsl(var(--brand))]'
-                        )}
-                      >
+                      <span className={clsx('absolute inset-y-0 left-0 flex items-center pl-3', active ? 'text-white' : 'text-[hsl(var(--brand))]')}>
                         <Icons.Check aria-hidden="true" />
                       </span>
                     ) : null}
@@ -397,6 +369,10 @@ const emptyLayover = (tripId) => ({
   id: uid(), tripId, country: '', city: '', start: '', end: '', leftAirport: 'no', activitiesText: '',
 });
 
+const emptyPastTravel = () => ({
+  id: uid(), country: '', year: '', details: '',
+});
+
 const emptyTrip = () => ({
   id: uid(),
   purpose: '',
@@ -411,6 +387,7 @@ const emptyTrip = () => ({
 
 const initialState = {
   trips: [emptyTrip()],
+  pastTravels: [],
   companions: {
     group: 'Alone',
     otherText: '',
@@ -496,11 +473,11 @@ export default function TravelHistoryGeneratorPage() {
   const setItemRef = (id) => (el) => { if (el) itemRefs.current.set(id, el); };
 
   useEffect(() => {
-    const hasData = state.trips.some(t => t.stops.length > 0 || t.layovers.length > 0);
+    const hasData = state.trips.some(t => t.stops.length > 0 || t.layovers.length > 0) || state.pastTravels.length > 0;
     const onBeforeUnload = (e) => { if (!hasData) return; e.preventDefault(); e.returnValue = ""; };
     if (hasData) window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [state.trips]);
+  }, [state.trips, state.pastTravels]);
 
   useEffect(() => {
     const list = [];
@@ -584,6 +561,15 @@ export default function TravelHistoryGeneratorPage() {
   const updateLayover = (tripId, layoverId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, layovers: t.layovers.map((l) => (l.id === layoverId ? { ...l, ...patch } : l)) } : t)) }));
   const removeLayover = (tripId, layoverId) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, layovers: t.layovers.filter((l) => l.id !== layoverId) } : t)) }));
 
+  // Past Travel Handlers
+  const addPastTravel = () => {
+    const pt = emptyPastTravel();
+    setState(p => ({ ...p, pastTravels: [...p.pastTravels, pt] }));
+    setPendingScrollId(pt.id);
+  };
+  const updatePastTravel = (id, patch) => setState(p => ({ ...p, pastTravels: p.pastTravels.map(pt => pt.id === id ? { ...pt, ...patch } : pt) }));
+  const removePastTravel = (id) => setState(p => ({ ...p, pastTravels: p.pastTravels.filter(pt => pt.id !== id) }));
+
   const clearAll = () => { if (confirm('Clear all data?')) setState(initialState); };
 
   return (
@@ -637,6 +623,55 @@ export default function TravelHistoryGeneratorPage() {
         ))}
         <div>
           <button type="button" onClick={addTrip} className={BTN_PRIMARY}>+ Add another trip</button>
+        </div>
+      </section>
+
+      {/* NEW: Significant Past Travel */}
+      <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Significant Past Travel</h2>
+        <div className="space-y-4">
+          {state.pastTravels.length === 0 && (
+            <p className="text-sm text-slate-500 italic">No past travels added.</p>
+          )}
+          {state.pastTravels.map((pt, i) => (
+            <div key={pt.id} ref={setItemRef(pt.id)} className="grid gap-4 sm:grid-cols-12 items-start p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
+              <div className="sm:col-span-4">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Country</label>
+                <SearchableSelect 
+                  value={pt.country} 
+                  onChange={(val) => updatePastTravel(pt.id, { country: val })} 
+                  options={CSC_COUNTRIES.map(c => c.name)}
+                  placeholder="Select country"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Year / Time</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. 2012" 
+                  className={clsx(INPUT_BASE, "bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2")}
+                  value={pt.year}
+                  onChange={(e) => updatePastTravel(pt.id, { year: e.target.value })} 
+                />
+              </div>
+              <div className="sm:col-span-5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Details</label>
+                <textarea 
+                  rows={1}
+                  placeholder="Describe details..."
+                  className={clsx(TEXTAREA_CLASS, "min-h-[42px]")}
+                  value={pt.details}
+                  onChange={(e) => updatePastTravel(pt.id, { details: e.target.value })}
+                />
+              </div>
+              <div className="sm:col-span-1 flex justify-end pt-6">
+                <button type="button" onClick={() => removePastTravel(pt.id)} className="text-slate-400 hover:text-rose-500 transition p-2">
+                  <Icons.Trash className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={addPastTravel} className={LINKISH_SECONDARY}>+ Add entry</button>
         </div>
       </section>
 
@@ -1008,9 +1043,14 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
               <ExposureRow label="Refugee camp contact" status={exp.refugeeCamp} details={exp.refugeeCampDetails} onToggle={(v) => onChange({ exposures: { ...exp, refugeeCamp: v } })} onDetails={(v) => onChange({ exposures: { ...exp, refugeeCampDetails: v } })} />
               <ExposureRow label="Unprotected sex" status={exp.unprotectedSex} details={exp.unprotectedSexDetails} onToggle={(v) => onChange({ exposures: { ...exp, unprotectedSex: v } })} onDetails={(v) => onChange({ exposures: { ...exp, unprotectedSexDetails: v } })} />
             </div>
-            <div className="mt-3">
-              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other exposure (free-text)</label>
-              <input type="text" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" value={exp.otherText} onChange={(e) => onChange({ exposures: { ...exp, otherText: e.target.value } })} />
+            <div className="mt-4">
+              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1 font-medium">Any other trip details or exposures</label>
+              <textarea 
+                rows={3} 
+                className={TEXTAREA_CLASS}
+                value={exp.otherText} 
+                onChange={(e) => onChange({ exposures: { ...exp, otherText: e.target.value } })} 
+              />
             </div>
           </fieldset>
         </div>
@@ -1234,6 +1274,24 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
     });
     tripIndex += 1;
   }
+
+  // --- APPEND PAST TRAVELS ---
+  if (state.pastTravels.length > 0) {
+    html.push(`<div style="height:12px"></div>`);
+    html.push(`<p><strong>Significant Past Travel</strong></p>`);
+    html.push('<ul class="list-disc pl-5">');
+    text.push("");
+    text.push("Significant Past Travel");
+    
+    state.pastTravels.forEach(pt => {
+      const line = `<strong>${escapeHtml(pt.country || "Unknown")}</strong> (${escapeHtml(pt.year || "—")}): ${escapeHtml(pt.details || "")}`;
+      const txtLine = `${pt.country || "Unknown"} (${pt.year || "—"}): ${pt.details || ""}`;
+      html.push(`<li>${line}</li>`);
+      text.push(`• ${txtLine}`);
+    });
+    html.push('</ul>');
+  }
+
   return { summaryHtml: html.join("\n"), summaryTextPlain: text.join("\n") };
 }
 
