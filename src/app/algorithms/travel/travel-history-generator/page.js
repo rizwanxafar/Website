@@ -1,11 +1,12 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v23 (Summary Logic Fix)
+// Travel History Generator — v24 (Phase 9: Per-Trip Companions)
 // Changes:
-// - Fixed Malaria Summary Logic: Explicitly chains "Status — Drug (Adherence)"
-// - Ensures "Taken — Unknown drug" is distinct from "Unsure"
-// - Maintained all previous features (Segmented Control, Past Travels, etc.)
+// - Moved Companions from Global State to Trip State
+// - Implemented Segmented Control UI for Companions inside TripCard
+// - Updated Summary to reflect companions per trip
+// - Removed global Companions section
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { Combobox, Listbox, Popover, Transition } from '@headlessui/react';
@@ -45,6 +46,10 @@ const VACCINE_OPTIONS = [
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine', 'Unknown'];
 const MALARIA_STATUS_OPTIONS = ['Not indicated', 'Taken', 'Not taken', 'Unsure'];
 const ADHERENCE_OPTIONS = ['Good', 'Partial', 'Poor', 'Unknown'];
+
+// NEW: Companion Options
+const COMPANION_GROUPS = ['Alone', 'Family', 'Friends', 'Work', 'Other'];
+const COMPANION_WELL_OPTIONS = ['Yes', 'No', 'Unknown'];
 
 // ---- Theme Classes (Standardized) ----
 const BTN_BASE = "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2";
@@ -90,14 +95,12 @@ const Icons = {
 const uid = () => Math.random().toString(36).slice(2, 9);
 const classNames = (...parts) => parts.filter(Boolean).join(' ');
 
-// Internal date helper for logic
 const parseDate = (dateStr) => {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
-// Format outputs as DD/MM/YYYY
 const formatDMY = (dateStr) => {
   const d = parseDate(dateStr);
   if (!d) return '';
@@ -126,7 +129,6 @@ function ResponsiveDatePicker({ value, onChange }) {
 
   return (
     <div className="relative mt-1">
-      {/* MOBILE: Native Input */}
       <div className="block md:hidden">
         <div className={CONTAINER_BASE}>
           <input
@@ -137,8 +139,6 @@ function ResponsiveDatePicker({ value, onChange }) {
           />
         </div>
       </div>
-
-      {/* DESKTOP: Custom Popover */}
       <div className="hidden md:block">
         <Popover className="relative w-full">
           <Popover.Button className={clsx(CONTAINER_BASE, "flex items-center justify-between text-left")}>
@@ -383,6 +383,8 @@ const emptyTrip = () => ({
   vaccines: [],
   vaccinesOther: '',
   malaria: { indication: 'Not indicated', drug: 'None', adherence: '' },
+  // Companions now inside Trip
+  companions: { group: 'Alone', otherText: '', companionsWell: 'unknown', companionsUnwellDetails: '' },
   stops: [emptyStop()],
   layovers: [],
 });
@@ -390,12 +392,6 @@ const emptyTrip = () => ({
 const initialState = {
   trips: [emptyTrip()],
   pastTravels: [],
-  companions: {
-    group: 'Alone',
-    otherText: '',
-    companionsWell: 'unknown',
-    companionsUnwellDetails: '',
-  },
 };
 
 // ===== Shared chronology builder =====
@@ -537,7 +533,8 @@ export default function TravelHistoryGeneratorPage() {
   const mergedEventsAllTrips = useMemo(() => {
     const merged = [];
     state.trips.forEach((trip) => {
-      buildTripEvents(trip, state.companions).forEach((ev) => merged.push({ ...ev, tripId: trip.id }));
+      // Pass per-trip companions here
+      buildTripEvents(trip, trip.companions).forEach((ev) => merged.push({ ...ev, tripId: trip.id }));
     });
     merged.sort((a, b) => {
       if (!a.date && !b.date) return 0;
@@ -546,7 +543,7 @@ export default function TravelHistoryGeneratorPage() {
       return a.date - b.date;
     });
     return merged;
-  }, [state.trips, state.companions]);
+  }, [state.trips]);
 
   const { summaryHtml, summaryTextPlain } = useMemo(
     () => buildSummaryFromEvents(state, mergedEventsAllTrips),
@@ -679,81 +676,6 @@ export default function TravelHistoryGeneratorPage() {
         </div>
       </section>
 
-      {/* Companions */}
-      <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-        <h2 className={SECTION_HEADING}>Companions</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <div className="sm:col-span-2">
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Who did you travel with?</label>
-            <div className="flex flex-wrap gap-2">
-              {['Alone', 'Family', 'Friends', 'Organised tour', 'Other'].map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setState((p) => {
-                    const next = { ...p.companions, group: opt };
-                    if (opt === 'Alone') { next.companionsWell = 'unknown'; next.companionsUnwellDetails = ''; next.otherText = ''; }
-                    return { ...p, companions: next };
-                  })}
-                  className={classNames(
-                    'rounded-lg px-3 py-1.5 text-sm font-medium border transition',
-                    state.companions.group === opt
-                      ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent shadow-sm'
-                      : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
-                  )}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-            {state.companions.group === 'Other' && (
-              <div className="mt-2">
-                <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Describe</label>
-                <div className={TEXT_INPUT_CLASS}>
-                  <input
-                    type="text"
-                    className={INPUT_BASE}
-                    value={state.companions.otherText}
-                    onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, otherText: e.target.value } }))}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-          {state.companions.group !== 'Alone' && (
-            <div>
-              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Are they well?</label>
-              <div className="flex gap-2">
-                {[{ val: 'yes', label: 'Yes' }, { val: 'no', label: 'No' }, { val: 'unknown', label: 'Unknown' }].map(({ val, label }) => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setState((p) => ({ ...p, companions: { ...p.companions, companionsWell: val, companionsUnwellDetails: val === 'no' ? p.companions.companionsUnwellDetails : '' } }))}
-                    className={classNames(
-                      'rounded-lg px-3 py-1.5 text-sm font-medium border transition',
-                      state.companions.companionsWell === val ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent shadow-sm' : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {state.companions.companionsWell === 'no' && (
-                <div className="mt-2">
-                  <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Please provide details</label>
-                  <textarea
-                    rows={3}
-                    className={TEXTAREA_CLASS}
-                    value={state.companions.companionsUnwellDetails}
-                    onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, companionsUnwellDetails: e.target.value } }))}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </section>
-
       {/* Timeline */}
       <section id="timeline-section" className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
         <h2 className={SECTION_HEADING}>Timeline</h2>
@@ -794,6 +716,10 @@ function TripCard({
     const next = { ...trip.malaria, ...patch };
     if (next.indication !== 'Taken') { next.drug = 'None'; next.adherence = ''; }
     updateTrip(trip.id, { malaria: next });
+  };
+
+  const updateCompanions = (patch) => {
+    updateTrip(trip.id, { companions: { ...trip.companions, ...patch } });
   };
 
   const originISO2 = useMemo(() => getIsoFromCountryName(trip.originCountry), [trip.originCountry]);
@@ -904,6 +830,97 @@ function TripCard({
         </div>
       </div>
 
+      {/* NEW: Per-Trip Companions Section */}
+      <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6">
+        <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3">Companions</label>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap gap-2">
+            {COMPANION_GROUPS.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => {
+                  const next = { group: opt };
+                  if (opt === 'Alone') { 
+                    next.companionsWell = 'unknown'; 
+                    next.companionsUnwellDetails = ''; 
+                    next.otherText = ''; 
+                  }
+                  updateCompanions(next);
+                }}
+                className={clsx(
+                  "px-3 py-1.5 text-xs font-medium rounded-lg border transition",
+                  trip.companions.group === opt
+                    ? "bg-[hsl(var(--brand))] text-white border-transparent"
+                    : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[hsl(var(--brand))]"
+                )}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+
+          {trip.companions.group === 'Other' && (
+            <div className="animate-in slide-in-from-top-1">
+              <label className="block text-xs font-medium text-slate-500 mb-1">Describe</label>
+              <div className={TEXT_INPUT_CLASS}>
+                <input 
+                  type="text" 
+                  className={INPUT_BASE}
+                  value={trip.companions.otherText}
+                  onChange={(e) => updateCompanions({ otherText: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+
+          {trip.companions.group !== 'Alone' && (
+            <div className="grid gap-4 sm:grid-cols-2 animate-in slide-in-from-top-1">
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-2">Are they well?</label>
+                <div className="flex gap-2">
+                  {COMPANION_WELL_OPTIONS.map((opt) => {
+                    const val = opt.toLowerCase(); // 'yes', 'no', 'unknown'
+                    return (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => {
+                          updateCompanions({
+                            companionsWell: val,
+                            companionsUnwellDetails: val === 'no' ? trip.companions.companionsUnwellDetails : ''
+                          });
+                        }}
+                        className={clsx(
+                          "px-3 py-1.5 text-xs font-medium rounded-lg border transition",
+                          trip.companions.companionsWell === val
+                            ? (val === 'yes' ? "bg-emerald-600 text-white border-transparent" : val === 'no' ? "bg-rose-600 text-white border-transparent" : "bg-slate-600 text-white border-transparent")
+                            : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400"
+                        )}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              {trip.companions.companionsWell === 'no' && (
+                <div className="animate-in slide-in-from-left-1">
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Details (symptoms, etc.)</label>
+                  <textarea 
+                    rows={2} 
+                    className={TEXTAREA_CLASS}
+                    value={trip.companions.companionsUnwellDetails}
+                    onChange={(e) => updateCompanions({ companionsUnwellDetails: e.target.value })}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="mt-6 space-y-6">
         {trip.stops.map((stop, sIdx) => (
           <StopCard key={stop.id} innerRef={setItemRef(stop.id)} stop={stop} index={sIdx} onChange={(patch) => updateStop(trip.id, stop.id, patch)} onRemove={() => removeStop(trip.id, stop.id)} highlighted={highlight.stopIds.has(stop.id)} />
@@ -923,6 +940,9 @@ function TripCard({
     </div>
   );
 }
+
+// ... (StopCard, LayoverCard, Checkbox, ExposureRow, TimelineVertical, buildSummaryFromEvents)
+// REMAINDER OF FILE IS UNCHANGED FROM PREVIOUS PHASE, BUT PASTED BELOW FOR COMPLETENESS
 
 function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
   const exp = stop.exposures;
@@ -1208,7 +1228,6 @@ function TimelineVertical({ events }) {
                     if (m.indication === "Unsure") return "Unsure";
                     if (m.indication === "Taken") { 
                       let text = "Taken";
-                      // Explicitly add drug if selected
                       if (m.drug && m.drug !== 'None') {
                          text += ` — ${m.drug === 'Unknown' ? 'Unknown drug' : m.drug}`;
                       }
@@ -1281,13 +1300,10 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
       if (m.indication === "Unsure") {
         malariaText = "Unsure";
       } else if (m.indication === "Taken") {
-        // Explicit Logic: Status first
         let txt = "Taken";
-        // Append drug if exists, or if Unknown
         if (m.drug && m.drug !== "None") {
            txt += ` — ${m.drug === 'Unknown' ? 'Unknown drug' : m.drug}`;
         }
-        // Append adherence
         if (m.adherence) {
            txt += ` (Adherence: ${m.adherence})`;
         }
