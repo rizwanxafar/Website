@@ -1,12 +1,10 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v18 (Pro Date Picker)
+// Travel History Generator — v19 (Alignment Fix)
 // Changes:
-// - Added `ResponsiveDatePicker`: Native on Mobile, Custom Popover on Desktop
-// - Integrated `react-day-picker` for the desktop calendar
-// - Formatted all dates to European standard (DD/MM/YYYY) in display
-// - Maintained all previous logic (Free Text City, Manchester Defaults, etc.)
+// - Fixed vertical alignment: Added `relative mt-1` wrapper to DatePicker to match City input
+// - Maintained all previous logic (Free text cities, Pro Date Picker, etc.)
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { Combobox, Listbox, Popover, Transition } from '@headlessui/react';
@@ -125,7 +123,7 @@ function ResponsiveDatePicker({ value, onChange }) {
   };
 
   return (
-    <>
+    <div className="relative mt-1">
       {/* MOBILE: Native Input (Hidden on Desktop) */}
       <div className="block md:hidden">
         <div className={CONTAINER_BASE}>
@@ -197,7 +195,7 @@ function ResponsiveDatePicker({ value, onChange }) {
           </Transition>
         </Popover>
       </div>
-    </>
+    </div>
   );
 }
 
