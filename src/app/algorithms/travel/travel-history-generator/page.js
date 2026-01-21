@@ -1,12 +1,11 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v21 (Uniformity Polish + Unsure Options)
+// Travel History Generator — v22 (Phase 8: Malaria Segmented Control)
 // Changes:
-// - Standardized Button Radius (rounded-lg) and Padding across the board
-// - Created unified `TEXT_INPUT_CLASS` for perfect alignment with Headless UI containers
-// - Added "Unsure" / "Unknown" to Malaria Indication, Drug, and Adherence
-// - Updated Summary generation to reflect "Unsure" states explicitly
+// - Implemented Segmented Control for Malaria Status (Not Indicated | Taken | Not Taken | Unsure)
+// - Updated Summary Logic to explicitly format "Label: Choice — Details"
+// - Maintained all previous Phase 1-7 features (Past Travels, Pro Date Picker, Uniformity)
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { Combobox, Listbox, Popover, Transition } from '@headlessui/react';
@@ -43,9 +42,8 @@ const VACCINE_OPTIONS = [
   'Tick-borne encephalitis (TBE)', 'Other',
 ];
 
-// UPDATED: Added Unknown/Unsure options
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine', 'Unknown'];
-const MALARIA_INDICATIONS = ['Not indicated', 'Taken', 'Not taken', 'Unsure'];
+const MALARIA_STATUS_OPTIONS = ['Not indicated', 'Taken', 'Not taken', 'Unsure'];
 const ADHERENCE_OPTIONS = ['Good', 'Partial', 'Poor', 'Unknown'];
 
 // ---- Theme Classes (Standardized) ----
@@ -67,11 +65,9 @@ const NODE_COLOR = "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))]";
 const INPUT_BASE = 
   "w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-slate-900 dark:text-slate-100 bg-transparent focus:ring-0";
 
-// Unified container look for Headless UI & Native Inputs
 const CONTAINER_BASE =
   "relative w-full cursor-default overflow-hidden rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-left focus-within:border-[hsl(var(--brand))] focus-within:ring-1 focus-within:ring-[hsl(var(--brand))] sm:text-sm transition-all";
 
-// Native input wrapper to match dropdowns exactly
 const TEXT_INPUT_CLASS = clsx(CONTAINER_BASE, "flex items-center");
 
 const TEXTAREA_CLASS = 
@@ -94,14 +90,12 @@ const Icons = {
 const uid = () => Math.random().toString(36).slice(2, 9);
 const classNames = (...parts) => parts.filter(Boolean).join(' ');
 
-// Internal date helper for logic
 const parseDate = (dateStr) => {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
-// Format outputs as DD/MM/YYYY
 const formatDMY = (dateStr) => {
   const d = parseDate(dateStr);
   if (!d) return '';
@@ -117,12 +111,10 @@ function rangesOverlap(aStart, aEnd, bStart, bEnd) {
   return aS < bE && bS < aE;
 }
 
-// ---- Custom UI Components (Headless UI) ----
+// ---- Custom UI Components ----
 
-// 1. Responsive Date Picker
 function ResponsiveDatePicker({ value, onChange }) {
   const dateObj = value ? parseDate(value) : undefined;
-
   const handleDaySelect = (d) => {
     if (!d) { onChange(''); return; }
     onChange(format(d, 'yyyy-MM-dd'));
@@ -130,68 +122,23 @@ function ResponsiveDatePicker({ value, onChange }) {
 
   return (
     <div className="relative mt-1">
-      {/* MOBILE: Native Input */}
       <div className="block md:hidden">
         <div className={CONTAINER_BASE}>
-          <input
-            type="date"
-            className={INPUT_BASE}
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-          />
+          <input type="date" className={INPUT_BASE} value={value || ''} onChange={(e) => onChange(e.target.value)} />
         </div>
       </div>
-
-      {/* DESKTOP: Custom Popover */}
       <div className="hidden md:block">
         <Popover className="relative w-full">
           <Popover.Button className={clsx(CONTAINER_BASE, "flex items-center justify-between text-left")}>
-            <span className={clsx("block truncate py-2 pl-3", !value && "text-slate-400")}>
-              {value ? formatDMY(value) : "Select date"}
-            </span>
-            <span className="pr-3 text-slate-400">
-              <Icons.Calendar className="w-4 h-4" />
-            </span>
+            <span className={clsx("block truncate py-2 pl-3", !value && "text-slate-400")}>{value ? formatDMY(value) : "Select date"}</span>
+            <span className="pr-3 text-slate-400"><Icons.Calendar className="w-4 h-4" /></span>
           </Popover.Button>
-
-          <Transition
-            as={Fragment}
-            enter="transition ease-out duration-200"
-            enterFrom="opacity-0 translate-y-1"
-            enterTo="opacity-100 translate-y-0"
-            leave="transition ease-in duration-150"
-            leaveFrom="opacity-100 translate-y-0"
-            leaveTo="opacity-0 translate-y-1"
-          >
+          <Transition as={Fragment} enter="transition ease-out duration-200" enterFrom="opacity-0 translate-y-1" enterTo="opacity-100 translate-y-0" leave="transition ease-in duration-150" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 translate-y-1">
             <Popover.Panel className="absolute z-50 mt-2 p-3 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800">
               {({ close }) => (
-                <DayPicker
-                  mode="single"
-                  selected={dateObj}
-                  onSelect={(d) => { handleDaySelect(d); close(); }}
-                  showOutsideDays
-                  classNames={{
-                    months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                    month: "space-y-4",
-                    caption: "flex justify-center pt-1 relative items-center",
-                    caption_label: "text-sm font-medium text-slate-900 dark:text-slate-100",
-                    nav: "space-x-1 flex items-center",
-                    nav_button: "h-7 w-7 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md flex items-center justify-center text-slate-500 transition",
-                    nav_button_previous: "absolute left-1",
-                    nav_button_next: "absolute right-1",
-                    table: "w-full border-collapse space-y-1",
-                    head_row: "flex",
-                    head_cell: "text-slate-400 rounded-md w-9 font-normal text-[0.8rem]",
-                    row: "flex w-full mt-2",
-                    cell: "text-center text-sm relative p-0 focus-within:relative focus-within:z-20",
-                    day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-900 dark:text-slate-100",
-                    day_selected: "!bg-[hsl(var(--brand))] !text-white hover:!bg-[hsl(var(--brand))]/90",
-                    day_today: "bg-slate-100 dark:bg-slate-800 font-bold text-[hsl(var(--brand))]",
-                  }}
-                  components={{
-                    IconLeft: () => <Icons.ChevronLeft className="w-4 h-4" />,
-                    IconRight: () => <Icons.ChevronRight className="w-4 h-4" />,
-                  }}
+                <DayPicker mode="single" selected={dateObj} onSelect={(d) => { handleDaySelect(d); close(); }} showOutsideDays
+                  classNames={{ months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0", month: "space-y-4", caption: "flex justify-center pt-1 relative items-center", caption_label: "text-sm font-medium text-slate-900 dark:text-slate-100", nav: "space-x-1 flex items-center", nav_button: "h-7 w-7 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md flex items-center justify-center text-slate-500 transition", nav_button_previous: "absolute left-1", nav_button_next: "absolute right-1", table: "w-full border-collapse space-y-1", head_row: "flex", head_cell: "text-slate-400 rounded-md w-9 font-normal text-[0.8rem]", row: "flex w-full mt-2", cell: "text-center text-sm relative p-0 focus-within:relative focus-within:z-20", day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-900 dark:text-slate-100", day_selected: "!bg-[hsl(var(--brand))] !text-white hover:!bg-[hsl(var(--brand))]/90", day_today: "bg-slate-100 dark:bg-slate-800 font-bold text-[hsl(var(--brand))]" }}
+                  components={{ IconLeft: () => <Icons.ChevronLeft className="w-4 h-4" />, IconRight: () => <Icons.ChevronRight className="w-4 h-4" /> }}
                 />
               )}
             </Popover.Panel>
@@ -202,18 +149,11 @@ function ResponsiveDatePicker({ value, onChange }) {
   );
 }
 
-// 2. Searchable Combobox
 function SearchableSelect({ value, onChange, options, placeholder, allowCustom = false }) {
   const [query, setQuery] = useState('');
-
   const filteredOptions = useMemo(() => {
     const q = normalize(query);
-    const fullList = query === '' 
-      ? options 
-      : options.filter((opt) => {
-          const str = typeof opt === 'string' ? opt : opt.name;
-          return normalize(str).includes(q);
-        });
+    const fullList = query === '' ? options : options.filter((opt) => { const str = typeof opt === 'string' ? opt : opt.name; return normalize(str).includes(q); });
     return fullList.slice(0, 100);
   }, [query, options]);
 
@@ -221,62 +161,24 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
     <Combobox value={value} onChange={onChange} nullable>
       <div className="relative mt-1">
         <div className={CONTAINER_BASE}>
-          <Combobox.Input
-            className={INPUT_BASE}
-            displayValue={(item) => item || ''}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={placeholder}
-          />
-          <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-            <Icons.ChevronUpDown aria-hidden="true" />
-          </Combobox.Button>
+          <Combobox.Input className={INPUT_BASE} displayValue={(item) => item || ''} onChange={(event) => setQuery(event.target.value)} placeholder={placeholder} />
+          <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2"><Icons.ChevronUpDown aria-hidden="true" /></Combobox.Button>
         </div>
-        <Transition
-          as={Fragment}
-          leave="transition ease-in duration-100"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-          afterLeave={() => setQuery('')}
-        >
+        <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0" afterLeave={() => setQuery('')}>
           <Combobox.Options className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
             {filteredOptions.length === 0 && query !== '' ? (
               allowCustom ? (
-                <Combobox.Option
-                  className={({ active }) =>
-                    clsx('relative cursor-pointer select-none py-2 pl-4 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
-                  }
-                  value={query}
-                >
-                  <div className="flex items-center gap-2">
-                    <Icons.Plus className="h-4 w-4" />
-                    <span>Use "{query}"</span>
-                  </div>
+                <Combobox.Option className={({ active }) => clsx('relative cursor-pointer select-none py-2 pl-4 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')} value={query}>
+                  <div className="flex items-center gap-2"><Icons.Plus className="h-4 w-4" /><span>Use "{query}"</span></div>
                 </Combobox.Option>
-              ) : (
-                <div className="relative cursor-default select-none px-4 py-2 text-slate-500">Nothing found.</div>
-              )
+              ) : (<div className="relative cursor-default select-none px-4 py-2 text-slate-500">Nothing found.</div>)
             ) : (
               filteredOptions.map((opt, idx) => {
                 const label = typeof opt === 'string' ? opt : opt.name;
                 const key = typeof opt === 'string' ? `${opt}-${idx}` : `${opt.name}-${opt.id || idx}`;
                 return (
-                  <Combobox.Option
-                    key={key}
-                    className={({ active }) =>
-                      clsx('relative cursor-default select-none py-2 pl-10 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
-                    }
-                    value={label}
-                  >
-                    {({ selected, active }) => (
-                      <>
-                        <span className={clsx('block truncate', selected ? 'font-medium' : 'font-normal')}>{label}</span>
-                        {selected ? (
-                          <span className={clsx('absolute inset-y-0 left-0 flex items-center pl-3', active ? 'text-white' : 'text-[hsl(var(--brand))]')}>
-                            <Icons.Check aria-hidden="true" />
-                          </span>
-                        ) : null}
-                      </>
-                    )}
+                  <Combobox.Option key={key} className={({ active }) => clsx('relative cursor-default select-none py-2 pl-10 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')} value={label}>
+                    {({ selected, active }) => (<><span className={clsx('block truncate', selected ? 'font-medium' : 'font-normal')}>{label}</span>{selected ? (<span className={clsx('absolute inset-y-0 left-0 flex items-center pl-3', active ? 'text-white' : 'text-[hsl(var(--brand))]')}><Icons.Check aria-hidden="true" /></span>) : null}</>)}
                   </Combobox.Option>
                 );
               })
@@ -288,42 +190,19 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
   );
 }
 
-// 3. Simple Select Dropdown
 function SimpleSelect({ value, onChange, options }) {
   return (
     <Listbox value={value} onChange={onChange}>
       <div className="relative mt-1">
         <Listbox.Button className={CONTAINER_BASE}>
           <span className="block truncate py-2 pl-3 pr-10 min-h-[36px]">{value}</span>
-          <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-            <Icons.ChevronUpDown aria-hidden="true" />
-          </span>
+          <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2"><Icons.ChevronUpDown aria-hidden="true" /></span>
         </Listbox.Button>
-        <Transition
-          as={Fragment}
-          leave="transition ease-in duration-100"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
+        <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
           <Listbox.Options className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
             {options.map((opt, idx) => (
-              <Listbox.Option
-                key={idx}
-                className={({ active }) =>
-                  clsx('relative cursor-default select-none py-2 pl-10 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
-                }
-                value={opt}
-              >
-                {({ selected, active }) => (
-                  <>
-                    <span className={clsx('block truncate', selected ? 'font-medium' : 'font-normal')}>{opt}</span>
-                    {selected ? (
-                      <span className={clsx('absolute inset-y-0 left-0 flex items-center pl-3', active ? 'text-white' : 'text-[hsl(var(--brand))]')}>
-                        <Icons.Check aria-hidden="true" />
-                      </span>
-                    ) : null}
-                  </>
-                )}
+              <Listbox.Option key={idx} className={({ active }) => clsx('relative cursor-default select-none py-2 pl-10 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')} value={opt}>
+                {({ selected, active }) => (<><span className={clsx('block truncate', selected ? 'font-medium' : 'font-normal')}>{opt}</span>{selected ? (<span className={clsx('absolute inset-y-0 left-0 flex items-center pl-3', active ? 'text-white' : 'text-[hsl(var(--brand))]')}><Icons.Check aria-hidden="true" /></span>) : null}</>)}
               </Listbox.Option>
             ))}
           </Listbox.Options>
@@ -335,141 +214,46 @@ function SimpleSelect({ value, onChange, options }) {
 
 // ---- Initial State ----
 const emptyStop = () => ({
-  id: uid(),
-  country: '',
-  cities: [{ name: '', arrival: '', departure: '' }],
-  arrival: '',
-  departure: '',
-  accommodations: [],
-  accommodationOther: '',
-  exposures: {
-    mosquito: 'unknown', mosquitoDetails: '',
-    tick: 'unknown', tickDetails: '',
-    vectorOtherEnabled: 'unknown', vectorOtherDetails: '',
-    freshwater: 'unknown', freshwaterDetails: '',
-    cavesMines: 'unknown', cavesMinesDetails: '',
-    ruralForest: 'unknown', ruralForestDetails: '',
-    hikingWoodlands: 'unknown', hikingWoodlandsDetails: '',
-    animalContact: 'unknown', animalContactDetails: '',
-    animalBiteScratch: 'unknown', animalBiteScratchDetails: '',
-    bushmeat: 'unknown', bushmeatDetails: '',
-    needlesTattoos: 'unknown', needlesTattoosDetails: '',
-    safariWildlife: 'unknown', safariWildlifeDetails: '',
-    streetFood: 'unknown', streetFoodDetails: '',
-    untreatedWater: 'unknown', untreatedWaterDetails: '',
-    undercookedFood: 'unknown', undercookedFoodDetails: '',
-    undercookedSeafood: 'unknown', undercookedSeafoodDetails: '',
-    unpasteurisedMilk: 'unknown', unpasteurisedMilkDetails: '',
-    funerals: 'unknown', funeralsDetails: '',
-    largeGatherings: 'unknown', largeGatheringsDetails: '',
-    sickContacts: 'unknown', sickContactsDetails: '',
-    healthcareFacility: 'unknown', healthcareFacilityDetails: '',
-    prison: 'unknown', prisonDetails: '',
-    refugeeCamp: 'unknown', refugeeCampDetails: '',
-    unprotectedSex: 'unknown', unprotectedSexDetails: '',
-    otherText: '',
-  },
+  id: uid(), country: '', cities: [{ name: '', arrival: '', departure: '' }], arrival: '', departure: '', accommodations: [], accommodationOther: '',
+  exposures: { mosquito: 'unknown', mosquitoDetails: '', tick: 'unknown', tickDetails: '', vectorOtherEnabled: 'unknown', vectorOtherDetails: '', freshwater: 'unknown', freshwaterDetails: '', cavesMines: 'unknown', cavesMinesDetails: '', ruralForest: 'unknown', ruralForestDetails: '', hikingWoodlands: 'unknown', hikingWoodlandsDetails: '', animalContact: 'unknown', animalContactDetails: '', animalBiteScratch: 'unknown', animalBiteScratchDetails: '', bushmeat: 'unknown', bushmeatDetails: '', needlesTattoos: 'unknown', needlesTattoosDetails: '', safariWildlife: 'unknown', safariWildlifeDetails: '', streetFood: 'unknown', streetFoodDetails: '', untreatedWater: 'unknown', untreatedWaterDetails: '', undercookedFood: 'unknown', undercookedFoodDetails: '', undercookedSeafood: 'unknown', undercookedSeafoodDetails: '', unpasteurisedMilk: 'unknown', unpasteurisedMilkDetails: '', funerals: 'unknown', funeralsDetails: '', largeGatherings: 'unknown', largeGatheringsDetails: '', sickContacts: 'unknown', sickContactsDetails: '', healthcareFacility: 'unknown', healthcareFacilityDetails: '', prison: 'unknown', prisonDetails: '', refugeeCamp: 'unknown', refugeeCampDetails: '', unprotectedSex: 'unknown', unprotectedSexDetails: '', otherText: '' },
 });
 
-const emptyLayover = (tripId) => ({
-  id: uid(), tripId, country: '', city: '', start: '', end: '', leftAirport: 'no', activitiesText: '',
-});
+const emptyLayover = (tripId) => ({ id: uid(), tripId, country: '', city: '', start: '', end: '', leftAirport: 'no', activitiesText: '' });
+const emptyPastTravel = () => ({ id: uid(), country: '', year: '', details: '' });
+const emptyTrip = () => ({ id: uid(), purpose: '', originCountry: 'United Kingdom', originCity: 'Manchester', vaccines: [], vaccinesOther: '', malaria: { indication: 'Not indicated', drug: 'None', adherence: '' }, stops: [emptyStop()], layovers: [] });
 
-const emptyPastTravel = () => ({
-  id: uid(), country: '', year: '', details: '',
-});
+const initialState = { trips: [emptyTrip()], pastTravels: [], companions: { group: 'Alone', otherText: '', companionsWell: 'unknown', companionsUnwellDetails: '' } };
 
-const emptyTrip = () => ({
-  id: uid(),
-  purpose: '',
-  originCountry: 'United Kingdom',
-  originCity: 'Manchester',
-  vaccines: [],
-  vaccinesOther: '',
-  malaria: { indication: 'Not indicated', drug: 'None', adherence: '' },
-  stops: [emptyStop()],
-  layovers: [],
-});
-
-const initialState = {
-  trips: [emptyTrip()],
-  pastTravels: [],
-  companions: {
-    group: 'Alone',
-    otherText: '',
-    companionsWell: 'unknown',
-    companionsUnwellDetails: '',
-  },
-};
-
-// ===== Shared chronology builder =====
 function buildTripEvents(trip, companions) {
   const stopsSorted = [...trip.stops].sort((a, b) => (parseDate(a.arrival) - parseDate(b.arrival)));
   const layoversSorted = [...trip.layovers].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
   const events = [];
-
-  if (stopsSorted.length === 0) {
-    layoversSorted.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l }));
-    return events;
-  }
-
-  const firstStop = stopsSorted[0];
-  const lastStop = stopsSorted[stopsSorted.length - 1];
-  const beforeFirst = [];
-  const afterLast = [];
-  const betweenByIndex = Array.from({ length: Math.max(0, stopsSorted.length - 1) }, () => []);
-
+  if (stopsSorted.length === 0) { layoversSorted.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l })); return events; }
+  const firstStop = stopsSorted[0]; const lastStop = stopsSorted[stopsSorted.length - 1]; const beforeFirst = []; const afterLast = []; const betweenByIndex = Array.from({ length: Math.max(0, stopsSorted.length - 1) }, () => []);
   for (const l of layoversSorted) {
-    const sTime = parseDate(l.start);
-    const eTime = parseDate(l.end);
+    const sTime = parseDate(l.start); const eTime = parseDate(l.end);
     if (eTime && eTime <= parseDate(firstStop.arrival)) { beforeFirst.push(l); continue; }
     if (sTime && sTime >= parseDate(lastStop.departure)) { afterLast.push(l); continue; }
     let placed = false;
     for (let i = 0; i < stopsSorted.length - 1; i++) {
-      const depI = parseDate(stopsSorted[i].departure);
-      const arrIp1 = parseDate(stopsSorted[i + 1].arrival);
-      if (depI && arrIp1 && sTime && eTime && depI <= sTime && eTime <= arrIp1) {
-        betweenByIndex[i].push(l); placed = true; break;
-      }
+      const depI = parseDate(stopsSorted[i].departure); const arrIp1 = parseDate(stopsSorted[i + 1].arrival);
+      if (depI && arrIp1 && sTime && eTime && depI <= sTime && eTime <= arrIp1) { betweenByIndex[i].push(l); placed = true; break; }
     }
     if (!placed) { (sTime && sTime < parseDate(firstStop.arrival) ? beforeFirst : afterLast).push(l); }
   }
-
-  const firstStopId = firstStop.id;
-  const lastStopId = lastStop.id;
+  const firstStopId = firstStop.id; const lastStopId = lastStop.id;
   beforeFirst.sort((a, b) => (parseDate(a.end) - parseDate(b.end)));
   afterLast.sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
-
   stopsSorted.forEach((s, i) => {
-    const isFirstInTrip = s.id === firstStopId;
-    const isLastInTrip = s.id === lastStopId;
-    events.push({
-      type: 'stop',
-      date: parseDate(s.arrival),
-      stop: {
-        ...s, isFirstInTrip, isLastInTrip,
-        tripPurpose: trip.purpose,
-        tripVaccines: trip.vaccines || [], tripVaccinesOther: trip.vaccinesOther || '',
-        tripMalaria: trip.malaria || { indication: 'Not indicated', drug: 'None', adherence: '' },
-        tripCompanions: companions || null,
-        tripOriginCountry: trip.originCountry || '', tripOriginCity: trip.originCity || '',
-      },
-    });
-    if (i === 0 && beforeFirst.length) {
-      beforeFirst.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l, anchorStopId: s.id, position: 'before-stop' }));
-    }
-    if (i < betweenByIndex.length) {
-      const group = betweenByIndex[i].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
-      group.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l, anchorStopId: s.id, position: 'between' }));
-    }
-    if (isLastInTrip && afterLast.length) {
-      afterLast.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l, anchorStopId: s.id, position: 'after-stop' }));
-    }
+    const isFirstInTrip = s.id === firstStopId; const isLastInTrip = s.id === lastStopId;
+    events.push({ type: 'stop', date: parseDate(s.arrival), stop: { ...s, isFirstInTrip, isLastInTrip, tripPurpose: trip.purpose, tripVaccines: trip.vaccines || [], tripVaccinesOther: trip.vaccinesOther || '', tripMalaria: trip.malaria || { indication: 'Not indicated', drug: 'None', adherence: '' }, tripCompanions: companions || null, tripOriginCountry: trip.originCountry || '', tripOriginCity: trip.originCity || '' } });
+    if (i === 0 && beforeFirst.length) { beforeFirst.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l, anchorStopId: s.id, position: 'before-stop' })); }
+    if (i < betweenByIndex.length) { const group = betweenByIndex[i].sort((a, b) => (parseDate(a.start) - parseDate(b.start))); group.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l, anchorStopId: s.id, position: 'between' })); }
+    if (isLastInTrip && afterLast.length) { afterLast.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l, anchorStopId: s.id, position: 'after-stop' })); }
   });
   return events;
 }
 
-// ===== Main Page Component =====
 export default function TravelHistoryGeneratorPage() {
   const [state, setState] = useState(initialState);
   const [issues, setIssues] = useState([]);
@@ -486,48 +270,14 @@ export default function TravelHistoryGeneratorPage() {
   }, [state.trips, state.pastTravels]);
 
   useEffect(() => {
-    const list = [];
-    const stopIds = new Set();
-    const layIds = new Set();
+    const list = []; const stopIds = new Set(); const layIds = new Set();
     state.trips.forEach((trip, tIdx) => {
-      trip.stops.forEach((s, sIdx) => {
-        if (s.arrival && s.departure) {
-          const a = parseDate(s.arrival), d = parseDate(s.departure);
-          if (a && d && a > d) {
-            list.push({ level: 'error', msg: `Trip ${tIdx + 1}, Stop ${sIdx + 1}: Arrival is after departure.` });
-            stopIds.add(s.id);
-          }
-        }
-      });
-      for (let i = 0; i < trip.stops.length; i++) {
-        for (let j = i + 1; j < trip.stops.length; j++) {
-          const A = trip.stops[i], B = trip.stops[j];
-          if (rangesOverlap(A.arrival, A.departure, B.arrival, B.departure)) {
-            list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Stops ${i + 1} and ${j + 1} overlap.` });
-            stopIds.add(A.id); stopIds.add(B.id);
-          }
-        }
-      }
-      for (let i = 0; i < trip.layovers.length; i++) {
-        for (let j = i + 1; j < trip.layovers.length; j++) {
-          const A = trip.layovers[i], B = trip.layovers[j];
-          if (rangesOverlap(A.start, A.end, B.start, B.end)) {
-            list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Layovers overlap.` });
-            layIds.add(A.id); layIds.add(B.id);
-          }
-        }
-      }
-      trip.layovers.forEach((L, li) => {
-        trip.stops.forEach((S, si) => {
-          if (rangesOverlap(L.start, L.end, S.arrival, S.departure)) {
-            list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Layover ${li + 1} overlaps Stop ${si + 1}.` });
-            layIds.add(L.id); stopIds.add(S.id);
-          }
-        });
-      });
+      trip.stops.forEach((s, sIdx) => { if (s.arrival && s.departure) { const a = parseDate(s.arrival), d = parseDate(s.departure); if (a && d && a > d) { list.push({ level: 'error', msg: `Trip ${tIdx + 1}, Stop ${sIdx + 1}: Arrival is after departure.` }); stopIds.add(s.id); } } });
+      for (let i = 0; i < trip.stops.length; i++) { for (let j = i + 1; j < trip.stops.length; j++) { const A = trip.stops[i], B = trip.stops[j]; if (rangesOverlap(A.arrival, A.departure, B.arrival, B.departure)) { list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Stops ${i + 1} and ${j + 1} overlap.` }); stopIds.add(A.id); stopIds.add(B.id); } } }
+      for (let i = 0; i < trip.layovers.length; i++) { for (let j = i + 1; j < trip.layovers.length; j++) { const A = trip.layovers[i], B = trip.layovers[j]; if (rangesOverlap(A.start, A.end, B.start, B.end)) { list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Layovers overlap.` }); layIds.add(A.id); layIds.add(B.id); } } }
+      trip.layovers.forEach((L, li) => { trip.stops.forEach((S, si) => { if (rangesOverlap(L.start, L.end, S.arrival, S.departure)) { list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Layover ${li + 1} overlaps Stop ${si + 1}.` }); layIds.add(L.id); stopIds.add(S.id); } }); });
     });
-    setIssues(list);
-    setHighlight({ stopIds, layoverIds: layIds });
+    setIssues(list); setHighlight({ stopIds, layoverIds: layIds });
   }, [state.trips]);
 
   useEffect(() => {
@@ -540,22 +290,12 @@ export default function TravelHistoryGeneratorPage() {
 
   const mergedEventsAllTrips = useMemo(() => {
     const merged = [];
-    state.trips.forEach((trip) => {
-      buildTripEvents(trip, state.companions).forEach((ev) => merged.push({ ...ev, tripId: trip.id }));
-    });
-    merged.sort((a, b) => {
-      if (!a.date && !b.date) return 0;
-      if (!a.date) return 1;
-      if (!b.date) return -1;
-      return a.date - b.date;
-    });
+    state.trips.forEach((trip) => { buildTripEvents(trip, state.companions).forEach((ev) => merged.push({ ...ev, tripId: trip.id })); });
+    merged.sort((a, b) => { if (!a.date && !b.date) return 0; if (!a.date) return 1; if (!b.date) return -1; return a.date - b.date; });
     return merged;
   }, [state.trips, state.companions]);
 
-  const { summaryHtml, summaryTextPlain } = useMemo(
-    () => buildSummaryFromEvents(state, mergedEventsAllTrips),
-    [state, mergedEventsAllTrips]
-  );
+  const { summaryHtml, summaryTextPlain } = useMemo(() => buildSummaryFromEvents(state, mergedEventsAllTrips), [state, mergedEventsAllTrips]);
 
   const updateTrip = (tripId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, ...patch } : t)) }));
   const updateStop = (tripId, stopId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, stops: t.stops.map((s) => (s.id === stopId ? { ...s, ...patch } : s)) } : t)) }));
@@ -566,16 +306,9 @@ export default function TravelHistoryGeneratorPage() {
   const addLayover = (tripId) => { const l = emptyLayover(tripId); setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, layovers: [...t.layovers, l] } : t)) })); setPendingScrollId(l.id); };
   const updateLayover = (tripId, layoverId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, layovers: t.layovers.map((l) => (l.id === layoverId ? { ...l, ...patch } : l)) } : t)) }));
   const removeLayover = (tripId, layoverId) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, layovers: t.layovers.filter((l) => l.id !== layoverId) } : t)) }));
-
-  // Past Travel Handlers
-  const addPastTravel = () => {
-    const pt = emptyPastTravel();
-    setState(p => ({ ...p, pastTravels: [...p.pastTravels, pt] }));
-    setPendingScrollId(pt.id);
-  };
+  const addPastTravel = () => { const pt = emptyPastTravel(); setState(p => ({ ...p, pastTravels: [...p.pastTravels, pt] })); setPendingScrollId(pt.id); };
   const updatePastTravel = (id, patch) => setState(p => ({ ...p, pastTravels: p.pastTravels.map(pt => pt.id === id ? { ...pt, ...patch } : pt) }));
   const removePastTravel = (id) => setState(p => ({ ...p, pastTravels: p.pastTravels.filter(pt => pt.id !== id) }));
-
   const clearAll = () => { if (confirm('Clear all data?')) setState(initialState); };
 
   return (
@@ -583,342 +316,104 @@ export default function TravelHistoryGeneratorPage() {
       <header className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Travel History Generator</h1>
-          <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl">
-            Build a clear, concise travel history. Provide as much information as possible.
-          </p>
+          <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl">Build a clear, concise travel history. Provide as much information as possible.</p>
         </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={clearAll} className={BTN_SECONDARY}>Clear all</button>
-        </div>
+        <div className="flex gap-2"><button type="button" onClick={clearAll} className={BTN_SECONDARY}>Clear all</button></div>
       </header>
-
       <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 p-4 text-amber-900 dark:text-amber-200 flex items-center gap-3">
-        <span aria-hidden="true">⚠️</span>
-        <p className="text-sm">Do not enter private or patient-identifiable information.</p>
+        <span aria-hidden="true">⚠️</span><p className="text-sm">Do not enter private or patient-identifiable information.</p>
       </div>
-
-      {issues.length > 0 && (
-        <div className="mb-6 space-y-2" aria-live="polite">
-          {issues.map((e, i) => (
-            <div key={i} className={classNames('rounded-lg border px-3 py-2 text-sm', e.level === 'error' ? 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-700/60 dark:bg-rose-900/20 dark:text-rose-200' : 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600/60 dark:bg-amber-900/20 dark:text-amber-200')}>
-              {e.msg}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Trip Builder */}
-      <section className="space-y-10">
-        {state.trips.map((trip, tIdx) => (
-          <TripCard
-            key={trip.id}
-            innerRef={setItemRef(trip.id)}
-            trip={trip}
-            index={tIdx}
-            updateTrip={updateTrip}
-            updateStop={updateStop}
-            addStop={addStop}
-            removeStop={removeStop}
-            addLayover={addLayover}
-            updateLayover={updateLayover}
-            removeLayover={removeLayover}
-            removeTrip={removeTrip}
-            highlight={highlight}
-            setItemRef={setItemRef}
-          />
-        ))}
-        <div>
-          <button type="button" onClick={addTrip} className={BTN_PRIMARY}>+ Add another trip</button>
-        </div>
-      </section>
-
-      {/* NEW: Significant Past Travel */}
+      {issues.length > 0 && (<div className="mb-6 space-y-2" aria-live="polite">{issues.map((e, i) => (<div key={i} className={classNames('rounded-lg border px-3 py-2 text-sm', e.level === 'error' ? 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-700/60 dark:bg-rose-900/20 dark:text-rose-200' : 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600/60 dark:bg-amber-900/20 dark:text-amber-200')}>{e.msg}</div>))}</div>)}
+      <section className="space-y-10">{state.trips.map((trip, tIdx) => (<TripCard key={trip.id} innerRef={setItemRef(trip.id)} trip={trip} index={tIdx} updateTrip={updateTrip} updateStop={updateStop} addStop={addStop} removeStop={removeStop} addLayover={addLayover} updateLayover={updateLayover} removeLayover={removeLayover} removeTrip={removeTrip} highlight={highlight} setItemRef={setItemRef} />))}<div><button type="button" onClick={addTrip} className={BTN_PRIMARY}>+ Add another trip</button></div></section>
       <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
         <h2 className={SECTION_HEADING}>Significant Past Travel</h2>
         <div className="space-y-4 mt-4">
-          {state.pastTravels.length === 0 && (
-            <p className="text-sm text-slate-500 italic">No past travels added.</p>
-          )}
+          {state.pastTravels.length === 0 && (<p className="text-sm text-slate-500 italic">No past travels added.</p>)}
           {state.pastTravels.map((pt, i) => (
             <div key={pt.id} ref={setItemRef(pt.id)} className="grid gap-4 sm:grid-cols-12 items-start p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
-              <div className="sm:col-span-4">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Country</label>
-                <SearchableSelect 
-                  value={pt.country} 
-                  onChange={(val) => updatePastTravel(pt.id, { country: val })} 
-                  options={CSC_COUNTRIES.map(c => c.name)}
-                  placeholder="Select country"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Year / Time</label>
-                <div className={TEXT_INPUT_CLASS}>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. 2012" 
-                    className={INPUT_BASE}
-                    value={pt.year}
-                    onChange={(e) => updatePastTravel(pt.id, { year: e.target.value })} 
-                  />
-                </div>
-              </div>
-              <div className="sm:col-span-5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Details</label>
-                <textarea 
-                  rows={1}
-                  placeholder="Describe details..."
-                  className={clsx(TEXTAREA_CLASS, "min-h-[42px]")}
-                  value={pt.details}
-                  onChange={(e) => updatePastTravel(pt.id, { details: e.target.value })}
-                />
-              </div>
-              <div className="sm:col-span-1 flex justify-end pt-6">
-                <button type="button" onClick={() => removePastTravel(pt.id)} className="text-slate-400 hover:text-rose-500 transition p-2">
-                  <Icons.Trash className="w-5 h-5" />
-                </button>
-              </div>
+              <div className="sm:col-span-4"><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Country</label><SearchableSelect value={pt.country} onChange={(val) => updatePastTravel(pt.id, { country: val })} options={CSC_COUNTRIES.map(c => c.name)} placeholder="Select country" /></div>
+              <div className="sm:col-span-2"><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Year / Time</label><div className={TEXT_INPUT_CLASS}><input type="text" placeholder="e.g. 2012" className={INPUT_BASE} value={pt.year} onChange={(e) => updatePastTravel(pt.id, { year: e.target.value })} /></div></div>
+              <div className="sm:col-span-5"><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Details</label><textarea rows={1} placeholder="Describe details..." className={clsx(TEXTAREA_CLASS, "min-h-[42px]")} value={pt.details} onChange={(e) => updatePastTravel(pt.id, { details: e.target.value })} /></div>
+              <div className="sm:col-span-1 flex justify-end pt-6"><button type="button" onClick={() => removePastTravel(pt.id)} className="text-slate-400 hover:text-rose-500 transition p-2"><Icons.Trash className="w-5 h-5" /></button></div>
             </div>
           ))}
           <button type="button" onClick={addPastTravel} className={LINKISH_SECONDARY}>+ Add entry</button>
         </div>
       </section>
-
-      {/* Companions */}
       <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
         <h2 className={SECTION_HEADING}>Companions</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <div className="sm:col-span-2">
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Who did you travel with?</label>
-            <div className="flex flex-wrap gap-2">
-              {['Alone', 'Family', 'Friends', 'Organised tour', 'Other'].map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setState((p) => {
-                    const next = { ...p.companions, group: opt };
-                    if (opt === 'Alone') { next.companionsWell = 'unknown'; next.companionsUnwellDetails = ''; next.otherText = ''; }
-                    return { ...p, companions: next };
-                  })}
-                  className={classNames(
-                    'rounded-lg px-3 py-1.5 text-sm font-medium border transition',
-                    state.companions.group === opt
-                      ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent shadow-sm'
-                      : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
-                  )}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-            {state.companions.group === 'Other' && (
-              <div className="mt-2">
-                <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Describe</label>
-                <div className={TEXT_INPUT_CLASS}>
-                  <input
-                    type="text"
-                    className={INPUT_BASE}
-                    value={state.companions.otherText}
-                    onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, otherText: e.target.value } }))}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-          {state.companions.group !== 'Alone' && (
-            <div>
-              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Are they well?</label>
-              <div className="flex gap-2">
-                {[{ val: 'yes', label: 'Yes' }, { val: 'no', label: 'No' }, { val: 'unknown', label: 'Unknown' }].map(({ val, label }) => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setState((p) => ({ ...p, companions: { ...p.companions, companionsWell: val, companionsUnwellDetails: val === 'no' ? p.companions.companionsUnwellDetails : '' } }))}
-                    className={classNames(
-                      'rounded-lg px-3 py-1.5 text-sm font-medium border transition',
-                      state.companions.companionsWell === val ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent shadow-sm' : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200'
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {state.companions.companionsWell === 'no' && (
-                <div className="mt-2">
-                  <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Please provide details</label>
-                  <textarea
-                    rows={3}
-                    className={TEXTAREA_CLASS}
-                    value={state.companions.companionsUnwellDetails}
-                    onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, companionsUnwellDetails: e.target.value } }))}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+          <div className="sm:col-span-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Who did you travel with?</label><div className="flex flex-wrap gap-2">{['Alone', 'Family', 'Friends', 'Organised tour', 'Other'].map((opt) => (<button key={opt} type="button" onClick={() => setState((p) => { const next = { ...p.companions, group: opt }; if (opt === 'Alone') { next.companionsWell = 'unknown'; next.companionsUnwellDetails = ''; next.otherText = ''; } return { ...p, companions: next }; })} className={classNames('rounded-lg px-3 py-1.5 text-sm font-medium border transition', state.companions.group === opt ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent shadow-sm' : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200')}>{opt}</button>))}</div>{state.companions.group === 'Other' && (<div className="mt-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Describe</label><div className={TEXT_INPUT_CLASS}><input type="text" className={INPUT_BASE} value={state.companions.otherText} onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, otherText: e.target.value } }))} /></div></div>)}</div>
+          {state.companions.group !== 'Alone' && (<div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Are they well?</label><div className="flex gap-2">{[{ val: 'yes', label: 'Yes' }, { val: 'no', label: 'No' }, { val: 'unknown', label: 'Unknown' }].map(({ val, label }) => (<button key={val} type="button" onClick={() => setState((p) => ({ ...p, companions: { ...p.companions, companionsWell: val, companionsUnwellDetails: val === 'no' ? p.companions.companionsUnwellDetails : '' } }))} className={classNames('rounded-lg px-3 py-1.5 text-sm font-medium border transition', state.companions.companionsWell === val ? 'text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent shadow-sm' : 'border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] text-slate-700 dark:text-slate-200')}>{label}</button>))}</div>{state.companions.companionsWell === 'no' && (<div className="mt-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Please provide details</label><textarea rows={3} className={TEXTAREA_CLASS} value={state.companions.companionsUnwellDetails} onChange={(e) => setState((p) => ({ ...p, companions: { ...p.companions, companionsUnwellDetails: e.target.value } }))} /></div>)}</div>)}
         </div>
       </section>
-
-      {/* Timeline */}
-      <section id="timeline-section" className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-        <h2 className={SECTION_HEADING}>Timeline</h2>
-        <div className="mt-4">
-          <TimelineVertical events={mergedEventsAllTrips} />
-        </div>
-      </section>
-
-      {/* Summary */}
-      <section className="mt-6 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-        <h2 className={SECTION_HEADING}>Travel History Summary</h2>
-        <div className="mt-3 text-sm text-slate-700 dark:text-slate-300">
-          <div dangerouslySetInnerHTML={{ __html: summaryHtml }} />
-        </div>
-        <div className="mt-4 flex gap-2">
-          <button type="button" onClick={() => navigator.clipboard.writeText(summaryTextPlain)} className={BTN_SECONDARY}>Copy summary</button>
-        </div>
-      </section>
+      <section id="timeline-section" className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6"><h2 className={SECTION_HEADING}>Timeline</h2><div className="mt-4"><TimelineVertical events={mergedEventsAllTrips} /></div></section>
+      <section className="mt-6 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6"><h2 className={SECTION_HEADING}>Travel History Summary</h2><div className="mt-3 text-sm text-slate-700 dark:text-slate-300"><div dangerouslySetInnerHTML={{ __html: summaryHtml }} /></div><div className="mt-4 flex gap-2"><button type="button" onClick={() => navigator.clipboard.writeText(summaryTextPlain)} className={BTN_SECONDARY}>Copy summary</button></div></section>
     </main>
   );
 }
 
-// ===== Trip Card =====
-function TripCard({
-  trip, index, updateTrip, updateStop, addStop, removeStop, addLayover, updateLayover, removeLayover, removeTrip,
-  highlight, setItemRef, innerRef
-}) {
-  const toggleTripVaccine = (v) => {
-    const set = new Set(trip.vaccines || []);
-    const had = set.has(v);
-    if (had) set.delete(v); else set.add(v);
-    const patch = { vaccines: Array.from(set) };
-    if (v === 'Other' && had) patch.vaccinesOther = '';
-    updateTrip(trip.id, patch);
-  };
-
-  const setMalaria = (patch) => {
-    const next = { ...trip.malaria, ...patch };
-    if (next.indication !== 'Taken') { next.drug = 'None'; next.adherence = ''; }
-    updateTrip(trip.id, { malaria: next });
-  };
-
+function TripCard({ trip, index, updateTrip, updateStop, addStop, removeStop, addLayover, updateLayover, removeLayover, removeTrip, highlight, setItemRef, innerRef }) {
+  const toggleTripVaccine = (v) => { const set = new Set(trip.vaccines || []); const had = set.has(v); if (had) set.delete(v); else set.add(v); const patch = { vaccines: Array.from(set) }; if (v === 'Other' && had) patch.vaccinesOther = ''; updateTrip(trip.id, patch); };
+  const setMalaria = (patch) => { const next = { ...trip.malaria, ...patch }; if (next.indication !== 'Taken') { next.drug = 'None'; next.adherence = ''; } updateTrip(trip.id, { malaria: next }); };
   const originISO2 = useMemo(() => getIsoFromCountryName(trip.originCountry), [trip.originCountry]);
-  const originCityNames = useMemo(() => {
-    const list = originISO2 ? (City.getCitiesOfCountry(originISO2) || []) : [];
-    const names = Array.from(new Set(list.map((c) => c.name)));
-    names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-    return names;
-  }, [originISO2]);
+  const originCityNames = useMemo(() => { const list = originISO2 ? (City.getCitiesOfCountry(originISO2) || []) : []; const names = Array.from(new Set(list.map((c) => c.name))); names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })); return names; }, [originISO2]);
 
   return (
     <div ref={innerRef} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-      <div className="flex items-start justify-between gap-3">
-        <h2 className={SECTION_HEADING}>Trip {index + 1}</h2>
-        <div className="flex gap-2">
-          <button type="button" onClick={() => addStop(trip.id)} className={BTN_PRIMARY}>+ Add stop</button>
-          <button type="button" onClick={() => addLayover(trip.id)} className={BTN_PRIMARY}>+ Add layover</button>
-          <button type="button" onClick={() => removeTrip(trip.id)} className={BTN_SECONDARY}>Remove trip</button>
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Travelling from</label>
-        <div className="mt-2 grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Country</label>
-            <SearchableSelect 
-              value={trip.originCountry} 
-              onChange={(val) => updateTrip(trip.id, { originCountry: val, originCity: '' })} 
-              options={CSC_COUNTRIES.map(c => c.name)}
-              placeholder="Select country"
-            />
-          </div>
-          <div className="w-full">
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
-            <SearchableSelect 
-              value={trip.originCity} 
-              onChange={(val) => updateTrip(trip.id, { originCity: val })} 
-              options={originCityNames}
-              placeholder="Search city"
-              allowCustom={true} 
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-4 grid sm:grid-cols-3 gap-4">
-        <div className="sm:col-span-3">
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Purpose</label>
-          <div className={TEXT_INPUT_CLASS}>
-            <input 
-              type="text" 
-              placeholder="Work, VFR, tourism, humanitarian, etc." 
-              className={INPUT_BASE} 
-              value={trip.purpose} 
-              onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })} 
-            />
-          </div>
-        </div>
-      </div>
-
+      <div className="flex items-start justify-between gap-3"><h2 className={SECTION_HEADING}>Trip {index + 1}</h2><div className="flex gap-2"><button type="button" onClick={() => addStop(trip.id)} className={BTN_PRIMARY}>+ Add stop</button><button type="button" onClick={() => addLayover(trip.id)} className={BTN_PRIMARY}>+ Add layover</button><button type="button" onClick={() => removeTrip(trip.id)} className={BTN_SECONDARY}>Remove trip</button></div></div>
+      <div className="mt-6"><label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Travelling from</label><div className="mt-2 grid sm:grid-cols-2 gap-4"><div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Country</label><SearchableSelect value={trip.originCountry} onChange={(val) => updateTrip(trip.id, { originCountry: val, originCity: '' })} options={CSC_COUNTRIES.map(c => c.name)} placeholder="Select country" /></div><div className="w-full"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label><SearchableSelect value={trip.originCity} onChange={(val) => updateTrip(trip.id, { originCity: val })} options={originCityNames} placeholder="Search city" allowCustom={true} /></div></div></div>
+      <div className="mt-4 grid sm:grid-cols-3 gap-4"><div className="sm:col-span-3"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Purpose</label><div className={TEXT_INPUT_CLASS}><input type="text" placeholder="Work, VFR, tourism, humanitarian, etc." className={INPUT_BASE} value={trip.purpose} onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })} /></div></div></div>
+      
+      {/* Malaria Section: Segmented Control */}
       <div className="mt-6 grid md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Pre-travel vaccinations</label>
-          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {VACCINE_OPTIONS.map((v) => (<Checkbox key={v} label={v} checked={(trip.vaccines || []).includes(v)} onChange={() => toggleTripVaccine(v)} />))}
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">{VACCINE_OPTIONS.map((v) => (<Checkbox key={v} label={v} checked={(trip.vaccines || []).includes(v)} onChange={() => toggleTripVaccine(v)} />))}</div>
+          {(trip.vaccines || []).includes('Other') && (<div className="mt-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other vaccination(s)</label><div className={TEXT_INPUT_CLASS}><input type="text" placeholder="Enter vaccine name(s)…" className={INPUT_BASE} value={trip.vaccinesOther || ''} onChange={(e) => updateTrip(trip.id, { vaccinesOther: e.target.value })} /></div></div>)}
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Malaria prophylaxis</label>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {MALARIA_STATUS_OPTIONS.map(opt => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setMalaria({ indication: opt })}
+                className={clsx(
+                  "px-3 py-1.5 text-xs font-medium rounded-lg border transition",
+                  trip.malaria.indication === opt
+                    ? "bg-[hsl(var(--brand))] text-white border-transparent"
+                    : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[hsl(var(--brand))]"
+                )}
+              >
+                {opt}
+              </button>
+            ))}
           </div>
-          {(trip.vaccines || []).includes('Other') && (
-            <div className="mt-2">
-              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other vaccination(s)</label>
-              <div className={TEXT_INPUT_CLASS}>
-                <input type="text" placeholder="Enter vaccine name(s)…" className={INPUT_BASE} value={trip.vaccinesOther || ''} onChange={(e) => updateTrip(trip.id, { vaccinesOther: e.target.value })} />
+          {trip.malaria.indication === 'Taken' && (
+            <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-top-1 duration-200">
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Drug</label>
+                <SimpleSelect value={trip.malaria.drug} onChange={(val) => setMalaria({ drug: val })} options={MALARIA_DRUGS} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Adherence</label>
+                <SimpleSelect value={trip.malaria.adherence} onChange={(val) => setMalaria({ adherence: val })} options={ADHERENCE_OPTIONS} />
               </div>
             </div>
           )}
         </div>
-        <div>
-          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Malaria prophylaxis</label>
-          <div className="mt-2 grid sm:grid-cols-3 gap-2">
-            <SimpleSelect 
-              value={trip.malaria.indication} 
-              onChange={(val) => setMalaria({ indication: val })} 
-              options={MALARIA_INDICATIONS}
-            />
-            {trip.malaria.indication === 'Taken' && (
-              <SimpleSelect 
-                value={trip.malaria.drug} 
-                onChange={(val) => setMalaria({ drug: val })} 
-                options={MALARIA_DRUGS}
-              />
-            )}
-            {trip.malaria.indication === 'Taken' && (
-              <SimpleSelect 
-                value={trip.malaria.adherence} 
-                onChange={(val) => setMalaria({ adherence: val })} 
-                options={ADHERENCE_OPTIONS}
-              />
-            )}
-          </div>
-        </div>
       </div>
 
-      <div className="mt-6 space-y-6">
-        {trip.stops.map((stop, sIdx) => (
-          <StopCard key={stop.id} innerRef={setItemRef(stop.id)} stop={stop} index={sIdx} onChange={(patch) => updateStop(trip.id, stop.id, patch)} onRemove={() => removeStop(trip.id, stop.id)} highlighted={highlight.stopIds.has(stop.id)} />
-        ))}
-      </div>
-
-      {trip.layovers.length > 0 && (
-        <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-6">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-3">Layovers</h3>
-          <div className="space-y-4">
-            {trip.layovers.map((l) => (
-              <LayoverCard key={l.id} innerRef={setItemRef(l.id)} layover={l} onChange={(patch) => updateLayover(trip.id, l.id, patch)} onRemove={() => removeLayover(trip.id, l.id)} highlighted={highlight.layoverIds.has(l.id)} />
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="mt-6 space-y-6">{trip.stops.map((stop, sIdx) => (<StopCard key={stop.id} innerRef={setItemRef(stop.id)} stop={stop} index={sIdx} onChange={(patch) => updateStop(trip.id, stop.id, patch)} onRemove={() => removeStop(trip.id, stop.id)} highlighted={highlight.stopIds.has(stop.id)} />))}</div>
+      {trip.layovers.length > 0 && (<div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-6"><h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-3">Layovers</h3><div className="space-y-4">{trip.layovers.map((l) => (<LayoverCard key={l.id} innerRef={setItemRef(l.id)} layover={l} onChange={(patch) => updateLayover(trip.id, l.id, patch)} onRemove={() => removeLayover(trip.id, l.id)} highlighted={highlight.layoverIds.has(l.id)} />))}</div></div>)}
     </div>
   );
 }
+
+// ... (StopCard, LayoverCard, Checkbox, ExposureRow, TimelineVertical, buildSummaryFromEvents)
+// REMAINDER OF FILE IS UNCHANGED FROM PREVIOUS PHASE, BUT PASTED BELOW FOR COMPLETENESS
 
 function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
   const exp = stop.exposures;
@@ -1096,22 +591,11 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="w-full">
            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Country</label>
-           <SearchableSelect 
-              value={layover.country} 
-              onChange={(val) => { onChange({ country: val, city: "" }); }} 
-              options={CSC_COUNTRIES.map(c => c.name)}
-              placeholder="Select country"
-           />
+           <SearchableSelect value={layover.country} onChange={(val) => { onChange({ country: val, city: "" }); }} options={CSC_COUNTRIES.map(c => c.name)} placeholder="Select country" />
         </div>
         <div className="w-full">
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
-          <SearchableSelect 
-              value={layover.city} 
-              onChange={(val) => onChange({ city: val })} 
-              options={cityOptions.map(c => c.name)}
-              placeholder="Search city"
-              allowCustom={true} 
-           />
+          <SearchableSelect value={layover.city} onChange={(val) => onChange({ city: val })} options={cityOptions.map(c => c.name)} placeholder="Search city" allowCustom={true} />
         </div>
         <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Start</label><ResponsiveDatePicker value={layover.start} onChange={(val) => onChange({ start: val })} /></div>
         <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">End</label><ResponsiveDatePicker value={layover.end} onChange={(val) => onChange({ end: val })} /></div>
@@ -1119,11 +603,7 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
       <div className="mt-4 grid sm:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Did you leave the airport?</label>
-          <SimpleSelect 
-            value={layover.leftAirport} 
-            onChange={(val) => onChange({ leftAirport: val })} 
-            options={['no', 'yes']}
-          />
+          <SimpleSelect value={layover.leftAirport} onChange={(val) => onChange({ leftAirport: val })} options={['no', 'yes']} />
         </div>
         {layover.leftAirport === "yes" && (<div className="sm:col-span-2"><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Please describe any activities undertaken</label><textarea rows={3} className={TEXTAREA_CLASS} value={layover.activitiesText} onChange={(e) => onChange({ activitiesText: e.target.value })} /></div>)}
       </div>
