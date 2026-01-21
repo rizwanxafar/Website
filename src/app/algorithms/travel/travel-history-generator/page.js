@@ -1,12 +1,11 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v24 (Phase 9: Per-Trip Companions)
+// Travel History Generator — v25 (Neutral Styling + Options Update)
 // Changes:
-// - Moved Companions from Global State to Trip State
-// - Implemented Segmented Control UI for Companions inside TripCard
-// - Updated Summary to reflect companions per trip
-// - Removed global Companions section
+// - Removed 'Work' from Companion options
+// - Removed Red/Green styling from Yes/No buttons (Now uses uniform Brand color)
+// - Ensured all button states match the "Segmented Control" aesthetic
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { Combobox, Listbox, Popover, Transition } from '@headlessui/react';
@@ -47,8 +46,8 @@ const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquin
 const MALARIA_STATUS_OPTIONS = ['Not indicated', 'Taken', 'Not taken', 'Unsure'];
 const ADHERENCE_OPTIONS = ['Good', 'Partial', 'Poor', 'Unknown'];
 
-// NEW: Companion Options
-const COMPANION_GROUPS = ['Alone', 'Family', 'Friends', 'Work', 'Other'];
+// UPDATED: Removed "Work"
+const COMPANION_GROUPS = ['Alone', 'Family', 'Friends', 'Other'];
 const COMPANION_WELL_OPTIONS = ['Yes', 'No', 'Unknown'];
 
 // ---- Theme Classes (Standardized) ----
@@ -80,6 +79,11 @@ const TEXTAREA_CLASS =
 
 const SECTION_HEADING = "text-lg font-semibold text-slate-900 dark:text-slate-100";
 
+// Toggle Button Styles (Neutral / Brand)
+const TOGGLE_BTN_BASE = "px-3 py-1.5 text-xs font-medium rounded-lg border transition";
+const TOGGLE_BTN_ACTIVE = "bg-[hsl(var(--brand))] text-white border-transparent shadow-sm";
+const TOGGLE_BTN_INACTIVE = "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[hsl(var(--brand))]";
+
 // ---- Icons ----
 const Icons = {
   ChevronUpDown: (p) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-slate-400" {...p}><path fillRule="evenodd" d="M10 3a.75.75 0 01.55.24l3.25 3.5a.75.75 0 11-1.1 1.02L10 4.852 7.3 7.76a.75.75 0 01-1.1-1.02l3.25-3.5A.75.75 0 0110 3zm-3.76 9.2a.75.75 0 011.06.04l2.7 2.908 2.7-2.908a.75.75 0 111.1 1.02l-3.25 3.5a.75.75 0 01-1.1 0l-3.25-3.5a.75.75 0 01.04-1.06z" clipRule="evenodd" /></svg>,
@@ -95,12 +99,14 @@ const Icons = {
 const uid = () => Math.random().toString(36).slice(2, 9);
 const classNames = (...parts) => parts.filter(Boolean).join(' ');
 
+// Internal date helper for logic
 const parseDate = (dateStr) => {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
+// Format outputs as DD/MM/YYYY
 const formatDMY = (dateStr) => {
   const d = parseDate(dateStr);
   if (!d) return '';
@@ -129,6 +135,7 @@ function ResponsiveDatePicker({ value, onChange }) {
 
   return (
     <div className="relative mt-1">
+      {/* MOBILE: Native Input */}
       <div className="block md:hidden">
         <div className={CONTAINER_BASE}>
           <input
@@ -139,6 +146,8 @@ function ResponsiveDatePicker({ value, onChange }) {
           />
         </div>
       </div>
+
+      {/* DESKTOP: Custom Popover */}
       <div className="hidden md:block">
         <Popover className="relative w-full">
           <Popover.Button className={clsx(CONTAINER_BASE, "flex items-center justify-between text-left")}>
@@ -894,7 +903,7 @@ function TripCard({
                         className={clsx(
                           "px-3 py-1.5 text-xs font-medium rounded-lg border transition",
                           trip.companions.companionsWell === val
-                            ? (val === 'yes' ? "bg-emerald-600 text-white border-transparent" : val === 'no' ? "bg-rose-600 text-white border-transparent" : "bg-slate-600 text-white border-transparent")
+                            ? "bg-[hsl(var(--brand))] text-white border-transparent"
                             : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400"
                         )}
                       >
@@ -1051,7 +1060,7 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
                 <span className="flex-1">Other vector</span>
                 <div className="flex gap-1">
                    {['yes', 'no'].map((opt) => (
-                      <button key={opt} type="button" onClick={() => onChange({ exposures: { ...exp, vectorOtherEnabled: opt === exp.vectorOtherEnabled ? 'unknown' : opt } })} className={classNames("px-2 py-0.5 text-xs border rounded transition-colors", exp.vectorOtherEnabled === opt ? (opt === 'yes' ? "bg-rose-100 border-rose-300 text-rose-800 font-medium" : "bg-emerald-100 border-emerald-300 text-emerald-800 font-medium") : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>{cap(opt)}</button>
+                      <button key={opt} type="button" onClick={() => onChange({ exposures: { ...exp, vectorOtherEnabled: opt === exp.vectorOtherEnabled ? 'unknown' : opt } })} className={classNames("px-2 py-0.5 text-xs border rounded transition-colors", exp.vectorOtherEnabled === opt ? (opt === 'yes' ? "bg-[hsl(var(--brand))] text-white border-transparent" : "bg-[hsl(var(--brand))] text-white border-transparent") : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>{cap(opt)}</button>
                    ))}
                 </div>
               </label>
@@ -1175,8 +1184,8 @@ function ExposureRow({ label, status, details, onToggle, onDetails, placeholder 
            {label}
         </span>
         <div className="flex items-center gap-1 shrink-0">
-          <button type="button" onClick={() => onToggle(safeStatus === 'yes' ? 'unknown' : 'yes')} className={classNames("px-2 py-0.5 text-xs border rounded transition-colors", safeStatus === 'yes' ? "bg-rose-100 border-rose-300 text-rose-800 font-medium" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>Yes</button>
-          <button type="button" onClick={() => onToggle(safeStatus === 'no' ? 'unknown' : 'no')} className={classNames("px-2 py-0.5 text-xs border rounded transition-colors", safeStatus === 'no' ? "bg-emerald-100 border-emerald-300 text-emerald-800 font-medium" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>No</button>
+          <button type="button" onClick={() => onToggle(safeStatus === 'yes' ? 'unknown' : 'yes')} className={classNames("px-2 py-0.5 text-xs border rounded transition-colors", safeStatus === 'yes' ? "bg-[hsl(var(--brand))] text-white border-transparent" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>Yes</button>
+          <button type="button" onClick={() => onToggle(safeStatus === 'no' ? 'unknown' : 'no')} className={classNames("px-2 py-0.5 text-xs border rounded transition-colors", safeStatus === 'no' ? "bg-[hsl(var(--brand))] text-white border-transparent" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>No</button>
         </div>
       </div>
       {safeStatus === 'yes' && (<div className="mt-1 relative"><div className={TEXT_INPUT_CLASS}><input type="text" placeholder={placeholder || "Please provide details..."} className={INPUT_BASE} value={details || ''} onChange={(e) => onDetails(e.target.value)} /></div></div>)}
