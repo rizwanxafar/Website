@@ -1,11 +1,12 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v16 (Performance Fix + Alignment)
+// Travel History Generator — v17 (Free Text City + Smart Search)
 // Changes:
-// - Fixed horizontal alignment in "Travelling From" (Added explicit Country label)
-// - Fixed "Browser Stuck" issue by capping search results to 100 items (Virtualization-lite)
-// - Maintained "Manchester Tech" aesthetic and custom Headless UI components
+// - Added `allowCustom` prop to SearchableSelect
+// - Enabled Free Text for Cities (Users can type anything)
+// - Improved Search Algorithm (Ignores accents: "Istanbul" finds "İstanbul")
+// - Fixed horizontal alignment in "Travelling From"
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { Combobox, Listbox, Transition } from '@headlessui/react';
@@ -17,16 +18,20 @@ import { Country, City } from "country-state-city";
 // --- Helpers ---
 const CSC_COUNTRIES = Country.getAllCountries();
 
+// Normalization helper: removes accents/diacritics and lowercases
+// e.g. "İstanbul" -> "istanbul", "Crème" -> "creme"
+const normalize = (str) => 
+  str?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() || "";
+
 function getIsoFromCountryName(name) {
   if (!name) return "";
-  const q = name.trim().toLowerCase();
-  let hit = CSC_COUNTRIES.find(c => c.name.toLowerCase() === q);
+  const q = normalize(name.trim());
+  
+  // 1. Try exact match on normalized name
+  let hit = CSC_COUNTRIES.find(c => normalize(c.name) === q);
   if (hit) return hit.isoCode;
-  const norm = (s) =>
-    s.normalize?.("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s]/g, "").trim().toLowerCase() || s.toLowerCase();
-  const qn = norm(q);
-  hit = CSC_COUNTRIES.find(c => norm(c.name) === qn);
-  return hit ? hit.isoCode : "";
+
+  return "";
 }
 
 // ---- Options ----
@@ -70,7 +75,8 @@ const CONTAINER_BASE =
 // ---- Icons ----
 const Icons = {
   ChevronUpDown: (p) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-slate-400" {...p}><path fillRule="evenodd" d="M10 3a.75.75 0 01.55.24l3.25 3.5a.75.75 0 11-1.1 1.02L10 4.852 7.3 7.76a.75.75 0 01-1.1-1.02l3.25-3.5A.75.75 0 0110 3zm-3.76 9.2a.75.75 0 011.06.04l2.7 2.908 2.7-2.908a.75.75 0 111.1 1.02l-3.25 3.5a.75.75 0 01-1.1 0l-3.25-3.5a.75.75 0 01.04-1.06z" clipRule="evenodd" /></svg>,
-  Check: (p) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5" {...p}><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>
+  Check: (p) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5" {...p}><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>,
+  Plus: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 12h14"/><path d="M12 5v14"/></svg>
 };
 
 // ---- Helpers ----
@@ -103,20 +109,21 @@ function rangesOverlap(aStart, aEnd, bStart, bEnd) {
 
 // ---- Custom UI Components (Headless UI) ----
 
-// 1. Searchable Combobox (PERFORMANCE OPTIMIZED)
-function SearchableSelect({ value, onChange, options, placeholder }) {
+// 1. Searchable Combobox (with Optional Free Text)
+// - allowCustom: if true, user can type a value not in the list and select it
+function SearchableSelect({ value, onChange, options, placeholder, allowCustom = false }) {
   const [query, setQuery] = useState('');
 
-  // PERFORMANCE: Limit results to 100 to prevent browser freeze
+  // Improved Filter: Normalize strings to match accents (e.g., Istanbul matches İstanbul)
   const filteredOptions = useMemo(() => {
-    const q = query.toLowerCase().replace(/\s+/g, '');
+    const q = normalize(query);
     const fullList = query === '' 
       ? options 
       : options.filter((opt) => {
           const str = typeof opt === 'string' ? opt : opt.name;
-          return str.toLowerCase().replace(/\s+/g, '').includes(q);
+          return normalize(str).includes(q);
         });
-    return fullList.slice(0, 100);
+    return fullList.slice(0, 100); // Performance Cap
   }, [query, options]);
 
   return (
@@ -141,46 +148,72 @@ function SearchableSelect({ value, onChange, options, placeholder }) {
           afterLeave={() => setQuery('')}
         >
           <Combobox.Options className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+            
+            {/* "No results" or "Create custom" logic */}
             {filteredOptions.length === 0 && query !== '' ? (
-              <div className="relative cursor-default select-none px-4 py-2 text-slate-500">
-                Nothing found.
-              </div>
+              allowCustom ? (
+                <Combobox.Option
+                  className={({ active }) =>
+                    clsx(
+                      'relative cursor-pointer select-none py-2 pl-4 pr-4',
+                      active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100'
+                    )
+                  }
+                  value={query} // Allows selecting the raw text
+                >
+                  <div className="flex items-center gap-2">
+                    <Icons.Plus className="h-4 w-4" />
+                    <span>Use "{query}"</span>
+                  </div>
+                </Combobox.Option>
+              ) : (
+                <div className="relative cursor-default select-none px-4 py-2 text-slate-500">
+                  Nothing found.
+                </div>
+              )
             ) : (
-              filteredOptions.map((opt, idx) => {
-                const label = typeof opt === 'string' ? opt : opt.name;
-                // Use a stable key if possible, fallback to index
-                const key = typeof opt === 'string' ? `${opt}-${idx}` : `${opt.name}-${opt.id || idx}`;
-                return (
-                  <Combobox.Option
-                    key={key}
-                    className={({ active }) =>
-                      clsx(
-                        'relative cursor-default select-none py-2 pl-10 pr-4',
-                        active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100'
-                      )
-                    }
-                    value={label}
-                  >
-                    {({ selected, active }) => (
-                      <>
-                        <span className={clsx('block truncate', selected ? 'font-medium' : 'font-normal')}>
-                          {label}
-                        </span>
-                        {selected ? (
-                          <span
-                            className={clsx(
-                              'absolute inset-y-0 left-0 flex items-center pl-3',
-                              active ? 'text-white' : 'text-[hsl(var(--brand))]'
-                            )}
-                          >
-                            <Icons.Check aria-hidden="true" />
+              <>
+                {/* Standard Options */}
+                {filteredOptions.map((opt, idx) => {
+                  const label = typeof opt === 'string' ? opt : opt.name;
+                  const key = typeof opt === 'string' ? `${opt}-${idx}` : `${opt.name}-${opt.id || idx}`;
+                  return (
+                    <Combobox.Option
+                      key={key}
+                      className={({ active }) =>
+                        clsx(
+                          'relative cursor-default select-none py-2 pl-10 pr-4',
+                          active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100'
+                        )
+                      }
+                      value={label}
+                    >
+                      {({ selected, active }) => (
+                        <>
+                          <span className={clsx('block truncate', selected ? 'font-medium' : 'font-normal')}>
+                            {label}
                           </span>
-                        ) : null}
-                      </>
-                    )}
-                  </Combobox.Option>
-                );
-              })
+                          {selected ? (
+                            <span
+                              className={clsx(
+                                'absolute inset-y-0 left-0 flex items-center pl-3',
+                                active ? 'text-white' : 'text-[hsl(var(--brand))]'
+                              )}
+                            >
+                              <Icons.Check aria-hidden="true" />
+                            </span>
+                          ) : null}
+                        </>
+                      )}
+                    </Combobox.Option>
+                  );
+                })}
+                {/* Allow creating custom even if there ARE results, but strictly at bottom? 
+                    Usually standard behavior is enough, but if they want to override 'Paris' with 'Paris region', 
+                    standard combobox behavior selects 'Paris' if they type it exact. 
+                    We'll stick to the "No results" create mode for simplicity unless requested. 
+                */}
+              </>
             )}
           </Combobox.Options>
         </Transition>
@@ -680,6 +713,7 @@ function TripCard({
               onChange={(val) => updateTrip(trip.id, { originCity: val })} 
               options={originCityNames}
               placeholder="Search city"
+              allowCustom={true} 
             />
           </div>
         </div>
@@ -811,6 +845,7 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
                     onChange={(val) => setCityName(i, val)} 
                     options={cityOptions.map(c => c.name)}
                     placeholder="Search city"
+                    allowCustom={true} 
                   />
                 </div>
                 <input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" value={row.arrival} onChange={(e) => setCityArrival(i, e.target.value)} aria-label="City arrival date" />
@@ -933,6 +968,7 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
               onChange={(val) => onChange({ city: val })} 
               options={cityOptions.map(c => c.name)}
               placeholder="Search city"
+              allowCustom={true} 
            />
         </div>
         <div><label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Start</label><input type="date" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))]" value={layover.start} onChange={(e) => onChange({ start: e.target.value })} /></div>
