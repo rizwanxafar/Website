@@ -1,11 +1,10 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v25 (Neutral Styling + Options Update)
+// Travel History Generator — v26 (Fix: Restored Past Travels in Summary)
 // Changes:
-// - Removed 'Work' from Companion options
-// - Removed Red/Green styling from Yes/No buttons (Now uses uniform Brand color)
-// - Ensured all button states match the "Segmented Control" aesthetic
+// - Re-added the "Significant Past Travel" logic to `buildSummaryFromEvents` (was missing in previous build)
+// - Maintained all Phase 10 visual updates (Neutral buttons, Removed 'Work', Uniformity)
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { Combobox, Listbox, Popover, Transition } from '@headlessui/react';
@@ -78,11 +77,6 @@ const TEXTAREA_CLASS =
   "w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))] focus:border-[hsl(var(--brand))] transition";
 
 const SECTION_HEADING = "text-lg font-semibold text-slate-900 dark:text-slate-100";
-
-// Toggle Button Styles (Neutral / Brand)
-const TOGGLE_BTN_BASE = "px-3 py-1.5 text-xs font-medium rounded-lg border transition";
-const TOGGLE_BTN_ACTIVE = "bg-[hsl(var(--brand))] text-white border-transparent shadow-sm";
-const TOGGLE_BTN_INACTIVE = "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[hsl(var(--brand))]";
 
 // ---- Icons ----
 const Icons = {
@@ -904,7 +898,7 @@ function TripCard({
                           "px-3 py-1.5 text-xs font-medium rounded-lg border transition",
                           trip.companions.companionsWell === val
                             ? "bg-[hsl(var(--brand))] text-white border-transparent"
-                            : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400"
+                            : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[hsl(var(--brand))]"
                         )}
                       >
                         {opt}
