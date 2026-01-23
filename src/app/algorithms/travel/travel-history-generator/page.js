@@ -1,13 +1,14 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v30 (Clinical Dashboard Layout)
+// Travel History Generator — v31 (Multi-Select & UI Polish)
 // Changes:
-// - UI: Compressed Trip Metadata (Reason, Companions, Vaccines, Malaria) into a 2x2 Grid.
-// - UX: Renamed headings to conversational questions ("Who did they travel with?").
-// - LOGIC: Vaccines converted to Segmented Control + Searchable Detail Input.
-// - ASSETS: Replaced warning emoji with SVG Icon.
-// - SUMMARY: Updated vaccine output logic to match new data structure.
+// - LOGIC: Vaccines details now stored as string[] (Array).
+// - COMPONENT: Added 'MultiSelectTags' for vaccine input (Select + Custom + Tags).
+// - UI: 'Are they well?' buttons now use brand color.
+// - UI: 'Unwell details' is now a proper boxed input.
+// - DATA: TBE label updated.
+// - SUMMARY: Vaccines formatted as comma-separated list.
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { 
@@ -46,7 +47,7 @@ const ACCOMMODATION_OPTIONS = [
 // Used for autocomplete suggestions in the vaccine box
 const VACCINE_SUGGESTIONS = [
   'Yellow fever', 'Hepatitis A', 'Hepatitis B', 'Typhoid', 'Meningitis ACWY',
-  'Rabies', 'Cholera', 'Japanese encephalitis', 'TBE', 'Polio booster', 'Tetanus booster'
+  'Rabies', 'Cholera', 'Japanese encephalitis', 'Tick-borne encephalitis', 'Polio booster', 'Tetanus booster'
 ];
 
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine', 'Unknown'];
@@ -95,7 +96,8 @@ const Icons = {
   ChevronLeft: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m15 18-6-6 6-6"/></svg>,
   ChevronRight: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m9 18 6-6-6-6"/></svg>,
   Trash: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
-  Alert: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+  Alert: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>,
+  X: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
 };
 
 // ---- Helpers ----
@@ -210,7 +212,7 @@ function ResponsiveDatePicker({ value, onChange }) {
   );
 }
 
-// 2. Searchable Combobox
+// 2. Searchable Combobox (Single Select)
 function SearchableSelect({ value, onChange, options, placeholder, allowCustom = false }) {
   const [query, setQuery] = useState('');
 
@@ -296,7 +298,93 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
   );
 }
 
-// 3. Simple Select Dropdown
+// 3. Multi-Select Tags Combobox (New for Vaccines)
+function MultiSelectTags({ value = [], onChange, options, placeholder }) {
+  const [query, setQuery] = useState('');
+
+  const filteredOptions = useMemo(() => {
+    const q = normalize(query);
+    return query === '' 
+      ? options.filter(opt => !value.includes(opt))
+      : options.filter((opt) => {
+          return normalize(opt).includes(q) && !value.includes(opt);
+        });
+  }, [query, options, value]);
+
+  const removeTag = (tag) => {
+    onChange(value.filter(t => t !== tag));
+  };
+
+  const addTag = (tag) => {
+    if (!tag) return;
+    if (!value.includes(tag)) onChange([...value, tag]);
+    setQuery('');
+  };
+
+  return (
+    <Combobox value={null} onChange={addTag} nullable>
+      <div className="relative mt-1">
+        <div className={clsx(CONTAINER_BASE, "flex flex-wrap items-center gap-1.5 p-1.5 min-h-[42px]")}>
+          {value.map((tag) => (
+            <span key={tag} className="inline-flex items-center gap-1 rounded bg-[hsl(var(--brand))]/10 border border-[hsl(var(--brand))]/20 px-2 py-0.5 text-xs font-medium text-[hsl(var(--brand))] dark:text-[hsl(var(--accent))]">
+              {tag}
+              <button
+                type="button"
+                className="group relative -mr-1 h-3.5 w-3.5 rounded-sm hover:bg-[hsl(var(--brand))]/20"
+                onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
+              >
+                <Icons.X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+          <ComboboxInput
+            className="min-w-[120px] flex-1 border-none bg-transparent py-1 pl-1 text-sm leading-5 text-slate-900 focus:ring-0 dark:text-slate-100 placeholder:text-slate-400"
+            displayValue={() => query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={value.length === 0 ? placeholder : ""}
+          />
+        </div>
+        <Transition
+          as={Fragment}
+          leave="transition ease-in duration-100"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+          afterLeave={() => setQuery('')}
+        >
+          <ComboboxOptions className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+            {filteredOptions.length === 0 && query !== '' ? (
+              <ComboboxOption
+                className={({ active }) =>
+                  clsx('relative cursor-pointer select-none py-2 pl-4 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
+                }
+                value={query}
+              >
+                <div className="flex items-center gap-2">
+                  <Icons.Plus className="h-4 w-4" />
+                  <span>Add "{query}"</span>
+                </div>
+              </ComboboxOption>
+            ) : (
+              filteredOptions.map((opt, idx) => (
+                <ComboboxOption
+                  key={idx}
+                  className={({ active }) =>
+                    clsx('relative cursor-default select-none py-2 pl-4 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
+                  }
+                  value={opt}
+                >
+                  <span className="block truncate font-normal">{opt}</span>
+                </ComboboxOption>
+              ))
+            )}
+          </ComboboxOptions>
+        </Transition>
+      </div>
+    </Combobox>
+  );
+}
+
+// 4. Simple Select Dropdown
 function SimpleSelect({ value, onChange, options }) {
   return (
     <Listbox value={value} onChange={onChange}>
@@ -392,7 +480,7 @@ const emptyTrip = () => ({
   purpose: '',
   originCountry: 'United Kingdom',
   originCity: 'Manchester',
-  vaccines: { status: 'unknown', details: '' },
+  vaccines: { status: 'unknown', details: [] }, // DETAILS IS NOW ARRAY
   malaria: { indication: 'Not indicated', drug: 'None', adherence: '' },
   companions: { group: 'Alone', otherText: '', companionsWell: 'unknown', companionsUnwellDetails: '' },
   stops: [emptyStop()],
@@ -451,7 +539,7 @@ function buildTripEvents(trip, companions) {
       stop: {
         ...s, isFirstInTrip, isLastInTrip,
         tripPurpose: trip.purpose,
-        tripVaccines: trip.vaccines || { status: 'unknown', details: '' },
+        tripVaccines: trip.vaccines || { status: 'unknown', details: [] },
         tripMalaria: trip.malaria || { indication: 'Not indicated', drug: 'None', adherence: '' },
         tripCompanions: companions || null,
         tripOriginCountry: trip.originCountry || '', tripOriginCity: trip.originCity || '',
@@ -722,9 +810,9 @@ function TripCard({
   };
 
   const setVaccines = (patch) => {
-    // patch could be { status: 'Taken' } or { details: '...' }
+    // patch could be { status: 'Taken' } or { details: [] }
     const next = { ...trip.vaccines, ...patch };
-    if (next.status !== 'Taken') { next.details = ''; }
+    if (next.status !== 'Taken') { next.details = []; }
     updateTrip(trip.id, { vaccines: next });
   };
 
@@ -851,7 +939,7 @@ function TripCard({
                         className={clsx(
                           "px-2 py-1 text-xs font-medium rounded border transition",
                           trip.companions.companionsWell === val
-                            ? "bg-slate-700 text-white border-transparent"
+                            ? "bg-[hsl(var(--brand))] text-white border-transparent"
                             : "bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400"
                         )}
                       >
@@ -863,13 +951,15 @@ function TripCard({
               </div>
               {trip.companions.companionsWell === 'no' && (
                 <div className="animate-in slide-in-from-top-1">
-                  <input 
-                    type="text" 
-                    placeholder="Details (symptoms, etc.)"
-                    className={classNames(INPUT_BASE, "border-b border-slate-300 !px-0 rounded-none")}
-                    value={trip.companions.companionsUnwellDetails}
-                    onChange={(e) => updateCompanions({ companionsUnwellDetails: e.target.value })}
-                  />
+                  <div className={TEXT_INPUT_CLASS}>
+                    <input 
+                      type="text" 
+                      placeholder="Details (symptoms, etc.)"
+                      className={INPUT_BASE}
+                      value={trip.companions.companionsUnwellDetails}
+                      onChange={(e) => updateCompanions({ companionsUnwellDetails: e.target.value })}
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -898,13 +988,12 @@ function TripCard({
           </div>
           {trip.vaccines?.status === 'Taken' && (
              <div className="animate-in slide-in-from-top-1">
-               <label className="block text-xs font-medium text-slate-500 mb-1">Details (Select or type custom)</label>
-               <SearchableSelect 
-                 value={trip.vaccines.details}
+               <label className="block text-xs font-medium text-slate-500 mb-1">Details (Select multiple or type custom)</label>
+               <MultiSelectTags 
+                 value={trip.vaccines.details || []}
                  onChange={(val) => setVaccines({ details: val })}
                  options={VACCINE_SUGGESTIONS}
-                 placeholder="e.g. Yellow Fever, Typhoid..."
-                 allowCustom={true}
+                 placeholder="Select or type..."
                />
              </div>
           )}
@@ -1262,7 +1351,7 @@ function TimelineVertical({ events }) {
                   })()}</div>
                   <div><span className="font-semibold">Vaccinations:</span> {(() => { 
                       const v = it.tripVaccines || {};
-                      if (v.status === 'Taken') return `Taken: ${v.details || 'No details provided'}`;
+                      if (v.status === 'Taken') return `Taken: ${v.details?.length ? v.details.join(', ') : 'No details provided'}`;
                       if (v.status === 'Not taken') return "Not taken";
                       if (v.status === 'Unsure') return "Unsure";
                       return "None";
@@ -1375,10 +1464,10 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
     
     // VACCINE SUMMARY UPDATE
     { 
-      const v = tripObj.vaccines || { status: 'unknown', details: '' };
+      const v = tripObj.vaccines || { status: 'unknown', details: [] };
       let vaccineText = "None";
       if (v.status === 'Taken') {
-        vaccineText = `Taken: ${v.details || 'No details provided'}`;
+        vaccineText = `Taken: ${v.details?.length ? v.details.join(', ') : 'No details provided'}`;
       } else if (v.status === 'Not taken') {
         vaccineText = 'Not taken';
       } else if (v.status === 'Unsure') {
