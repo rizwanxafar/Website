@@ -1,14 +1,11 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v31 (Multi-Select & UI Polish)
+// Travel History Generator — v32 (Smooth Reveal Animation)
 // Changes:
-// - LOGIC: Vaccines details now stored as string[] (Array).
-// - COMPONENT: Added 'MultiSelectTags' for vaccine input (Select + Custom + Tags).
-// - UI: 'Are they well?' buttons now use brand color.
-// - UI: 'Unwell details' is now a proper boxed input.
-// - DATA: TBE label updated.
-// - SUMMARY: Vaccines formatted as comma-separated list.
+// - UI: Added <SmoothReveal> component for zero-layout-shift expansions.
+// - ANIMATION: Applied smooth transitions to Vaccines, Malaria, and Companion detail boxes.
+// - LOGIC: Maintained Multi-Select Tags and Comma-Separated Summary from v31.
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { 
@@ -128,6 +125,24 @@ function rangesOverlap(aStart, aEnd, bStart, bEnd) {
 }
 
 // ---- Custom UI Components (Headless UI v2) ----
+
+// 0. Smooth Reveal Wrapper
+function SmoothReveal({ show, children }) {
+  return (
+    <Transition
+      show={show}
+      as={Fragment}
+      enter="transition-all ease-out duration-300"
+      enterFrom="opacity-0 -translate-y-2 max-h-0 overflow-hidden"
+      enterTo="opacity-100 translate-y-0 max-h-[500px] overflow-visible"
+      leave="transition-all ease-in duration-200"
+      leaveFrom="opacity-100 translate-y-0 max-h-[500px] overflow-visible"
+      leaveTo="opacity-0 -translate-y-2 max-h-0 overflow-hidden"
+    >
+      <div>{children}</div>
+    </Transition>
+  );
+}
 
 // 1. Responsive Date Picker
 function ResponsiveDatePicker({ value, onChange }) {
@@ -910,8 +925,8 @@ function TripCard({
             ))}
           </div>
 
-          {trip.companions.group === 'Other' && (
-            <div className="mt-2 animate-in slide-in-from-top-1">
+          <SmoothReveal show={trip.companions.group === 'Other'}>
+            <div className="mt-2">
               <div className={TEXT_INPUT_CLASS}>
                 <input 
                   type="text" 
@@ -922,10 +937,10 @@ function TripCard({
                 />
               </div>
             </div>
-          )}
+          </SmoothReveal>
 
-          {trip.companions.group !== 'Alone' && (
-            <div className="mt-2 grid gap-2 animate-in slide-in-from-top-1">
+          <SmoothReveal show={trip.companions.group !== 'Alone'}>
+            <div className="mt-2 grid gap-2">
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">Are they well?</label>
                 <div className="flex gap-2">
@@ -949,8 +964,8 @@ function TripCard({
                   })}
                 </div>
               </div>
-              {trip.companions.companionsWell === 'no' && (
-                <div className="animate-in slide-in-from-top-1">
+              <SmoothReveal show={trip.companions.companionsWell === 'no'}>
+                <div>
                   <div className={TEXT_INPUT_CLASS}>
                     <input 
                       type="text" 
@@ -961,9 +976,9 @@ function TripCard({
                     />
                   </div>
                 </div>
-              )}
+              </SmoothReveal>
             </div>
-          )}
+          </SmoothReveal>
         </div>
 
         {/* BOTTOM LEFT: Vaccines */}
@@ -986,8 +1001,8 @@ function TripCard({
               </button>
             ))}
           </div>
-          {trip.vaccines?.status === 'Taken' && (
-             <div className="animate-in slide-in-from-top-1">
+          <SmoothReveal show={trip.vaccines?.status === 'Taken'}>
+             <div>
                <label className="block text-xs font-medium text-slate-500 mb-1">Details (Select multiple or type custom)</label>
                <MultiSelectTags 
                  value={trip.vaccines.details || []}
@@ -996,7 +1011,7 @@ function TripCard({
                  placeholder="Select or type..."
                />
              </div>
-          )}
+          </SmoothReveal>
         </div>
 
         {/* BOTTOM RIGHT: Malaria */}
@@ -1019,8 +1034,8 @@ function TripCard({
               </button>
             ))}
           </div>
-          {trip.malaria.indication === 'Taken' && (
-            <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-top-1 duration-200">
+          <SmoothReveal show={trip.malaria.indication === 'Taken'}>
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">Drug</label>
                 <SimpleSelect value={trip.malaria.drug} onChange={(val) => setMalaria({ drug: val })} options={MALARIA_DRUGS} />
@@ -1030,7 +1045,7 @@ function TripCard({
                 <SimpleSelect value={trip.malaria.adherence} onChange={(val) => setMalaria({ adherence: val })} options={ADHERENCE_OPTIONS} />
               </div>
             </div>
-          )}
+          </SmoothReveal>
         </div>
       </div>
 
@@ -1165,7 +1180,9 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
                    ))}
                 </div>
               </label>
-             {exp.vectorOtherEnabled === 'yes' && (<div className={TEXT_INPUT_CLASS}><input type="text" placeholder="Please provide more details." className={INPUT_BASE} value={exp.vectorOtherDetails} onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })} /></div>)}
+             <SmoothReveal show={exp.vectorOtherEnabled === 'yes'}>
+                <div className={clsx(TEXT_INPUT_CLASS, "mt-1")}><input type="text" placeholder="Please provide more details." className={INPUT_BASE} value={exp.vectorOtherDetails} onChange={(e) => onChange({ exposures: { ...exp, vectorOtherDetails: e.target.value } })} /></div>
+             </SmoothReveal>
             </div>
           </fieldset>
           <fieldset className="space-y-1">
@@ -1289,7 +1306,9 @@ function ExposureRow({ label, status, details, onToggle, onDetails, placeholder 
           <button type="button" onClick={() => onToggle(safeStatus === 'no' ? 'unknown' : 'no')} className={classNames("px-2 py-0.5 text-xs border rounded transition-colors", safeStatus === 'no' ? "bg-[hsl(var(--brand))] text-white border-transparent" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400")}>No</button>
         </div>
       </div>
-      {safeStatus === 'yes' && (<div className="mt-1 relative"><div className={TEXT_INPUT_CLASS}><input type="text" placeholder={placeholder || "Please provide details..."} className={INPUT_BASE} value={details || ''} onChange={(e) => onDetails(e.target.value)} /></div></div>)}
+      <SmoothReveal show={safeStatus === 'yes'}>
+        <div className={clsx(TEXT_INPUT_CLASS, "mt-1")}><input type="text" placeholder={placeholder || "Please provide details..."} className={INPUT_BASE} value={details || ''} onChange={(e) => onDetails(e.target.value)} /></div>
+      </SmoothReveal>
     </div>
   );
 }
