@@ -1,12 +1,12 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v37 (Categorized Tags + Single Narrative)
+// Travel History Generator — v38 (Explicit Yes/No + Single Narrative)
 // Changes:
-// - UI: Categorized Exposure Tag Clouds.
-// - UX: 3-State Toggle (Yes=Brand, No=DarkSlate, Unknown=White).
-// - DATA: Replaced individual detail fields with single 'positiveDetails' field.
-// - SUMMARY: Decoupled exposure list from narrative details in text generation.
+// - UX: Reverted to explicit [Yes | No] buttons for every exposure (Best clarity).
+// - LAYOUT: Items arranged in a dense 2-column layout to save vertical space.
+// - LOGIC: Single "Details" box at the bottom (prevents layout jumping).
+// - VISUAL: "Yes" selection highlights the entire card in Brand Color.
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { 
@@ -55,14 +55,14 @@ const ADHERENCE_OPTIONS = ['Good', 'Partial', 'Poor', 'Unknown'];
 const COMPANION_GROUPS = ['Alone', 'Family', 'Friends', 'Other'];
 const COMPANION_WELL_OPTIONS = ['Yes', 'No', 'Unknown'];
 
-// Exposure Categories for the Tag Cloud
+// Exposure Categories
 const EXPOSURE_CATEGORIES = [
   {
     title: "Vector-borne",
     items: [
       { key: 'mosquito', label: 'Mosquito bites' },
       { key: 'tick', label: 'Tick bites' },
-      { key: 'vectorOtherEnabled', label: 'Other vector' } // Treated as boolean toggle now
+      { key: 'vectorOtherEnabled', label: 'Other vector' }
     ]
   },
   {
@@ -529,6 +529,7 @@ const emptyStop = () => ({
     sickContacts: 'unknown',
     healthcareFacility: 'unknown',
     prison: 'unknown',
+    refugee camp: 'unknown',
     refugeeCamp: 'unknown',
     unprotectedSex: 'unknown',
     positiveDetails: '', // NEW SINGLE DETAIL BOX
@@ -1239,16 +1240,11 @@ function StopCard({ stop, index, totalStops, onChange, onRemove, innerRef, highl
   );
 }
 
-// === NEW EXPOSURE TAG SYSTEM ===
+// === COMPACT CARD EXPOSURE SYSTEM (Yes/No Buttons + Single Detail Box) ===
 function ExposureTagSystem({ exposures, onChange }) {
-  // Helper to toggle state: 'unknown' -> 'yes' -> 'no' -> 'unknown'
-  const toggleItem = (key) => {
-    const current = exposures[key] || 'unknown';
-    let nextVal = 'yes';
-    if (current === 'yes' || current === true) nextVal = 'no';
-    else if (current === 'no' || current === false) nextVal = 'unknown';
-    
-    onChange({ ...exposures, [key]: nextVal });
+  // Helper to set state directly (yes/no/unknown)
+  const setItem = (key, val) => {
+    onChange({ ...exposures, [key]: val });
   };
 
   const markRestAsNo = () => {
@@ -1265,36 +1261,65 @@ function ExposureTagSystem({ exposures, onChange }) {
     onChange({ ...exposures, ...patch });
   };
 
+  // Check if any positive to reveal the detail box
   const hasPositive = EXPOSURE_CATEGORIES.some(cat => 
     cat.items.some(item => exposures[item.key] === 'yes' || exposures[item.key] === true)
   );
 
   return (
     <div className="space-y-6">
-      {/* 1. Categorized Tag Clouds */}
-      <div className="space-y-4">
+      {/* 1. Categorized 2-Col Grid of Cards */}
+      <div className="space-y-6">
         {EXPOSURE_CATEGORIES.map((cat) => (
           <div key={cat.title}>
-            <div className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-2">{cat.title}</div>
-            <div className="flex flex-wrap gap-2">
+            <div className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-2 border-b border-slate-100 dark:border-slate-800 pb-1">{cat.title}</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {cat.items.map((item) => {
                 const status = exposures[item.key] || 'unknown';
+                const isYes = status === 'yes' || status === true;
+                const isNo = status === 'no' || status === false;
+
                 return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => toggleItem(item.key)}
+                  <div 
+                    key={item.key} 
                     className={clsx(
-                      "px-3 py-1.5 text-xs font-medium rounded-full border transition-all select-none",
-                      status === 'yes' || status === true
-                        ? "bg-[hsl(var(--brand))] border-[hsl(var(--brand))] text-white shadow-sm"
-                        : status === 'no' || status === false
-                        ? "bg-slate-700 border-slate-700 text-white"
-                        : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400"
+                      "flex items-center justify-between p-2 rounded-lg border transition-all",
+                      isYes 
+                        ? "bg-[hsl(var(--brand))]/5 border-[hsl(var(--brand))] shadow-sm" 
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                     )}
                   >
-                    {item.label}
-                  </button>
+                    <span className={clsx("text-xs font-medium mr-2 truncate", isYes ? "text-[hsl(var(--brand))]" : "text-slate-700 dark:text-slate-300")} title={item.label}>
+                      {item.label}
+                    </span>
+                    
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setItem(item.key, 'yes')}
+                        className={clsx(
+                          "px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded border transition-colors",
+                          isYes 
+                            ? "bg-[hsl(var(--brand))] text-white border-transparent" 
+                            : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500 hover:border-slate-400 hover:text-slate-700"
+                        )}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setItem(item.key, 'no')}
+                        className={clsx(
+                          "px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded border transition-colors",
+                          isNo 
+                            ? "bg-slate-600 text-white border-transparent" 
+                            : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500 hover:border-slate-400 hover:text-slate-700"
+                        )}
+                      >
+                        No
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -1702,7 +1727,6 @@ function exposureBullets(exp) {
   push('mosquito bites', 'mosquito');
   push('tick bites', 'tick');
   
-  // handle the weird boolean toggle for 'other vector' if present
   if (exp.vectorOtherEnabled === 'yes' || exp.vectorOtherEnabled === true) {
      positives.push({ label: 'Other vector', details: positives.length === 0 ? detailText : '' });
   } else if (exp.vectorOtherEnabled === 'no') {
