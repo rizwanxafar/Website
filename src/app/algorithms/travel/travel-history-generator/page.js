@@ -1,11 +1,12 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v28 (Headless v2 Refactor & Logic Fixes)
+// Travel History Generator — v29 (Exposures Vibe Update)
 // Changes:
-// - REFACTOR: Headless UI components converted to Named Exports (ComboboxInput, PopoverPanel, etc.)
-// - FIX: Summary logic now correctly reads 'companions' from individual Trips, not global state.
-// - UI: Polished "Significant Past Travel" layout for better mobile responsiveness.
+// - LOGIC: 'exposureBullets' now returns 'otherText' separately.
+// - SUMMARY: Negative exposures are now comma-separated sentences.
+// - SUMMARY: 'Other details' promoted to its own heading.
+// - UI: Timeline visual hierarchy updated (Positives = List, Negatives = Paragraph).
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { 
@@ -391,7 +392,6 @@ const emptyTrip = () => ({
   vaccines: [],
   vaccinesOther: '',
   malaria: { indication: 'Not indicated', drug: 'None', adherence: '' },
-  // Companions now inside Trip
   companions: { group: 'Alone', otherText: '', companionsWell: 'unknown', companionsUnwellDetails: '' },
   stops: [emptyStop()],
   layovers: [],
@@ -1256,7 +1256,37 @@ function TimelineVertical({ events }) {
                   {it.cities && it.cities.length > 0 && (<div className="mt-1 space-y-0.5 text-sm text-slate-700 dark:text-slate-300">{it.cities.map((c, i) => { const obj = typeof c === "string" ? { name: c } : c || {}; const nm = obj.name || ""; const a = obj.arrival ? formatDMY(obj.arrival) : ""; const d = obj.departure ? formatDMY(obj.departure) : ""; const datePart = a || d ? ` (${a || "—"} to ${d || "—"})` : ""; if (!nm) return null; return (<div key={i}>{nm}{datePart}</div>); })}</div>)}
                   <div className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-2">
                     <div className="text-sm"><span className="font-medium">Accommodation:</span> {it.accommodations?.length ? it.accommodations.includes("Other") && it.accommodationOther ? [...it.accommodations.filter((a) => a !== "Other"), `Other: ${it.accommodationOther}`].join(", ") : it.accommodations.join(", ") : "—"}</div>
-                    <div className="text-sm sm:col-span-2"><span className="font-medium">Exposures:</span> {(() => { const { positives, negatives } = exposureBullets(it.exposures); if (!positives.length && !negatives.length) return "—"; return (<div className="mt-1 space-y-2">{positives.length > 0 && (<ul className="list-disc pl-5">{positives.map(({ label, details }, i) => (<li key={i} className="text-sm">{details ? `${label} — ${details}` : label}</li>))}</ul>)}{negatives.length > 0 && (<div className="mt-2"><div className="font-medium">No exposures to:</div><ul className="list-disc pl-5">{negatives.map((label, i) => (<li key={i} className="text-sm">{label}</li>))}</ul></div>)}</div>); })()}</div>
+                    <div className="text-sm sm:col-span-2">
+                      <span className="font-medium">Exposures:</span> 
+                      {(() => { 
+                        const { positives, negatives, otherText } = exposureBullets(it.exposures); 
+                        if (!positives.length && !negatives.length && !otherText) return "—"; 
+                        return (
+                          <div className="mt-1 space-y-2">
+                            {positives.length > 0 && (
+                              <ul className="list-disc pl-5">
+                                {positives.map(({ label, details }, i) => (
+                                  <li key={i} className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                                    {details ? `${label} — ${details}` : label}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                            {negatives.length > 0 && (
+                              <div className="text-sm text-slate-500">
+                                No exposures to: {negatives.join(", ")}
+                              </div>
+                            )}
+                            {otherText && (
+                              <div className="mt-2 border-t border-slate-200 dark:border-slate-800 pt-2">
+                                <div className="font-medium text-slate-800 dark:text-slate-200">Other trip details:</div>
+                                <div className="text-sm text-slate-700 dark:text-slate-300">{otherText}</div>
+                              </div>
+                            )}
+                          </div>
+                        ); 
+                      })()}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1323,7 +1353,6 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
     
     { const vaccinesArr = Array.isArray(tripObj.vaccines) ? tripObj.vaccines : []; const hasOther = vaccinesArr.includes("Other"); const baseList = hasOther ? vaccinesArr.filter((v) => v !== "Other") : vaccinesArr; let vaccinesDisplay = baseList.join(", "); const otherText = (tripObj.vaccinesOther || "").trim(); if (hasOther && otherText) { vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other: ${otherText}` : `Other: ${otherText}`; } else if (hasOther) { vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other` : "Other"; } html.push(`<div>Pre-travel vaccinations: ${vaccinesDisplay ? escapeHtml(vaccinesDisplay) : "None"}</div>`); text.push(`Pre-travel vaccinations: ${vaccinesDisplay || "None"}`); }
 
-    // CORRECTED: Use per-trip companions (tripObj.companions), NOT state.companions (which is undefined/global)
     { const cmp = tripObj.companions || {}; if (cmp.group === "Alone") { html.push(`<div>Travelled alone.</div>`); text.push(`Travelled alone.`); } else { const groupStr = cmp.group === "Other" ? cmp.otherText || "Other" : cmp.group || "—"; html.push(`<div>Travelled with: ${escapeHtml(groupStr)}</div>`); text.push(`Travelled with: ${groupStr}`); const wellStr = cmp.companionsWell === "yes" ? "Yes" : cmp.companionsWell === "no" ? "No" : "Unknown"; if (cmp.companionsWell === "no") { const details = (cmp.companionsUnwellDetails || "").trim(); html.push(`<div>Are they well: No${details ? ` — ${escapeHtml(details)}` : ""}</div>`); text.push(`Are they well: No${details ? ` — ${details}` : ""}`); } else { html.push(`<div>Are they well: ${wellStr}</div>`); text.push(`Are they well: ${wellStr}`); } } }
 
     const layoversByStop = new Map();
@@ -1349,11 +1378,40 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
       const accom = s.accommodations?.length ? (s.accommodations.includes("Other") && s.accommodationOther ? [...s.accommodations.filter((a) => a !== "Other"), `Other: ${s.accommodationOther}`].join(", ") : s.accommodations.join(", ")) : "";
       if (accom) { html.push(`<div>Accommodation: ${escapeHtml(accom)}</div>`); text.push(`Accommodation: ${accom}`); } else { html.push(`<div>Accommodation: —</div>`); text.push(`Accommodation: —`); }
 
-      const { positives, negatives } = exposureBullets(s.exposures);
-      if (positives.length > 0 || negatives.length > 0) {
-        if (positives.length > 0) { html.push(`<div>Exposures:</div>`); text.push(`Exposures:`); text.push(""); html.push('<ul class="list-disc pl-5">'); positives.forEach(({ label, details }) => { const line = details ? `${label} — ${details}` : label; html.push(`<li>${escapeHtml(line)}</li>`); text.push(`• ${line}`); }); html.push("</ul>"); text.push(""); }
-        if (negatives.length > 0) { html.push(`<div>No exposures to:</div>`); text.push(`No exposures to:`); text.push(""); html.push('<ul class="list-disc pl-5">'); negatives.forEach((label) => { html.push(`<li>${escapeHtml(label)}</li>`); text.push(`• ${label}`); }); html.push("</ul>"); text.push(""); }
-      } else { html.push(`<div>Exposures: —</div>`); text.push(`Exposures: —`); }
+      const { positives, negatives, otherText } = exposureBullets(s.exposures);
+      
+      if (positives.length > 0) { 
+        html.push(`<div>Exposures:</div>`); 
+        text.push(`Exposures:`); 
+        text.push(""); 
+        html.push('<ul class="list-disc pl-5">'); 
+        positives.forEach(({ label, details }) => { 
+          const line = details ? `${label} — ${details}` : label; 
+          html.push(`<li>${escapeHtml(line)}</li>`); 
+          text.push(`• ${line}`); 
+        }); 
+        html.push("</ul>"); 
+        text.push(""); 
+      }
+      
+      if (negatives.length > 0) { 
+        const line = `No exposures to: ${negatives.join(", ")}`;
+        html.push(`<div>${escapeHtml(line)}</div>`); 
+        text.push(line);
+      }
+
+      if (otherText) {
+        html.push(`<div style="margin-top:4px"><strong>Other trip details:</strong></div>`);
+        text.push(`Other trip details:`);
+        html.push(`<div>${escapeHtml(otherText)}</div>`);
+        text.push(otherText);
+      }
+
+      // Fallback if nothing
+      if (positives.length === 0 && negatives.length === 0 && !otherText) {
+         html.push(`<div>Exposures: —</div>`);
+         text.push(`Exposures: —`);
+      }
 
       const betweenList = (layoversByStop.get(s.id)?.between || []).map(fmtLayover);
       if (betweenList.length) { html.push(`<div>Layovers to next destination:</div>`); text.push(`Layovers to next destination:`); html.push(`<ul>${betweenList.map((v) => `<li>${v.html}</li>`).join("")}</ul>`); betweenList.forEach((v) => text.push(`- ${v.text}`)); }
@@ -1391,7 +1449,7 @@ function escapeHtml(s) {
 }
 
 function exposureBullets(exp) {
-  if (!exp) return { positives: [], negatives: [] };
+  if (!exp) return { positives: [], negatives: [], otherText: '' };
   const positives = []; const negatives = [];
   const push = (label, status, details) => {
     let s = status; if (typeof s === 'boolean') s = s ? 'yes' : 'unknown';
@@ -1420,6 +1478,7 @@ function exposureBullets(exp) {
   push('prison contact', exp.prison, exp.prisonDetails);
   push('refugee camp contact', exp.refugeeCamp, exp.refugeeCampDetails);
   push('unprotected sex', exp.unprotectedSex, exp.unprotectedSexDetails);
-  if (exp.otherText?.trim()) { positives.push({ label: exp.otherText.trim(), details: '' }); }
-  return { positives, negatives };
+  
+  // Return otherText separate from positives/negatives list
+  return { positives, negatives, otherText: exp.otherText?.trim() || '' };
 }
