@@ -1,12 +1,10 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v38 (Explicit Yes/No + Single Narrative)
+// Travel History Generator — v39 (Syntax Fix)
 // Changes:
-// - UX: Reverted to explicit [Yes | No] buttons for every exposure (Best clarity).
-// - LAYOUT: Items arranged in a dense 2-column layout to save vertical space.
-// - LOGIC: Single "Details" box at the bottom (prevents layout jumping).
-// - VISUAL: "Yes" selection highlights the entire card in Brand Color.
+// - BUGFIX: Removed invalid object key 'refugee camp' in emptyStop function.
+// - MAINTAINED: All v38 features (Yes/No buttons, Single Narrative, Categorized Tags).
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { 
@@ -529,7 +527,6 @@ const emptyStop = () => ({
     sickContacts: 'unknown',
     healthcareFacility: 'unknown',
     prison: 'unknown',
-    refugee camp: 'unknown',
     refugeeCamp: 'unknown',
     unprotectedSex: 'unknown',
     positiveDetails: '', // NEW SINGLE DETAIL BOX
@@ -1594,6 +1591,7 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
       text.push(`Malaria prophylaxis: ${malariaText}`); 
     }
     
+    // VACCINE SUMMARY UPDATE
     { 
       const v = tripObj.vaccines || { status: 'unknown', details: [] };
       let vaccineText = "None";
