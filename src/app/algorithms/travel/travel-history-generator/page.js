@@ -1,10 +1,12 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v39 (Syntax Fix)
+// Travel History Generator — v40 (Visual Polish: Neutral Cards)
 // Changes:
-// - BUGFIX: Removed invalid object key 'refugee camp' in emptyStop function.
-// - MAINTAINED: All v38 features (Yes/No buttons, Single Narrative, Categorized Tags).
+// - VISUAL: Exposure cards no longer change background color on selection (kept neutral).
+// - VISUAL: Only the specific [Yes] button changes to Brand Color.
+// - UI: Removed example placeholder text from the details box.
+// - MAINTAINED: Smart Numbering, Single Narrative, Explicit Yes/No Controls.
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { 
@@ -1279,12 +1281,7 @@ function ExposureTagSystem({ exposures, onChange }) {
                 return (
                   <div 
                     key={item.key} 
-                    className={clsx(
-                      "flex items-center justify-between p-2 rounded-lg border transition-all",
-                      isYes 
-                        ? "bg-[hsl(var(--brand))]/5 border-[hsl(var(--brand))] shadow-sm" 
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                    )}
+                    className="flex items-center justify-between p-2 rounded-lg border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 transition-all"
                   >
                     <span className={clsx("text-xs font-medium mr-2 truncate", isYes ? "text-[hsl(var(--brand))]" : "text-slate-700 dark:text-slate-300")} title={item.label}>
                       {item.label}
@@ -1342,7 +1339,6 @@ function ExposureTagSystem({ exposures, onChange }) {
           <textarea 
             rows={3} 
             className={TEXTAREA_CLASS}
-            placeholder="e.g. Bitten by mosquitoes in Amazon jungle, ate street food in Lima..."
             value={exposures.positiveDetails || ''}
             onChange={(e) => onChange({ ...exposures, positiveDetails: e.target.value })} 
           />
@@ -1591,7 +1587,6 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
       text.push(`Malaria prophylaxis: ${malariaText}`); 
     }
     
-    // VACCINE SUMMARY UPDATE
     { 
       const v = tripObj.vaccines || { status: 'unknown', details: [] };
       let vaccineText = "None";
