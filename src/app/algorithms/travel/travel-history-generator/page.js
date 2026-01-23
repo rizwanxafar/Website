@@ -1,12 +1,13 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v29 (Exposures Vibe Update)
+// Travel History Generator — v30 (Clinical Dashboard Layout)
 // Changes:
-// - LOGIC: 'exposureBullets' now returns 'otherText' separately.
-// - SUMMARY: Negative exposures are now comma-separated sentences.
-// - SUMMARY: 'Other details' promoted to its own heading.
-// - UI: Timeline visual hierarchy updated (Positives = List, Negatives = Paragraph).
+// - UI: Compressed Trip Metadata (Reason, Companions, Vaccines, Malaria) into a 2x2 Grid.
+// - UX: Renamed headings to conversational questions ("Who did they travel with?").
+// - LOGIC: Vaccines converted to Segmented Control + Searchable Detail Input.
+// - ASSETS: Replaced warning emoji with SVG Icon.
+// - SUMMARY: Updated vaccine output logic to match new data structure.
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { 
@@ -42,14 +43,15 @@ const ACCOMMODATION_OPTIONS = [
   'Refugee camp', 'Healthcare facility residence', 'Other',
 ];
 
-const VACCINE_OPTIONS = [
+// Used for autocomplete suggestions in the vaccine box
+const VACCINE_SUGGESTIONS = [
   'Yellow fever', 'Hepatitis A', 'Hepatitis B', 'Typhoid', 'Meningitis ACWY',
-  'Rabies (pre-exposure)', 'Cholera (oral)', 'Japanese encephalitis (JE)',
-  'Tick-borne encephalitis (TBE)', 'Other',
+  'Rabies', 'Cholera', 'Japanese encephalitis', 'TBE', 'Polio booster', 'Tetanus booster'
 ];
 
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine', 'Unknown'];
 const MALARIA_STATUS_OPTIONS = ['Not indicated', 'Taken', 'Not taken', 'Unsure'];
+const VACCINE_STATUS_OPTIONS = ['Taken', 'Not taken', 'Unsure']; // "Unknown" implicit if nothing selected
 const ADHERENCE_OPTIONS = ['Good', 'Partial', 'Poor', 'Unknown'];
 
 const COMPANION_GROUPS = ['Alone', 'Family', 'Friends', 'Other'];
@@ -92,7 +94,8 @@ const Icons = {
   Calendar: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
   ChevronLeft: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m15 18-6-6 6-6"/></svg>,
   ChevronRight: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m9 18 6-6-6-6"/></svg>,
-  Trash: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+  Trash: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+  Alert: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
 };
 
 // ---- Helpers ----
@@ -389,8 +392,7 @@ const emptyTrip = () => ({
   purpose: '',
   originCountry: 'United Kingdom',
   originCity: 'Manchester',
-  vaccines: [],
-  vaccinesOther: '',
+  vaccines: { status: 'unknown', details: '' },
   malaria: { indication: 'Not indicated', drug: 'None', adherence: '' },
   companions: { group: 'Alone', otherText: '', companionsWell: 'unknown', companionsUnwellDetails: '' },
   stops: [emptyStop()],
@@ -449,7 +451,7 @@ function buildTripEvents(trip, companions) {
       stop: {
         ...s, isFirstInTrip, isLastInTrip,
         tripPurpose: trip.purpose,
-        tripVaccines: trip.vaccines || [], tripVaccinesOther: trip.vaccinesOther || '',
+        tripVaccines: trip.vaccines || { status: 'unknown', details: '' },
         tripMalaria: trip.malaria || { indication: 'Not indicated', drug: 'None', adherence: '' },
         tripCompanions: companions || null,
         tripOriginCountry: trip.originCountry || '', tripOriginCity: trip.originCity || '',
@@ -585,7 +587,7 @@ export default function TravelHistoryGeneratorPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Travel History Generator</h1>
           <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl">
-            Build a clear, concise travel history. Provide as much information as possible.
+            Build a clear, concise travel history for clinical use.
           </p>
         </div>
         <div className="flex gap-2">
@@ -594,8 +596,10 @@ export default function TravelHistoryGeneratorPage() {
       </header>
 
       <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 p-4 text-amber-900 dark:text-amber-200 flex items-center gap-3">
-        <span aria-hidden="true">⚠️</span>
-        <p className="text-sm">Do not enter private or patient-identifiable information.</p>
+        <span className="shrink-0 text-amber-600 dark:text-amber-400">
+           <Icons.Alert className="w-5 h-5" />
+        </span>
+        <p className="text-sm font-medium">Do not enter private or patient-identifiable information.</p>
       </div>
 
       {issues.length > 0 && (
@@ -711,19 +715,17 @@ function TripCard({
   trip, index, updateTrip, updateStop, addStop, removeStop, addLayover, updateLayover, removeLayover, removeTrip,
   highlight, setItemRef, innerRef
 }) {
-  const toggleTripVaccine = (v) => {
-    const set = new Set(trip.vaccines || []);
-    const had = set.has(v);
-    if (had) set.delete(v); else set.add(v);
-    const patch = { vaccines: Array.from(set) };
-    if (v === 'Other' && had) patch.vaccinesOther = '';
-    updateTrip(trip.id, patch);
-  };
-
   const setMalaria = (patch) => {
     const next = { ...trip.malaria, ...patch };
     if (next.indication !== 'Taken') { next.drug = 'None'; next.adherence = ''; }
     updateTrip(trip.id, { malaria: next });
+  };
+
+  const setVaccines = (patch) => {
+    // patch could be { status: 'Taken' } or { details: '...' }
+    const next = { ...trip.vaccines, ...patch };
+    if (next.status !== 'Taken') { next.details = ''; }
+    updateTrip(trip.id, { vaccines: next });
   };
 
   const updateCompanions = (patch) => {
@@ -774,74 +776,26 @@ function TripCard({
         </div>
       </div>
 
-      <div className="mt-4 grid sm:grid-cols-3 gap-4">
-        <div className="sm:col-span-3">
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Purpose</label>
+      {/* COMPRESSED TRIP CONTEXT GRID (2x2) */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30">
+        
+        {/* TOP LEFT: Reason */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">What was the reason for travel?</label>
           <div className={TEXT_INPUT_CLASS}>
             <input 
               type="text" 
-              placeholder="Work, VFR, tourism, humanitarian, etc." 
+              placeholder="Work, VFR, tourism, etc." 
               className={INPUT_BASE} 
               value={trip.purpose} 
               onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })} 
             />
           </div>
         </div>
-      </div>
 
-      <div className="mt-6 grid md:grid-cols-2 gap-6">
+        {/* TOP RIGHT: Companions */}
         <div>
-          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Pre-travel vaccinations</label>
-          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {VACCINE_OPTIONS.map((v) => (<Checkbox key={v} label={v} checked={(trip.vaccines || []).includes(v)} onChange={() => toggleTripVaccine(v)} />))}
-          </div>
-          {(trip.vaccines || []).includes('Other') && (
-            <div className="mt-2">
-              <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Other vaccination(s)</label>
-              <div className={TEXT_INPUT_CLASS}>
-                <input type="text" placeholder="Enter vaccine name(s)…" className={INPUT_BASE} value={trip.vaccinesOther || ''} onChange={(e) => updateTrip(trip.id, { vaccinesOther: e.target.value })} />
-              </div>
-            </div>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Malaria prophylaxis</label>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {MALARIA_STATUS_OPTIONS.map(opt => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => setMalaria({ indication: opt })}
-                className={clsx(
-                  "px-3 py-1.5 text-xs font-medium rounded-lg border transition",
-                  trip.malaria.indication === opt
-                    ? "bg-[hsl(var(--brand))] text-white border-transparent"
-                    : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[hsl(var(--brand))]"
-                )}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-          {trip.malaria.indication === 'Taken' && (
-            <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-top-1 duration-200">
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Drug</label>
-                <SimpleSelect value={trip.malaria.drug} onChange={(val) => setMalaria({ drug: val })} options={MALARIA_DRUGS} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Adherence</label>
-                <SimpleSelect value={trip.malaria.adherence} onChange={(val) => setMalaria({ adherence: val })} options={ADHERENCE_OPTIONS} />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* NEW: Per-Trip Companions Section */}
-      <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6">
-        <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3">Companions</label>
-        <div className="flex flex-col gap-4">
+          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Who did they travel with?</label>
           <div className="flex flex-wrap gap-2">
             {COMPANION_GROUPS.map((opt) => (
               <button
@@ -869,12 +823,12 @@ function TripCard({
           </div>
 
           {trip.companions.group === 'Other' && (
-            <div className="animate-in slide-in-from-top-1">
-              <label className="block text-xs font-medium text-slate-500 mb-1">Describe</label>
+            <div className="mt-2 animate-in slide-in-from-top-1">
               <div className={TEXT_INPUT_CLASS}>
                 <input 
                   type="text" 
                   className={INPUT_BASE}
+                  placeholder="Describe companions..."
                   value={trip.companions.otherText}
                   onChange={(e) => updateCompanions({ otherText: e.target.value })}
                 />
@@ -883,27 +837,22 @@ function TripCard({
           )}
 
           {trip.companions.group !== 'Alone' && (
-            <div className="grid gap-4 sm:grid-cols-2 animate-in slide-in-from-top-1">
+            <div className="mt-2 grid gap-2 animate-in slide-in-from-top-1">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-2">Are they well?</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Are they well?</label>
                 <div className="flex gap-2">
                   {COMPANION_WELL_OPTIONS.map((opt) => {
-                    const val = opt.toLowerCase(); // 'yes', 'no', 'unknown'
+                    const val = opt.toLowerCase(); 
                     return (
                       <button
                         key={val}
                         type="button"
-                        onClick={() => {
-                          updateCompanions({
-                            companionsWell: val,
-                            companionsUnwellDetails: val === 'no' ? trip.companions.companionsUnwellDetails : ''
-                          });
-                        }}
+                        onClick={() => updateCompanions({ companionsWell: val, companionsUnwellDetails: val === 'no' ? trip.companions.companionsUnwellDetails : '' })}
                         className={clsx(
-                          "px-3 py-1.5 text-xs font-medium rounded-lg border transition",
+                          "px-2 py-1 text-xs font-medium rounded border transition",
                           trip.companions.companionsWell === val
-                            ? "bg-[hsl(var(--brand))] text-white border-transparent"
-                            : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[hsl(var(--brand))]"
+                            ? "bg-slate-700 text-white border-transparent"
+                            : "bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400"
                         )}
                       >
                         {opt}
@@ -912,18 +861,85 @@ function TripCard({
                   })}
                 </div>
               </div>
-              
               {trip.companions.companionsWell === 'no' && (
-                <div className="animate-in slide-in-from-left-1">
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Details (symptoms, etc.)</label>
-                  <textarea 
-                    rows={2} 
-                    className={TEXTAREA_CLASS}
+                <div className="animate-in slide-in-from-top-1">
+                  <input 
+                    type="text" 
+                    placeholder="Details (symptoms, etc.)"
+                    className={classNames(INPUT_BASE, "border-b border-slate-300 !px-0 rounded-none")}
                     value={trip.companions.companionsUnwellDetails}
                     onChange={(e) => updateCompanions({ companionsUnwellDetails: e.target.value })}
                   />
                 </div>
               )}
+            </div>
+          )}
+        </div>
+
+        {/* BOTTOM LEFT: Vaccines */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Did they have any pre-travel vaccinations?</label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {VACCINE_STATUS_OPTIONS.map(opt => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setVaccines({ status: opt })}
+                className={clsx(
+                  "px-3 py-1.5 text-xs font-medium rounded-lg border transition",
+                  (trip.vaccines?.status || 'unknown') === opt
+                    ? "bg-[hsl(var(--brand))] text-white border-transparent"
+                    : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[hsl(var(--brand))]"
+                )}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+          {trip.vaccines?.status === 'Taken' && (
+             <div className="animate-in slide-in-from-top-1">
+               <label className="block text-xs font-medium text-slate-500 mb-1">Details (Select or type custom)</label>
+               <SearchableSelect 
+                 value={trip.vaccines.details}
+                 onChange={(val) => setVaccines({ details: val })}
+                 options={VACCINE_SUGGESTIONS}
+                 placeholder="e.g. Yellow Fever, Typhoid..."
+                 allowCustom={true}
+               />
+             </div>
+          )}
+        </div>
+
+        {/* BOTTOM RIGHT: Malaria */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Did they take any malaria prophylaxis?</label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {MALARIA_STATUS_OPTIONS.map(opt => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setMalaria({ indication: opt })}
+                className={clsx(
+                  "px-3 py-1.5 text-xs font-medium rounded-lg border transition",
+                  trip.malaria.indication === opt
+                    ? "bg-[hsl(var(--brand))] text-white border-transparent"
+                    : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[hsl(var(--brand))]"
+                )}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+          {trip.malaria.indication === 'Taken' && (
+            <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-top-1 duration-200">
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Drug</label>
+                <SimpleSelect value={trip.malaria.drug} onChange={(val) => setMalaria({ drug: val })} options={MALARIA_DRUGS} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Adherence</label>
+                <SimpleSelect value={trip.malaria.adherence} onChange={(val) => setMalaria({ adherence: val })} options={ADHERENCE_OPTIONS} />
+              </div>
             </div>
           )}
         </div>
@@ -1244,7 +1260,13 @@ function TimelineVertical({ events }) {
                     if (m.indication === "Not taken") return "Not taken"; 
                     return "Not indicated"; 
                   })()}</div>
-                  <div><span className="font-semibold">Vaccinations:</span> {(() => { const arr = Array.isArray(it.tripVaccines) ? it.tripVaccines : []; const hasOther = arr.includes("Other"); const base = (hasOther ? arr.filter((v) => v !== "Other") : arr).join(", "); const otherText = (it.tripVaccinesOther || "").trim(); if (hasOther && otherText) { return base ? `${base}, Other: ${otherText}` : `Other: ${otherText}`; } return base ? (hasOther ? `${base}, Other` : base) : hasOther ? "Other" : "None"; })()}</div>
+                  <div><span className="font-semibold">Vaccinations:</span> {(() => { 
+                      const v = it.tripVaccines || {};
+                      if (v.status === 'Taken') return `Taken: ${v.details || 'No details provided'}`;
+                      if (v.status === 'Not taken') return "Not taken";
+                      if (v.status === 'Unsure') return "Unsure";
+                      return "None";
+                  })()}</div>
                   {it.tripCompanions && (<>{it.tripCompanions.group === "Alone" ? (<div><span className="font-semibold">Travelled alone.</span></div>) : (<><div><span className="font-semibold">Travelled with:</span> {it.tripCompanions.group === "Other" ? it.tripCompanions.otherText || "Other" : it.tripCompanions.group || "—"}</div><div><span className="font-semibold">Are they well:</span> {it.tripCompanions.companionsWell === "yes" ? "Yes" : it.tripCompanions.companionsWell === "no" ? "No" + (it.tripCompanions.companionsUnwellDetails?.trim() ? ` — ${it.tripCompanions.companionsUnwellDetails.trim()}` : "") : "Unknown"}</div></>)}</>)}
                 </div>
               )}
@@ -1351,7 +1373,20 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
       text.push(`Malaria prophylaxis: ${malariaText}`); 
     }
     
-    { const vaccinesArr = Array.isArray(tripObj.vaccines) ? tripObj.vaccines : []; const hasOther = vaccinesArr.includes("Other"); const baseList = hasOther ? vaccinesArr.filter((v) => v !== "Other") : vaccinesArr; let vaccinesDisplay = baseList.join(", "); const otherText = (tripObj.vaccinesOther || "").trim(); if (hasOther && otherText) { vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other: ${otherText}` : `Other: ${otherText}`; } else if (hasOther) { vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other` : "Other"; } html.push(`<div>Pre-travel vaccinations: ${vaccinesDisplay ? escapeHtml(vaccinesDisplay) : "None"}</div>`); text.push(`Pre-travel vaccinations: ${vaccinesDisplay || "None"}`); }
+    // VACCINE SUMMARY UPDATE
+    { 
+      const v = tripObj.vaccines || { status: 'unknown', details: '' };
+      let vaccineText = "None";
+      if (v.status === 'Taken') {
+        vaccineText = `Taken: ${v.details || 'No details provided'}`;
+      } else if (v.status === 'Not taken') {
+        vaccineText = 'Not taken';
+      } else if (v.status === 'Unsure') {
+        vaccineText = 'Unsure';
+      }
+      html.push(`<div>Pre-travel vaccinations: ${escapeHtml(vaccineText)}</div>`); 
+      text.push(`Pre-travel vaccinations: ${vaccineText}`); 
+    }
 
     { const cmp = tripObj.companions || {}; if (cmp.group === "Alone") { html.push(`<div>Travelled alone.</div>`); text.push(`Travelled alone.`); } else { const groupStr = cmp.group === "Other" ? cmp.otherText || "Other" : cmp.group || "—"; html.push(`<div>Travelled with: ${escapeHtml(groupStr)}</div>`); text.push(`Travelled with: ${groupStr}`); const wellStr = cmp.companionsWell === "yes" ? "Yes" : cmp.companionsWell === "no" ? "No" : "Unknown"; if (cmp.companionsWell === "no") { const details = (cmp.companionsUnwellDetails || "").trim(); html.push(`<div>Are they well: No${details ? ` — ${escapeHtml(details)}` : ""}</div>`); text.push(`Are they well: No${details ? ` — ${details}` : ""}`); } else { html.push(`<div>Are they well: ${wellStr}</div>`); text.push(`Are they well: ${wellStr}`); } } }
 
@@ -1479,6 +1514,5 @@ function exposureBullets(exp) {
   push('refugee camp contact', exp.refugeeCamp, exp.refugeeCampDetails);
   push('unprotected sex', exp.unprotectedSex, exp.unprotectedSexDetails);
   
-  // Return otherText separate from positives/negatives list
   return { positives, negatives, otherText: exp.otherText?.trim() || '' };
 }
