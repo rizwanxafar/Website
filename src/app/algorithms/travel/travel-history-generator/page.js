@@ -1,16 +1,22 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v26 (Fix: Restored Past Travels in Summary)
+// Travel History Generator — v28 (Headless v2 Refactor & Logic Fixes)
 // Changes:
-// - Re-added the "Significant Past Travel" logic to `buildSummaryFromEvents` (was missing in previous build)
-// - Maintained all Phase 10 visual updates (Neutral buttons, Removed 'Work', Uniformity)
+// - REFACTOR: Headless UI components converted to Named Exports (ComboboxInput, PopoverPanel, etc.)
+// - FIX: Summary logic now correctly reads 'companions' from individual Trips, not global state.
+// - UI: Polished "Significant Past Travel" layout for better mobile responsiveness.
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
-import { Combobox, Listbox, Popover, Transition } from '@headlessui/react';
+import { 
+  Combobox, ComboboxInput, ComboboxButton, ComboboxOptions, ComboboxOption,
+  Listbox, ListboxButton, ListboxOptions, ListboxOption,
+  Popover, PopoverButton, PopoverPanel,
+  Transition 
+} from '@headlessui/react';
 import { clsx } from 'clsx'; 
 import { DayPicker } from 'react-day-picker';
-import { format, parse, isValid } from 'date-fns';
+import { format } from 'date-fns';
 
 // ---- Data Sources ----
 import { Country, City } from "country-state-city";
@@ -45,7 +51,6 @@ const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquin
 const MALARIA_STATUS_OPTIONS = ['Not indicated', 'Taken', 'Not taken', 'Unsure'];
 const ADHERENCE_OPTIONS = ['Good', 'Partial', 'Poor', 'Unknown'];
 
-// UPDATED: Removed "Work"
 const COMPANION_GROUPS = ['Alone', 'Family', 'Friends', 'Other'];
 const COMPANION_WELL_OPTIONS = ['Yes', 'No', 'Unknown'];
 
@@ -116,7 +121,7 @@ function rangesOverlap(aStart, aEnd, bStart, bEnd) {
   return aS < bE && bS < aE;
 }
 
-// ---- Custom UI Components (Headless UI) ----
+// ---- Custom UI Components (Headless UI v2) ----
 
 // 1. Responsive Date Picker
 function ResponsiveDatePicker({ value, onChange }) {
@@ -144,14 +149,14 @@ function ResponsiveDatePicker({ value, onChange }) {
       {/* DESKTOP: Custom Popover */}
       <div className="hidden md:block">
         <Popover className="relative w-full">
-          <Popover.Button className={clsx(CONTAINER_BASE, "flex items-center justify-between text-left")}>
+          <PopoverButton className={clsx(CONTAINER_BASE, "flex items-center justify-between text-left")}>
             <span className={clsx("block truncate py-2 pl-3", !value && "text-slate-400")}>
               {value ? formatDMY(value) : "Select date"}
             </span>
             <span className="pr-3 text-slate-400">
               <Icons.Calendar className="w-4 h-4" />
             </span>
-          </Popover.Button>
+          </PopoverButton>
 
           <Transition
             as={Fragment}
@@ -162,7 +167,7 @@ function ResponsiveDatePicker({ value, onChange }) {
             leaveFrom="opacity-100 translate-y-0"
             leaveTo="opacity-0 translate-y-1"
           >
-            <Popover.Panel className="absolute z-50 mt-2 p-3 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800">
+            <PopoverPanel className="absolute z-50 mt-2 p-3 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800">
               {({ close }) => (
                 <DayPicker
                   mode="single"
@@ -193,7 +198,7 @@ function ResponsiveDatePicker({ value, onChange }) {
                   }}
                 />
               )}
-            </Popover.Panel>
+            </PopoverPanel>
           </Transition>
         </Popover>
       </div>
@@ -220,15 +225,15 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
     <Combobox value={value} onChange={onChange} nullable>
       <div className="relative mt-1">
         <div className={CONTAINER_BASE}>
-          <Combobox.Input
+          <ComboboxInput
             className={INPUT_BASE}
             displayValue={(item) => item || ''}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={placeholder}
           />
-          <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
+          <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
             <Icons.ChevronUpDown aria-hidden="true" />
-          </Combobox.Button>
+          </ComboboxButton>
         </div>
         <Transition
           as={Fragment}
@@ -237,10 +242,10 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
           leaveTo="opacity-0"
           afterLeave={() => setQuery('')}
         >
-          <Combobox.Options className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+          <ComboboxOptions className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
             {filteredOptions.length === 0 && query !== '' ? (
               allowCustom ? (
-                <Combobox.Option
+                <ComboboxOption
                   className={({ active }) =>
                     clsx('relative cursor-pointer select-none py-2 pl-4 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
                   }
@@ -250,7 +255,7 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
                     <Icons.Plus className="h-4 w-4" />
                     <span>Use "{query}"</span>
                   </div>
-                </Combobox.Option>
+                </ComboboxOption>
               ) : (
                 <div className="relative cursor-default select-none px-4 py-2 text-slate-500">Nothing found.</div>
               )
@@ -259,7 +264,7 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
                 const label = typeof opt === 'string' ? opt : opt.name;
                 const key = typeof opt === 'string' ? `${opt}-${idx}` : `${opt.name}-${opt.id || idx}`;
                 return (
-                  <Combobox.Option
+                  <ComboboxOption
                     key={key}
                     className={({ active }) =>
                       clsx('relative cursor-default select-none py-2 pl-10 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
@@ -276,11 +281,11 @@ function SearchableSelect({ value, onChange, options, placeholder, allowCustom =
                         ) : null}
                       </>
                     )}
-                  </Combobox.Option>
+                  </ComboboxOption>
                 );
               })
             )}
-          </Combobox.Options>
+          </ComboboxOptions>
         </Transition>
       </div>
     </Combobox>
@@ -292,21 +297,21 @@ function SimpleSelect({ value, onChange, options }) {
   return (
     <Listbox value={value} onChange={onChange}>
       <div className="relative mt-1">
-        <Listbox.Button className={CONTAINER_BASE}>
+        <ListboxButton className={CONTAINER_BASE}>
           <span className="block truncate py-2 pl-3 pr-10 min-h-[36px]">{value}</span>
           <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
             <Icons.ChevronUpDown aria-hidden="true" />
           </span>
-        </Listbox.Button>
+        </ListboxButton>
         <Transition
           as={Fragment}
           leave="transition ease-in duration-100"
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <Listbox.Options className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+          <ListboxOptions className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
             {options.map((opt, idx) => (
-              <Listbox.Option
+              <ListboxOption
                 key={idx}
                 className={({ active }) =>
                   clsx('relative cursor-default select-none py-2 pl-10 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
@@ -323,9 +328,9 @@ function SimpleSelect({ value, onChange, options }) {
                     ) : null}
                   </>
                 )}
-              </Listbox.Option>
+              </ListboxOption>
             ))}
-          </Listbox.Options>
+          </ListboxOptions>
         </Transition>
       </div>
     </Listbox>
@@ -944,9 +949,6 @@ function TripCard({
   );
 }
 
-// ... (StopCard, LayoverCard, Checkbox, ExposureRow, TimelineVertical, buildSummaryFromEvents)
-// REMAINDER OF FILE IS UNCHANGED FROM PREVIOUS PHASE, BUT PASTED BELOW FOR COMPLETENESS
-
 function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
   const exp = stop.exposures;
   const normalizedCities = (stop.cities || []).map((c) =>
@@ -1321,7 +1323,8 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
     
     { const vaccinesArr = Array.isArray(tripObj.vaccines) ? tripObj.vaccines : []; const hasOther = vaccinesArr.includes("Other"); const baseList = hasOther ? vaccinesArr.filter((v) => v !== "Other") : vaccinesArr; let vaccinesDisplay = baseList.join(", "); const otherText = (tripObj.vaccinesOther || "").trim(); if (hasOther && otherText) { vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other: ${otherText}` : `Other: ${otherText}`; } else if (hasOther) { vaccinesDisplay = vaccinesDisplay ? `${vaccinesDisplay}, Other` : "Other"; } html.push(`<div>Pre-travel vaccinations: ${vaccinesDisplay ? escapeHtml(vaccinesDisplay) : "None"}</div>`); text.push(`Pre-travel vaccinations: ${vaccinesDisplay || "None"}`); }
 
-    { const cmp = state.companions || {}; if (cmp.group === "Alone") { html.push(`<div>Travelled alone.</div>`); text.push(`Travelled alone.`); } else { const groupStr = cmp.group === "Other" ? cmp.otherText || "Other" : cmp.group || "—"; html.push(`<div>Travelled with: ${escapeHtml(groupStr)}</div>`); text.push(`Travelled with: ${groupStr}`); const wellStr = cmp.companionsWell === "yes" ? "Yes" : cmp.companionsWell === "no" ? "No" : "Unknown"; if (cmp.companionsWell === "no") { const details = (cmp.companionsUnwellDetails || "").trim(); html.push(`<div>Are they well: No${details ? ` — ${escapeHtml(details)}` : ""}</div>`); text.push(`Are they well: No${details ? ` — ${details}` : ""}`); } else { html.push(`<div>Are they well: ${wellStr}</div>`); text.push(`Are they well: ${wellStr}`); } } }
+    // CORRECTED: Use per-trip companions (tripObj.companions), NOT state.companions (which is undefined/global)
+    { const cmp = tripObj.companions || {}; if (cmp.group === "Alone") { html.push(`<div>Travelled alone.</div>`); text.push(`Travelled alone.`); } else { const groupStr = cmp.group === "Other" ? cmp.otherText || "Other" : cmp.group || "—"; html.push(`<div>Travelled with: ${escapeHtml(groupStr)}</div>`); text.push(`Travelled with: ${groupStr}`); const wellStr = cmp.companionsWell === "yes" ? "Yes" : cmp.companionsWell === "no" ? "No" : "Unknown"; if (cmp.companionsWell === "no") { const details = (cmp.companionsUnwellDetails || "").trim(); html.push(`<div>Are they well: No${details ? ` — ${escapeHtml(details)}` : ""}</div>`); text.push(`Are they well: No${details ? ` — ${details}` : ""}`); } else { html.push(`<div>Are they well: ${wellStr}</div>`); text.push(`Are they well: ${wellStr}`); } } }
 
     const layoversByStop = new Map();
     events.filter((e) => e.type === "layover" && e.anchorStopId).forEach((e) => { const sid = e.anchorStopId; if (!layoversByStop.has(sid)) layoversByStop.set(sid, { before: [], between: [], after: [] }); const bucket = e.position === "before-stop" ? "before" : e.position === "after-stop" ? "after" : "between"; layoversByStop.get(sid)[bucket].push(e.layover); });
