@@ -1,13 +1,12 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v36 (Clinical Tag Cloud & Med Updates)
+// Travel History Generator — v37 (Categorized Tags + Single Narrative)
 // Changes:
-// - UI: Replaced Exposure Grids/Lists with a categorized "Tag Cloud" system.
-// - UX: Tag Cycle: Unknown -> Yes -> No -> Unknown.
-// - FEATURE: "Mark remaining as No" button for rapid pertinent negatives.
-// - CONTENT: Updated medical definitions (Freshwater, Sick contacts, Bats/Rodents).
-// - LAYOUT: Detail inputs appear only for positive selections to prevent elongation.
+// - UI: Categorized Exposure Tag Clouds.
+// - UX: 3-State Toggle (Yes=Brand, No=DarkSlate, Unknown=White).
+// - DATA: Replaced individual detail fields with single 'positiveDetails' field.
+// - SUMMARY: Decoupled exposure list from narrative details in text generation.
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { 
@@ -63,7 +62,7 @@ const EXPOSURE_CATEGORIES = [
     items: [
       { key: 'mosquito', label: 'Mosquito bites' },
       { key: 'tick', label: 'Tick bites' },
-      { key: 'vectorOtherEnabled', label: 'Other vector', isBoolToggle: true } 
+      { key: 'vectorOtherEnabled', label: 'Other vector' } // Treated as boolean toggle now
     ]
   },
   {
@@ -508,30 +507,31 @@ const emptyStop = () => ({
   accommodations: [],
   accommodationOther: '',
   exposures: {
-    mosquito: 'unknown', mosquitoDetails: '',
-    tick: 'unknown', tickDetails: '',
-    vectorOtherEnabled: 'unknown', vectorOtherDetails: '',
-    freshwater: 'unknown', freshwaterDetails: '',
-    cavesMines: 'unknown', cavesMinesDetails: '',
-    ruralForest: 'unknown', ruralForestDetails: '',
-    hikingWoodlands: 'unknown', hikingWoodlandsDetails: '',
-    animalContact: 'unknown', animalContactDetails: '',
-    animalBiteScratch: 'unknown', animalBiteScratchDetails: '',
-    bushmeat: 'unknown', bushmeatDetails: '',
-    batsRodents: 'unknown', batsRodentsDetails: '',
-    needlesTattoos: 'unknown', needlesTattoosDetails: '',
-    safariWildlife: 'unknown', safariWildlifeDetails: '',
-    streetFood: 'unknown', streetFoodDetails: '',
-    untreatedWater: 'unknown', untreatedWaterDetails: '',
-    undercookedFood: 'unknown', undercookedFoodDetails: '',
-    undercookedSeafood: 'unknown', undercookedSeafoodDetails: '',
-    unpasteurisedMilk: 'unknown', unpasteurisedMilkDetails: '',
-    funerals: 'unknown', funeralsDetails: '',
-    sickContacts: 'unknown', sickContactsDetails: '',
-    healthcareFacility: 'unknown', healthcareFacilityDetails: '',
-    prison: 'unknown', prisonDetails: '',
-    refugeeCamp: 'unknown', refugeeCampDetails: '',
-    unprotectedSex: 'unknown', unprotectedSexDetails: '',
+    mosquito: 'unknown',
+    tick: 'unknown',
+    vectorOtherEnabled: 'unknown',
+    freshwater: 'unknown',
+    cavesMines: 'unknown',
+    ruralForest: 'unknown',
+    hikingWoodlands: 'unknown',
+    animalContact: 'unknown',
+    animalBiteScratch: 'unknown',
+    batsRodents: 'unknown',
+    bushmeat: 'unknown',
+    needlesTattoos: 'unknown',
+    safariWildlife: 'unknown',
+    streetFood: 'unknown',
+    untreatedWater: 'unknown',
+    undercookedFood: 'unknown',
+    undercookedSeafood: 'unknown',
+    unpasteurisedMilk: 'unknown',
+    funerals: 'unknown',
+    sickContacts: 'unknown',
+    healthcareFacility: 'unknown',
+    prison: 'unknown',
+    refugeeCamp: 'unknown',
+    unprotectedSex: 'unknown',
+    positiveDetails: '', // NEW SINGLE DETAIL BOX
     otherText: '',
   },
 });
@@ -880,6 +880,7 @@ function TripCard({
   };
 
   const setVaccines = (patch) => {
+    // patch could be { status: 'Taken' } or { details: [] }
     const next = { ...trip.vaccines, ...patch };
     if (next.status !== 'Taken') { next.details = []; }
     updateTrip(trip.id, { vaccines: next });
@@ -1243,19 +1244,11 @@ function ExposureTagSystem({ exposures, onChange }) {
   // Helper to toggle state: 'unknown' -> 'yes' -> 'no' -> 'unknown'
   const toggleItem = (key) => {
     const current = exposures[key] || 'unknown';
-    // 'unknown' -> 'yes'
-    // 'yes' -> 'no'
-    // 'no' -> 'unknown'
-    // But if it's boolean (old data), treat true as 'yes', false as 'unknown'
     let nextVal = 'yes';
     if (current === 'yes' || current === true) nextVal = 'no';
     else if (current === 'no' || current === false) nextVal = 'unknown';
     
-    // reset details if not yes
-    const patch = { [key]: nextVal };
-    if (nextVal !== 'yes') patch[`${key}Details`] = '';
-    
-    onChange({ ...exposures, ...patch });
+    onChange({ ...exposures, [key]: nextVal });
   };
 
   const markRestAsNo = () => {
@@ -1272,19 +1265,13 @@ function ExposureTagSystem({ exposures, onChange }) {
     onChange({ ...exposures, ...patch });
   };
 
-  // Get list of 'yes' items to show details inputs below
-  const activeItems = [];
-  EXPOSURE_CATEGORIES.forEach(cat => {
-    cat.items.forEach(item => {
-      if (exposures[item.key] === 'yes' || exposures[item.key] === true) {
-        activeItems.push(item);
-      }
-    });
-  });
+  const hasPositive = EXPOSURE_CATEGORIES.some(cat => 
+    cat.items.some(item => exposures[item.key] === 'yes' || exposures[item.key] === true)
+  );
 
   return (
     <div className="space-y-6">
-      {/* 1. Tag Cloud Selection */}
+      {/* 1. Categorized Tag Clouds */}
       <div className="space-y-4">
         {EXPOSURE_CATEGORIES.map((cat) => (
           <div key={cat.title}>
@@ -1302,7 +1289,7 @@ function ExposureTagSystem({ exposures, onChange }) {
                       status === 'yes' || status === true
                         ? "bg-[hsl(var(--brand))] border-[hsl(var(--brand))] text-white shadow-sm"
                         : status === 'no' || status === false
-                        ? "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-400 line-through decoration-slate-400"
+                        ? "bg-slate-700 border-slate-700 text-white"
                         : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400"
                     )}
                   >
@@ -1326,24 +1313,17 @@ function ExposureTagSystem({ exposures, onChange }) {
         </button>
       </div>
 
-      {/* 3. Detail Inputs (Only for 'Yes') */}
-      <SmoothReveal show={activeItems.length > 0}>
+      {/* 3. Single Detail Input (Only if 'Yes' selected) */}
+      <SmoothReveal show={hasPositive}>
         <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Details for selected exposures:</div>
-          {activeItems.map((item) => (
-            <div key={item.key} className="animate-in fade-in slide-in-from-top-2 duration-300">
-              <label className="block text-xs font-medium text-slate-500 mb-1">{item.label} details</label>
-              <div className={TEXT_INPUT_CLASS}>
-                <input 
-                  type="text" 
-                  className={INPUT_BASE}
-                  placeholder="Provide details..."
-                  value={exposures[`${item.key}Details`] || ''}
-                  onChange={(e) => onChange({ ...exposures, [`${item.key}Details`]: e.target.value })}
-                />
-              </div>
-            </div>
-          ))}
+          <label className="block text-sm font-semibold text-slate-900 dark:text-slate-100">Kindly provide more detail about positive exposures</label>
+          <textarea 
+            rows={3} 
+            className={TEXTAREA_CLASS}
+            placeholder="e.g. Bitten by mosquitoes in Amazon jungle, ate street food in Lima..."
+            value={exposures.positiveDetails || ''}
+            onChange={(e) => onChange({ ...exposures, positiveDetails: e.target.value })} 
+          />
         </div>
       </SmoothReveal>
 
@@ -1351,7 +1331,7 @@ function ExposureTagSystem({ exposures, onChange }) {
       <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
         <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1 font-medium">Any other trip details or exposures</label>
         <textarea 
-          rows={3} 
+          rows={2} 
           className={TEXTAREA_CLASS}
           value={exposures.otherText} 
           onChange={(e) => onChange({ ...exposures, otherText: e.target.value })} 
@@ -1500,17 +1480,19 @@ function TimelineVertical({ events }) {
                         return (
                           <div className="mt-1 space-y-2">
                             {positives.length > 0 && (
-                              <ul className="list-disc pl-5">
-                                {positives.map(({ label, details }, i) => (
-                                  <li key={i} className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                                    {details ? `${label} — ${details}` : label}
-                                  </li>
-                                ))}
-                              </ul>
+                              <div>
+                                <span className="font-semibold text-slate-900 dark:text-slate-100">Exposures: </span>
+                                {positives.map(p => p.label).join(", ")}
+                              </div>
+                            )}
+                            {positives.some(p => p.details) && (
+                               <div className="text-slate-800 dark:text-slate-200 italic mt-1">
+                                 {positives[0].details}
+                               </div>
                             )}
                             {negatives.length > 0 && (
                               <div className="text-sm text-slate-500">
-                                No exposures to: {negatives.join(", ")}
+                                <span className="font-medium">No exposures to:</span> {negatives.join(", ")}
                               </div>
                             )}
                             {otherText && (
@@ -1629,17 +1611,16 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
       const { positives, negatives, otherText } = exposureBullets(s.exposures);
       
       if (positives.length > 0) { 
-        html.push(`<div>Exposures:</div>`); 
-        text.push(`Exposures:`); 
-        text.push(""); 
-        html.push('<ul class="list-disc pl-5">'); 
-        positives.forEach(({ label, details }) => { 
-          const line = details ? `${label} — ${details}` : label; 
-          html.push(`<li>${escapeHtml(line)}</li>`); 
-          text.push(`• ${line}`); 
-        }); 
-        html.push("</ul>"); 
-        text.push(""); 
+        const labels = positives.map(p => p.label).join(", ");
+        html.push(`<div><strong>Exposures:</strong> ${escapeHtml(labels)}</div>`); 
+        text.push(`Exposures: ${labels}`);
+        
+        // Narrative Detail
+        const narrative = positives[0]?.details; 
+        if (narrative) {
+           html.push(`<div><strong>Details:</strong> ${escapeHtml(narrative)}</div>`);
+           text.push(`Details: ${narrative}`);
+        }
       }
       
       if (negatives.length > 0) { 
@@ -1698,35 +1679,57 @@ function escapeHtml(s) {
 
 function exposureBullets(exp) {
   if (!exp) return { positives: [], negatives: [], otherText: '' };
-  const positives = []; const negatives = [];
-  const push = (label, status, details) => {
-    let s = status; if (typeof s === 'boolean') s = s ? 'yes' : 'unknown';
-    if (s === 'yes') { positives.push({ label: cap(label), details: details?.trim() || '' }); } else if (s === 'no') { negatives.push(cap(label)); }
+  
+  const positives = []; 
+  const negatives = [];
+  
+  // NOTE: detail text is now centralized in exp.positiveDetails
+  const detailText = exp.positiveDetails?.trim() || '';
+
+  const push = (label, key) => {
+    let s = exp[key]; 
+    if (typeof s === 'boolean') s = s ? 'yes' : 'unknown';
+    if (s === 'yes') { 
+        // We push the label, and attach the GLOBAL detail string to the first item only
+        // so the summary builder knows where to grab it.
+        positives.push({ label: cap(label), details: positives.length === 0 ? detailText : '' }); 
+    } else if (s === 'no') { 
+        negatives.push(cap(label)); 
+    }
   };
-  push('mosquito bites', exp.mosquito, exp.mosquitoDetails);
-  push('tick bites', exp.tick, exp.tickDetails);
-  if (exp.vectorOtherEnabled === 'yes') { positives.push({ label: 'Other vector', details: exp.vectorOtherDetails?.trim() || '' }); } else if (exp.vectorOtherEnabled === 'no') { negatives.push('Other vector'); }
-  push('swimming or wading in fresh water', exp.freshwater, exp.freshwaterDetails);
-  push('visited caves or mines', exp.cavesMines, exp.cavesMinesDetails);
-  push('rural / forest stay', exp.ruralForest, exp.ruralForestDetails);
-  push('hiking in forest / bush / woodlands', exp.hikingWoodlands, exp.hikingWoodlandsDetails);
-  push('animal contact', exp.animalContact, exp.animalContactDetails);
-  push('animal bite / scratch', exp.animalBiteScratch, exp.animalBiteScratchDetails);
-  push('contact with bats or rodents', exp.batsRodents, exp.batsRodentsDetails);
-  push('bushmeat consumption', exp.bushmeat, exp.bushmeatDetails);
-  push('needles / tattoos / piercings', exp.needlesTattoos, exp.needlesTattoosDetails);
-  push('safari / wildlife viewing', exp.safariWildlife, exp.safariWildlifeDetails);
-  push('street food', exp.streetFood, exp.streetFoodDetails);
-  push('drank untreated water', exp.untreatedWater, exp.untreatedWaterDetails);
-  push('undercooked food', exp.undercookedFood, exp.undercookedFoodDetails);
-  push('undercooked seafood', exp.undercookedSeafood, exp.undercookedSeafoodDetails);
-  push('unpasteurised milk', exp.unpasteurisedMilk, exp.unpasteurisedMilkDetails);
-  push('attended funerals', exp.funerals, exp.funeralsDetails);
-  push('close contact with unwell people (e.g., cough, fever)', exp.sickContacts, exp.sickContactsDetails);
-  push('healthcare facility contact', exp.healthcareFacility, exp.healthcareFacilityDetails);
-  push('prison contact', exp.prison, exp.prisonDetails);
-  push('refugee camp contact', exp.refugeeCamp, exp.refugeeCampDetails);
-  push('unprotected sex', exp.unprotectedSex, exp.unprotectedSexDetails);
+
+  // Explicit mapping based on EXPOSURE_CATEGORIES logic
+  push('mosquito bites', 'mosquito');
+  push('tick bites', 'tick');
+  
+  // handle the weird boolean toggle for 'other vector' if present
+  if (exp.vectorOtherEnabled === 'yes' || exp.vectorOtherEnabled === true) {
+     positives.push({ label: 'Other vector', details: positives.length === 0 ? detailText : '' });
+  } else if (exp.vectorOtherEnabled === 'no') {
+     negatives.push('Other vector');
+  }
+
+  push('swimming or wading in fresh water', 'freshwater');
+  push('visited caves or mines', 'cavesMines');
+  push('rural / forest stay', 'ruralForest');
+  push('hiking in forest / bush / woodlands', 'hikingWoodlands');
+  push('animal contact', 'animalContact');
+  push('animal bite / scratch', 'animalBiteScratch');
+  push('contact with bats or rodents', 'batsRodents');
+  push('bushmeat consumption', 'bushmeat');
+  push('needles / tattoos / piercings', 'needlesTattoos');
+  push('safari / wildlife viewing', 'safariWildlife');
+  push('street food', 'streetFood');
+  push('drank untreated water', 'untreatedWater');
+  push('undercooked food', 'undercookedFood');
+  push('undercooked seafood', 'undercookedSeafood');
+  push('unpasteurised milk', 'unpasteurisedMilk');
+  push('attended funerals', 'funerals');
+  push('close contact with unwell people (e.g., cough, fever)', 'sickContacts');
+  push('healthcare facility contact', 'healthcareFacility');
+  push('prison contact', 'prison');
+  push('refugee camp contact', 'refugeeCamp');
+  push('unprotected sex', 'unprotectedSex');
   
   return { positives, negatives, otherText: exp.otherText?.trim() || '' };
 }
