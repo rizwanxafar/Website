@@ -1,12 +1,10 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v40 (Visual Polish: Neutral Cards)
+// Travel History Generator — v41 (Neutral Text Labels)
 // Changes:
-// - VISUAL: Exposure cards no longer change background color on selection (kept neutral).
-// - VISUAL: Only the specific [Yes] button changes to Brand Color.
-// - UI: Removed example placeholder text from the details box.
-// - MAINTAINED: Smart Numbering, Single Narrative, Explicit Yes/No Controls.
+// - VISUAL: Exposure label text color now remains neutral (Slate) even when selected.
+// - MAINTAINED: Neutral box background, Brand-colored [Yes] button, Single Narrative logic.
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { 
@@ -1283,7 +1281,7 @@ function ExposureTagSystem({ exposures, onChange }) {
                     key={item.key} 
                     className="flex items-center justify-between p-2 rounded-lg border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 transition-all"
                   >
-                    <span className={clsx("text-xs font-medium mr-2 truncate", isYes ? "text-[hsl(var(--brand))]" : "text-slate-700 dark:text-slate-300")} title={item.label}>
+                    <span className="text-xs font-medium mr-2 truncate text-slate-700 dark:text-slate-300" title={item.label}>
                       {item.label}
                     </span>
                     
