@@ -1,11 +1,12 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v32 (Smooth Reveal Animation)
+// Travel History Generator — v33 (Smart Numbering & Terminology)
 // Changes:
-// - UI: Added <SmoothReveal> component for zero-layout-shift expansions.
-// - ANIMATION: Applied smooth transitions to Vaccines, Malaria, and Companion detail boxes.
-// - LOGIC: Maintained Multi-Select Tags and Comma-Separated Summary from v31.
+// - UX: "Stop" renamed to "Destination" throughout the UI.
+// - LOGIC: Trips/Destinations only show numbers (e.g., "Trip 1") if there are multiple.
+// - LOGIC: If singular, headers simplify to "Trip details" and "Destination".
+// - MAINTAINED: Smooth Reveal, Multi-Select, and Previous Logic.
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { 
@@ -49,7 +50,7 @@ const VACCINE_SUGGESTIONS = [
 
 const MALARIA_DRUGS = ['None', 'Atovaquone/Proguanil', 'Doxycycline', 'Mefloquine', 'Chloroquine', 'Unknown'];
 const MALARIA_STATUS_OPTIONS = ['Not indicated', 'Taken', 'Not taken', 'Unsure'];
-const VACCINE_STATUS_OPTIONS = ['Taken', 'Not taken', 'Unsure']; // "Unknown" implicit if nothing selected
+const VACCINE_STATUS_OPTIONS = ['Taken', 'Not taken', 'Unsure']; 
 const ADHERENCE_OPTIONS = ['Good', 'Partial', 'Poor', 'Unknown'];
 
 const COMPANION_GROUPS = ['Alone', 'Family', 'Friends', 'Other'];
@@ -599,7 +600,7 @@ export default function TravelHistoryGeneratorPage() {
         if (s.arrival && s.departure) {
           const a = parseDate(s.arrival), d = parseDate(s.departure);
           if (a && d && a > d) {
-            list.push({ level: 'error', msg: `Trip ${tIdx + 1}, Stop ${sIdx + 1}: Arrival is after departure.` });
+            list.push({ level: 'error', msg: `Trip ${tIdx + 1}, Destination ${sIdx + 1}: Arrival is after departure.` });
             stopIds.add(s.id);
           }
         }
@@ -608,7 +609,7 @@ export default function TravelHistoryGeneratorPage() {
         for (let j = i + 1; j < trip.stops.length; j++) {
           const A = trip.stops[i], B = trip.stops[j];
           if (rangesOverlap(A.arrival, A.departure, B.arrival, B.departure)) {
-            list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Stops ${i + 1} and ${j + 1} overlap.` });
+            list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Destinations ${i + 1} and ${j + 1} overlap.` });
             stopIds.add(A.id); stopIds.add(B.id);
           }
         }
@@ -625,7 +626,7 @@ export default function TravelHistoryGeneratorPage() {
       trip.layovers.forEach((L, li) => {
         trip.stops.forEach((S, si) => {
           if (rangesOverlap(L.start, L.end, S.arrival, S.departure)) {
-            list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Layover ${li + 1} overlaps Stop ${si + 1}.` });
+            list.push({ level: 'error', msg: `Trip ${tIdx + 1}: Layover ${li + 1} overlaps Destination ${si + 1}.` });
             layIds.add(L.id); stopIds.add(S.id);
           }
         });
@@ -723,6 +724,7 @@ export default function TravelHistoryGeneratorPage() {
             innerRef={setItemRef(trip.id)}
             trip={trip}
             index={tIdx}
+            totalTrips={state.trips.length}
             updateTrip={updateTrip}
             updateStop={updateStop}
             addStop={addStop}
@@ -815,7 +817,7 @@ export default function TravelHistoryGeneratorPage() {
 
 // ===== Trip Card =====
 function TripCard({
-  trip, index, updateTrip, updateStop, addStop, removeStop, addLayover, updateLayover, removeLayover, removeTrip,
+  trip, index, totalTrips, updateTrip, updateStop, addStop, removeStop, addLayover, updateLayover, removeLayover, removeTrip,
   highlight, setItemRef, innerRef
 }) {
   const setMalaria = (patch) => {
@@ -843,12 +845,14 @@ function TripCard({
     return names;
   }, [originISO2]);
 
+  const headerTitle = totalTrips > 1 ? `Trip ${index + 1}` : "Trip details";
+
   return (
     <div ref={innerRef} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
       <div className="flex items-start justify-between gap-3">
-        <h2 className={SECTION_HEADING}>Trip {index + 1}</h2>
+        <h2 className={SECTION_HEADING}>{headerTitle}</h2>
         <div className="flex gap-2">
-          <button type="button" onClick={() => addStop(trip.id)} className={BTN_PRIMARY}>+ Add stop</button>
+          <button type="button" onClick={() => addStop(trip.id)} className={BTN_PRIMARY}>+ Add destination</button>
           <button type="button" onClick={() => addLayover(trip.id)} className={BTN_PRIMARY}>+ Add layover</button>
           <button type="button" onClick={() => removeTrip(trip.id)} className={BTN_SECONDARY}>Remove trip</button>
         </div>
@@ -1051,7 +1055,16 @@ function TripCard({
 
       <div className="mt-6 space-y-6">
         {trip.stops.map((stop, sIdx) => (
-          <StopCard key={stop.id} innerRef={setItemRef(stop.id)} stop={stop} index={sIdx} onChange={(patch) => updateStop(trip.id, stop.id, patch)} onRemove={() => removeStop(trip.id, stop.id)} highlighted={highlight.stopIds.has(stop.id)} />
+          <StopCard 
+            key={stop.id} 
+            innerRef={setItemRef(stop.id)} 
+            stop={stop} 
+            index={sIdx} 
+            totalStops={trip.stops.length}
+            onChange={(patch) => updateStop(trip.id, stop.id, patch)} 
+            onRemove={() => removeStop(trip.id, stop.id)} 
+            highlighted={highlight.stopIds.has(stop.id)} 
+          />
         ))}
       </div>
 
@@ -1069,7 +1082,7 @@ function TripCard({
   );
 }
 
-function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
+function StopCard({ stop, index, totalStops, onChange, onRemove, innerRef, highlighted }) {
   const exp = stop.exposures;
   const normalizedCities = (stop.cities || []).map((c) =>
     typeof c === 'string' ? { name: c || '', arrival: '', departure: '' } : { name: c?.name || '', arrival: c?.arrival || '', departure: c?.departure || '' }
@@ -1089,11 +1102,13 @@ function StopCard({ stop, index, onChange, onRemove, innerRef, highlighted }) {
   const removeCity = (i) => { const next = [...normalizedCities]; next.splice(i, 1); if (next.length === 0) next.push({ name: '', arrival: '', departure: '' }); commitCities(next); };
   const toggleAccommodation = (value) => { const set = new Set(stop.accommodations || []); if (set.has(value)) set.delete(value); else set.add(value); onChange({ accommodations: Array.from(set) }); };
 
+  const headerTitle = totalStops > 1 ? `Destination ${index + 1}` : "Destination";
+
   return (
     <div ref={innerRef} className={classNames("rounded-lg border p-4", highlighted ? "border-rose-400 dark:border-rose-600 bg-rose-50/40 dark:bg-rose-900/10" : "border-slate-200 dark:border-slate-800")}>
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Stop {index + 1}</h3>
-        <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove stop</button>
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{headerTitle}</h3>
+        <button type="button" onClick={onRemove} className={LINKISH_SECONDARY}>Remove destination</button>
       </div>
 
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
