@@ -1,11 +1,10 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v43 (Geospatial Map Report)
+// Travel History Generator — v44 (Fixed: Dynamic Map Import)
 // Changes:
-// - FEAT: Replaced Gantt with Leaflet Map ("Street Map" style).
-// - LOGIC: Auto-geocoding using Country-State-City data.
-// - UI: Permanent tooltips on map for PDF clarity.
+// - FIX: Removed direct Leaflet imports to prevent "window is not defined" error.
+// - FEAT: Dynamically loads the external 'TravelMap.js' component only on the client.
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { 
@@ -17,28 +16,18 @@ import {
 import { clsx } from 'clsx'; 
 import { DayPicker } from 'react-day-picker';
 import { format, differenceInDays, addDays, min, max, isValid, parseISO } from 'date-fns';
+import dynamic from 'next/dynamic';
 
-// ---- Map Dependencies ----
-import 'leaflet/dist/leaflet.css'; // Ensure CSS is loaded
-import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip } from 'react-leaflet';
-import L from 'leaflet';
-
-// Fix for default Leaflet marker icons in React/Next.js
-const iconUrl = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png';
-const iconRetinaUrl = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png';
-const shadowUrl = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png';
-
-const DefaultIcon = L.icon({
-  iconUrl,
-  iconRetinaUrl,
-  shadowUrl,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  tooltipAnchor: [16, -28],
-  shadowSize: [41, 41]
+// ---- Dynamic Map Import (Fixes SSR Error) ----
+const TravelMap = dynamic(() => import('./TravelMap'), { 
+  ssr: false,
+  loading: () => (
+    <div className="h-full w-full bg-slate-50 border border-slate-200 rounded flex flex-col items-center justify-center text-slate-400 text-sm gap-2">
+      <div className="animate-spin h-5 w-5 border-2 border-slate-300 border-t-slate-600 rounded-full"></div>
+      <span>Loading Map...</span>
+    </div>
+  )
 });
-L.Marker.prototype.options.icon = DefaultIcon;
 
 // ---- Data Sources ----
 import { Country, City } from "country-state-city";
@@ -55,16 +44,6 @@ function getIsoFromCountryName(name) {
   let hit = CSC_COUNTRIES.find(c => normalize(c.name) === q);
   if (hit) return hit.isoCode;
   return "";
-}
-
-function getCoordsFromCountryName(name) {
-  if (!name) return null;
-  const q = normalize(name.trim());
-  let hit = CSC_COUNTRIES.find(c => normalize(c.name) === q);
-  if (hit && hit.latitude && hit.longitude) {
-    return [parseFloat(hit.latitude), parseFloat(hit.longitude)];
-  }
-  return null;
 }
 
 // ---- Options ----
@@ -200,6 +179,390 @@ const formatDMY = (dateStr) => {
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
+// ---- Custom UI Components (Headless UI v2) ----
+
+// 0. Smooth Reveal Wrapper
+function SmoothReveal({ show, children }) {
+  return (
+    <Transition
+      show={show}
+      as={Fragment}
+      enter="transition-all ease-out duration-300"
+      enterFrom="opacity-0 -translate-y-2 max-h-0 overflow-hidden"
+      enterTo="opacity-100 translate-y-0 max-h-[500px] overflow-visible"
+      leave="transition-all ease-in duration-200"
+      leaveFrom="opacity-100 translate-y-0 max-h-[500px] overflow-visible"
+      leaveTo="opacity-0 -translate-y-2 max-h-0 overflow-hidden"
+    >
+      <div>{children}</div>
+    </Transition>
+  );
+}
+
+// 1. Responsive Date Picker
+function ResponsiveDatePicker({ value, onChange }) {
+  const dateObj = value ? parseDate(value) : undefined;
+
+  const handleDaySelect = (d) => {
+    if (!d) { onChange(''); return; }
+    onChange(format(d, 'yyyy-MM-dd'));
+  };
+
+  return (
+    <div className="relative mt-1">
+      {/* MOBILE: Native Input */}
+      <div className="block md:hidden">
+        <div className={CONTAINER_BASE}>
+          <input
+            type="date"
+            className={INPUT_BASE}
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* DESKTOP: Custom Popover */}
+      <div className="hidden md:block">
+        <Popover className="relative w-full">
+          <PopoverButton className={clsx(CONTAINER_BASE, "flex items-center justify-between text-left")}>
+            <span className={clsx("block truncate py-2 pl-3", !value && "text-slate-400")}>
+              {value ? formatDMY(value) : "Select date"}
+            </span>
+            <span className="pr-3 text-slate-400">
+              <Icons.Calendar className="w-4 h-4" />
+            </span>
+          </PopoverButton>
+
+          <Transition
+            as={Fragment}
+            enter="transition ease-out duration-200"
+            enterFrom="opacity-0 translate-y-1"
+            enterTo="opacity-100 translate-y-0"
+            leave="transition ease-in duration-150"
+            leaveFrom="opacity-100 translate-y-0"
+            leaveTo="opacity-0 translate-y-1"
+          >
+            <PopoverPanel className="absolute z-50 mt-2 p-3 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 w-[300px]">
+              {({ close }) => (
+                <DayPicker
+                  mode="single"
+                  selected={dateObj}
+                  onSelect={(d) => { handleDaySelect(d); close(); }}
+                  showOutsideDays
+                  classNames={{
+                    months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                    month: "space-y-4",
+                    caption: "flex justify-center pt-1 relative items-center",
+                    caption_label: "text-sm font-medium text-slate-900 dark:text-slate-100",
+                    nav: "space-x-1 flex items-center",
+                    nav_button: "h-7 w-7 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md flex items-center justify-center text-slate-500 transition",
+                    nav_button_previous: "absolute left-1",
+                    nav_button_next: "absolute right-1",
+                    table: "w-full border-collapse space-y-1",
+                    head_row: "flex",
+                    head_cell: "text-slate-400 rounded-md w-9 font-normal text-[0.8rem]",
+                    row: "flex w-full mt-2",
+                    cell: "text-center text-sm relative p-0 focus-within:relative focus-within:z-20",
+                    day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-900 dark:text-slate-100",
+                    day_selected: "!bg-[hsl(var(--brand))] !text-white hover:!bg-[hsl(var(--brand))]/90",
+                    day_today: "bg-slate-100 dark:bg-slate-800 font-bold text-[hsl(var(--brand))]",
+                  }}
+                  components={{
+                    IconLeft: () => <Icons.ChevronLeft className="w-4 h-4" />,
+                    IconRight: () => <Icons.ChevronRight className="w-4 h-4" />,
+                  }}
+                />
+              )}
+            </PopoverPanel>
+          </Transition>
+        </Popover>
+      </div>
+    </div>
+  );
+}
+
+// 2. Searchable Combobox (Single Select)
+function SearchableSelect({ value, onChange, options, placeholder, allowCustom = false }) {
+  const [query, setQuery] = useState('');
+
+  const filteredOptions = useMemo(() => {
+    const q = normalize(query);
+    const fullList = query === '' 
+      ? options 
+      : options.filter((opt) => {
+          const str = typeof opt === 'string' ? opt : opt.name;
+          return normalize(str).includes(q);
+        });
+    return fullList.slice(0, 100);
+  }, [query, options]);
+
+  return (
+    <Combobox value={value} onChange={onChange} nullable>
+      <div className="relative mt-1">
+        <div className={CONTAINER_BASE}>
+          <ComboboxInput
+            className={INPUT_BASE}
+            displayValue={(item) => item || ''}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={placeholder}
+          />
+          <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
+            <Icons.ChevronUpDown aria-hidden="true" />
+          </ComboboxButton>
+        </div>
+        <Transition
+          as={Fragment}
+          leave="transition ease-in duration-100"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+          afterLeave={() => setQuery('')}
+        >
+          <ComboboxOptions className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+            {filteredOptions.length === 0 && query !== '' ? (
+              allowCustom ? (
+                <ComboboxOption
+                  className={({ active }) =>
+                    clsx('relative cursor-pointer select-none py-2 pl-4 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
+                  }
+                  value={query}
+                >
+                  <div className="flex items-center gap-2">
+                    <Icons.Plus className="h-4 w-4" />
+                    <span>Use "{query}"</span>
+                  </div>
+                </ComboboxOption>
+              ) : (
+                <div className="relative cursor-default select-none px-4 py-2 text-slate-500">Nothing found.</div>
+              )
+            ) : (
+              filteredOptions.map((opt, idx) => {
+                const label = typeof opt === 'string' ? opt : opt.name;
+                const key = typeof opt === 'string' ? `${opt}-${idx}` : `${opt.name}-${opt.id || idx}`;
+                return (
+                  <ComboboxOption
+                    key={key}
+                    className={({ active }) =>
+                      clsx('relative cursor-default select-none py-2 pl-10 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
+                    }
+                    value={label}
+                  >
+                    {({ selected, active }) => (
+                      <>
+                        <span className={clsx('block truncate', selected ? 'font-medium' : 'font-normal')}>{label}</span>
+                        {selected ? (
+                          <span className={clsx('absolute inset-y-0 left-0 flex items-center pl-3', active ? 'text-white' : 'text-[hsl(var(--brand))]')}>
+                            <Icons.Check aria-hidden="true" />
+                          </span>
+                        ) : null}
+                      </>
+                    )}
+                  </ComboboxOption>
+                );
+              })
+            )}
+          </ComboboxOptions>
+        </Transition>
+      </div>
+    </Combobox>
+  );
+}
+
+// 3. Multi-Select Tags Combobox (New for Vaccines)
+function MultiSelectTags({ value = [], onChange, options, placeholder }) {
+  const [query, setQuery] = useState('');
+
+  const filteredOptions = useMemo(() => {
+    const q = normalize(query);
+    return query === '' 
+      ? options.filter(opt => !value.includes(opt))
+      : options.filter((opt) => {
+          return normalize(opt).includes(q) && !value.includes(opt);
+        });
+  }, [query, options, value]);
+
+  const removeTag = (tag) => {
+    onChange(value.filter(t => t !== tag));
+  };
+
+  const addTag = (tag) => {
+    if (!tag) return;
+    if (!value.includes(tag)) onChange([...value, tag]);
+    setQuery('');
+  };
+
+  return (
+    <Combobox value={null} onChange={addTag} nullable>
+      <div className="relative mt-1">
+        <div className={clsx(CONTAINER_BASE, "flex flex-wrap items-center gap-1.5 p-1.5 min-h-[42px]")}>
+          {value.map((tag) => (
+            <span key={tag} className="inline-flex items-center gap-1 rounded bg-[hsl(var(--brand))]/10 border border-[hsl(var(--brand))]/20 px-2 py-0.5 text-xs font-medium text-[hsl(var(--brand))] dark:text-[hsl(var(--accent))]">
+              {tag}
+              <button
+                type="button"
+                className="group relative -mr-1 h-3.5 w-3.5 rounded-sm hover:bg-[hsl(var(--brand))]/20"
+                onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
+              >
+                <Icons.X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+          <ComboboxInput
+            className="min-w-[120px] flex-1 border-none bg-transparent py-1 pl-1 text-sm leading-5 text-slate-900 focus:ring-0 dark:text-slate-100 placeholder:text-slate-400"
+            displayValue={() => query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={value.length === 0 ? placeholder : ""}
+          />
+        </div>
+        <Transition
+          as={Fragment}
+          leave="transition ease-in duration-100"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+          afterLeave={() => setQuery('')}
+        >
+          <ComboboxOptions className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+            {filteredOptions.length === 0 && query !== '' ? (
+              <ComboboxOption
+                className={({ active }) =>
+                  clsx('relative cursor-pointer select-none py-2 pl-4 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
+                }
+                value={query}
+              >
+                <div className="flex items-center gap-2">
+                  <Icons.Plus className="h-4 w-4" />
+                  <span>Add "{query}"</span>
+                </div>
+              </ComboboxOption>
+            ) : (
+              filteredOptions.map((opt, idx) => (
+                <ComboboxOption
+                  key={idx}
+                  className={({ active }) =>
+                    clsx('relative cursor-default select-none py-2 pl-4 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
+                  }
+                  value={opt}
+                >
+                  <span className="block truncate font-normal">{opt}</span>
+                </ComboboxOption>
+              ))
+            )}
+          </ComboboxOptions>
+        </Transition>
+      </div>
+    </Combobox>
+  );
+}
+
+// 4. Simple Select Dropdown
+function SimpleSelect({ value, onChange, options }) {
+  return (
+    <Listbox value={value} onChange={onChange}>
+      <div className="relative mt-1">
+        <ListboxButton className={CONTAINER_BASE}>
+          <span className="block truncate py-2 pl-3 pr-10 min-h-[36px]">{value}</span>
+          <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+            <Icons.ChevronUpDown aria-hidden="true" />
+          </span>
+        </ListboxButton>
+        <Transition
+          as={Fragment}
+          leave="transition ease-in duration-100"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <ListboxOptions className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+            {options.map((opt, idx) => (
+              <ListboxOption
+                key={idx}
+                className={({ active }) =>
+                  clsx('relative cursor-default select-none py-2 pl-10 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
+                }
+                value={opt}
+              >
+                {({ selected, active }) => (
+                  <>
+                    <span className={clsx('block truncate', selected ? 'font-medium' : 'font-normal')}>{opt}</span>
+                    {selected ? (
+                      <span className={clsx('absolute inset-y-0 left-0 flex items-center pl-3', active ? 'text-white' : 'text-[hsl(var(--brand))]')}>
+                        <Icons.Check aria-hidden="true" />
+                      </span>
+                    ) : null}
+                  </>
+                )}
+              </ListboxOption>
+            ))}
+          </ListboxOptions>
+        </Transition>
+      </div>
+    </Listbox>
+  );
+}
+
+// ---- Initial State ----
+const emptyStop = () => ({
+  id: uid(),
+  country: '',
+  cities: [{ name: '', arrival: '', departure: '' }],
+  arrival: '',
+  departure: '',
+  accommodations: [],
+  accommodationOther: '',
+  exposures: {
+    mosquito: 'unknown',
+    tick: 'unknown',
+    vectorOtherEnabled: 'unknown',
+    freshwater: 'unknown',
+    cavesMines: 'unknown',
+    ruralForest: 'unknown',
+    hikingWoodlands: 'unknown',
+    animalContact: 'unknown',
+    animalBiteScratch: 'unknown',
+    batsRodents: 'unknown',
+    bushmeat: 'unknown',
+    needlesTattoos: 'unknown',
+    safariWildlife: 'unknown',
+    streetFood: 'unknown',
+    untreatedWater: 'unknown',
+    undercookedFood: 'unknown',
+    undercookedSeafood: 'unknown',
+    unpasteurisedMilk: 'unknown',
+    funerals: 'unknown',
+    sickContacts: 'unknown',
+    healthcareFacility: 'unknown',
+    prison: 'unknown',
+    refugeeCamp: 'unknown',
+    unprotectedSex: 'unknown',
+    positiveDetails: '', // NEW SINGLE DETAIL BOX
+    otherText: '',
+  },
+});
+
+const emptyLayover = (tripId) => ({
+  id: uid(), tripId, country: '', city: '', start: '', end: '', leftAirport: 'no', activitiesText: '',
+});
+
+const emptyPastTravel = () => ({
+  id: uid(), country: '', year: '', details: '',
+});
+
+const emptyTrip = () => ({
+  id: uid(),
+  purpose: '',
+  originCountry: 'United Kingdom',
+  originCity: 'Manchester',
+  vaccines: { status: 'unknown', details: [] }, 
+  malaria: { indication: 'Not indicated', drug: 'None', adherence: '' },
+  companions: { group: 'Alone', otherText: '', companionsWell: 'unknown', companionsUnwellDetails: '' },
+  stops: [emptyStop()],
+  layovers: [],
+});
+
+const initialState = {
+  trips: [emptyTrip()],
+  pastTravels: [],
+};
+
 // ===== Shared chronology builder =====
 function buildTripEvents(trip, companions) {
   const stopsSorted = [...trip.stops].sort((a, b) => (parseDate(a.arrival) - parseDate(b.arrival)));
@@ -254,6 +617,16 @@ function buildTripEvents(trip, companions) {
       },
     });
     // Add layovers as events...
+    if (i === 0 && beforeFirst.length) {
+      beforeFirst.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l, anchorStopId: s.id, position: 'before-stop' }));
+    }
+    if (i < betweenByIndex.length) {
+      const group = betweenByIndex[i].sort((a, b) => (parseDate(a.start) - parseDate(b.start)));
+      group.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l, anchorStopId: s.id, position: 'between' }));
+    }
+    if (isLastInTrip && afterLast.length) {
+      afterLast.forEach((l) => events.push({ type: 'layover', date: parseDate(l.start), layover: l, anchorStopId: s.id, position: 'after-stop' }));
+    }
   });
   return events;
 }
@@ -269,9 +642,40 @@ export default function TravelHistoryGeneratorPage() {
   const itemRefs = useRef(new Map());
   const setItemRef = (id) => (el) => { if (el) itemRefs.current.set(id, el); };
 
-  // ... (Keep existing effects for unload, issues, scroll) ...
+  useEffect(() => {
+    const hasData = state.trips.some(t => t.stops.length > 0 || t.layovers.length > 0) || state.pastTravels.length > 0;
+    const onBeforeUnload = (e) => { if (!hasData) return; e.preventDefault(); e.returnValue = ""; };
+    if (hasData) window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [state.trips, state.pastTravels]);
 
-  // Re-build merged events
+  useEffect(() => {
+    const list = [];
+    const stopIds = new Set();
+    const layIds = new Set();
+    state.trips.forEach((trip, tIdx) => {
+      trip.stops.forEach((s, sIdx) => {
+        if (s.arrival && s.departure) {
+          const a = parseDate(s.arrival), d = parseDate(s.departure);
+          if (a && d && a > d) {
+            list.push({ level: 'error', msg: `Trip ${tIdx + 1}, Destination ${sIdx + 1}: Arrival is after departure.` });
+            stopIds.add(s.id);
+          }
+        }
+      });
+    });
+    setIssues(list);
+    setHighlight({ stopIds, layoverIds: layIds });
+  }, [state.trips]);
+
+  useEffect(() => {
+    if (!pendingScrollId) return;
+    const el = itemRefs.current.get(pendingScrollId);
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const t = setTimeout(() => setPendingScrollId(null), 600);
+    return () => clearTimeout(t);
+  }, [pendingScrollId]);
+
   const mergedEventsAllTrips = useMemo(() => {
     const merged = [];
     state.trips.forEach((trip) => {
@@ -291,7 +695,6 @@ export default function TravelHistoryGeneratorPage() {
     [state, mergedEventsAllTrips]
   );
 
-  // ... (Keep existing update/add/remove handlers) ...
   const updateTrip = (tripId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, ...patch } : t)) }));
   const updateStop = (tripId, stopId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, stops: t.stops.map((s) => (s.id === stopId ? { ...s, ...patch } : s)) } : t)) }));
   const addTrip = () => { const tr = emptyTrip(); setState((p) => ({ ...p, trips: [...p.trips, tr] })); setPendingScrollId(tr.id); };
@@ -483,7 +886,7 @@ function PrintOverlay({ open, onClose, events, summaryHtml, summaryText }) {
                     </div>
 
                     {/* MAP VISUALIZATION */}
-                    <div className="mb-8 break-inside-avoid print:break-inside-avoid h-[400px] w-full rounded border border-slate-300 overflow-hidden">
+                    <div className="mb-8 break-inside-avoid print:break-inside-avoid h-[400px] w-full rounded border border-slate-300 overflow-hidden relative z-0">
                       <TravelMap events={events} />
                     </div>
 
@@ -504,93 +907,7 @@ function PrintOverlay({ open, onClose, events, summaryHtml, summaryText }) {
   );
 }
 
-function TravelMap({ events }) {
-  // 1. Build route points
-  const route = useMemo(() => {
-    const points = [];
-    const pins = [];
-    let bounds = [];
-    
-    // Group events by trip to separate polylines if needed, but for now we do one continuous flow per trip
-    // Actually, let's just grab Stops to draw the lines
-    const tripMap = new Map();
-    events.forEach(ev => {
-       if(!tripMap.has(ev.tripId)) tripMap.set(ev.tripId, { origin: ev.stop?.tripOriginCountry, stops: [] });
-       if(ev.type === 'stop') tripMap.get(ev.tripId).stops.push(ev);
-    });
-
-    tripMap.forEach((data, tripId) => {
-      // Try to get origin coords
-      const originCoords = getCoordsFromCountryName(data.origin);
-      let lastCoords = originCoords;
-
-      if (originCoords) {
-        points.push(originCoords);
-        bounds.push(originCoords);
-      }
-
-      data.stops.forEach(ev => {
-        const coords = getCoordsFromCountryName(ev.stop.country);
-        if (coords) {
-          points.push(coords);
-          bounds.push(coords);
-          lastCoords = coords;
-
-          // Add Marker for Stop
-          const dateStr = `${formatDMY(ev.stop.arrival)} - ${formatDMY(ev.stop.departure)}`;
-          pins.push({ 
-            position: coords, 
-            label: `${ev.stop.country} (${dateStr})` 
-          });
-        }
-      });
-
-      // Optionally close loop if return to origin? 
-      // Usually users want to see the path back.
-      if (originCoords) {
-        points.push(originCoords);
-      }
-    });
-
-    return { points, pins, bounds };
-  }, [events]);
-
-  // Center logic
-  const center = route.bounds.length > 0 ? route.bounds[0] : [20, 0];
-  const zoom = route.bounds.length > 0 ? 2 : 2;
-
-  // IMPORTANT: MapContainer needs a key to force re-render if data changes significantly
-  return (
-    <MapContainer center={center} zoom={zoom} scrollWheelZoom={false} className="h-full w-full z-0">
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      
-      {/* Route Line */}
-      {route.points.length > 1 && (
-        <Polyline 
-          positions={route.points} 
-          pathOptions={{ color: 'hsl(var(--brand))', weight: 3, dashArray: '10, 10', opacity: 0.7 }} 
-        />
-      )}
-
-      {/* Markers */}
-      {route.pins.map((pin, i) => (
-        <Marker key={i} position={pin.position}>
-          <Tooltip permanent direction="top" offset={[0, -20]} className="text-xs font-bold border border-slate-300 shadow-sm bg-white/90 px-2 py-1 rounded">
-             {pin.label}
-          </Tooltip>
-        </Marker>
-      ))}
-    </MapContainer>
-  );
-}
-
-// ... (Keep existing TripCard, StopCard, ExposureTagSystem, LayoverCard, buildSummaryFromEvents helpers) ...
-// (Due to file size limits, assume the rest of the file below remains identical to v42 provided previously)
-// RE-PASTING THE HELPERS BELOW FOR COMPLETENESS:
-
+// ===== Trip Card =====
 function TripCard({
   trip, index, totalTrips, updateTrip, updateStop, addStop, removeStop, addLayover, updateLayover, removeLayover, removeTrip,
   highlight, setItemRef, innerRef
