@@ -1,10 +1,13 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v44 (Fixed: Dynamic Map Import)
+// Travel History Generator — v46 (Refined Summary & UX Polish)
 // Changes:
-// - FIX: Removed direct Leaflet imports to prevent "window is not defined" error.
-// - FEAT: Dynamically loads the external 'TravelMap.js' component only on the client.
+// - FEAT: Layovers moved to dedicated "Transit / Layovers" section at end of trip summary.
+// - FEAT: Added "Copy to Clipboard" button in report modal.
+// - FEAT: Added second "Generate Report" button at bottom of page.
+// - REFINE: Changed "Did you leave" to "Did they leave" in Layover card.
+// - FIX: Maintained Dynamic Map Import.
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { 
@@ -156,7 +159,8 @@ const Icons = {
   Trash: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
   Alert: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>,
   X: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
-  Printer: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect width="12" height="8" x="6" y="14" /></svg>
+  Printer: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect width="12" height="8" x="6" y="14" /></svg>,
+  Clipboard: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
 };
 
 // ---- Helpers ----
@@ -821,6 +825,14 @@ export default function TravelHistoryGeneratorPage() {
         </div>
       </section>
 
+      {/* FOOTER ACTION AREA */}
+      <section className="mt-8 flex justify-end">
+         <button type="button" onClick={() => setPrintOpen(true)} className={clsx(BTN_PRIMARY, "w-full sm:w-auto shadow-lg")}>
+            <Icons.Printer className="w-4 h-4" />
+            <span>Generate Report</span>
+          </button>
+      </section>
+
       {/* Print Overlay */}
       <PrintOverlay 
         open={printOpen} 
@@ -836,8 +848,20 @@ export default function TravelHistoryGeneratorPage() {
 // ===== Print / Summary Components =====
 
 function PrintOverlay({ open, onClose, events, summaryHtml, summaryText }) {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (open) setCopied(false);
+  }, [open]);
+
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(summaryText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -892,7 +916,17 @@ function PrintOverlay({ open, onClose, events, summaryHtml, summaryText }) {
 
                     {/* TEXT SUMMARY */}
                     <div>
-                       <h2 className="text-lg font-bold uppercase tracking-wider text-slate-900 mb-4 border-b border-slate-200 pb-2">Detailed Summary</h2>
+                       <div className="flex items-center justify-between mb-4 border-b border-slate-200 pb-2">
+                         <h2 className="text-lg font-bold uppercase tracking-wider text-slate-900">Detailed Summary</h2>
+                         <button 
+                           type="button" 
+                           onClick={handleCopy}
+                           className="text-xs font-medium text-slate-500 hover:text-[hsl(var(--brand))] flex items-center gap-1.5 transition print:hidden"
+                         >
+                           {copied ? <span className="text-green-600">Copied!</span> : <span>Copy to clipboard</span>}
+                           <Icons.Clipboard className="w-3.5 h-3.5" />
+                         </button>
+                       </div>
                        <div className="prose prose-sm max-w-none prose-slate text-slate-900" dangerouslySetInnerHTML={{ __html: summaryHtml }} />
                     </div>
 
@@ -1432,7 +1466,7 @@ function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
       </div>
       <div className="mt-4 grid sm:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Did you leave the airport?</label>
+          <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Did they leave the airport?</label>
           <SimpleSelect 
             value={layover.leftAirport} 
             onChange={(val) => onChange({ leftAirport: val })} 
@@ -1510,22 +1544,15 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
 
     { const cmp = tripObj.companions || {}; if (cmp.group === "Alone") { html.push(`<div>Travelled alone.</div>`); text.push(`Travelled alone.`); } else { const groupStr = cmp.group === "Other" ? cmp.otherText || "Other" : cmp.group || "—"; html.push(`<div>Travelled with: ${escapeHtml(groupStr)}</div>`); text.push(`Travelled with: ${groupStr}`); const wellStr = cmp.companionsWell === "yes" ? "Yes" : cmp.companionsWell === "no" ? "No" : "Unknown"; if (cmp.companionsWell === "no") { const details = (cmp.companionsUnwellDetails || "").trim(); html.push(`<div>Are they well: No${details ? ` — ${escapeHtml(details)}` : ""}</div>`); text.push(`Are they well: No${details ? ` — ${details}` : ""}`); } else { html.push(`<div>Are they well: ${wellStr}</div>`); text.push(`Are they well: ${wellStr}`); } } }
 
-    const layoversByStop = new Map();
-    events.filter((e) => e.type === "layover" && e.anchorStopId).forEach((e) => { const sid = e.anchorStopId; if (!layoversByStop.has(sid)) layoversByStop.set(sid, { before: [], between: [], after: [] }); const bucket = e.position === "before-stop" ? "before" : e.position === "after-stop" ? "after" : "between"; layoversByStop.get(sid)[bucket].push(e.layover); });
-
-    const fmtLayover = (l) => { const place = `${(l.city ? `${l.city}, ` : "") + (l.country || "")}`.trim(); const dates = `(${formatDMY(l.start) || "—"}–${formatDMY(l.end) || "—"})`; const act = l.leftAirport === "yes" && (l.activitiesText || "").trim() ? ` · ${l.activitiesText.trim()}` : ""; const line = `${place} ${dates}${act}`; return { html: escapeHtml(line), text: line }; };
-
+    // --- Main Stops Logic ---
     events.forEach((ev, idxInTrip) => {
       if (ev.type !== "stop") return;
       const s = ev.stop;
-      const isLastStop = !!s.isLastInTrip;
+      // const isLastStop = !!s.isLastInTrip; // Unused in new layout
       const country = escapeHtml(s.country || "—");
       const countryDates = `${formatDMY(s.arrival) || "—"} to ${formatDMY(s.departure) || "—"}`;
       html.push(`<div style="height:8px"></div>`); text.push("");
       html.push(`<p><strong>${country} (${escapeHtml(countryDates)})</strong></p>`); text.push(`${s.country || "—"} (${countryDates})`);
-
-      const beforeList = (layoversByStop.get(s.id)?.before || []).map(fmtLayover);
-      if (beforeList.length) { html.push(`<div>Layovers before this country:</div>`); text.push(`Layovers before this country:`); html.push(`<ul>${beforeList.map((v) => `<li>${v.html}</li>`).join("")}</ul>`); beforeList.forEach((v) => text.push(`- ${v.text}`)); }
 
       const citiesArr = (s.cities || []).map((c) => typeof c === "string" ? { name: c, arrival: "", departure: "" } : { name: c?.name || "", arrival: c?.arrival || "", departure: c?.departure || "" }).filter((c) => c.name);
       if (citiesArr.length) { html.push(`<div>Cities / regions:</div>`); text.push(`Cities / regions:`); text.push(""); html.push('<ul class="list-disc pl-5">'); citiesArr.forEach((cObj) => { const a = cObj.arrival ? formatDMY(cObj.arrival) : ""; const d = cObj.departure ? formatDMY(cObj.departure) : ""; const datePart = a || d ? ` (${a || "—"} to ${d || "—"})` : ""; const line = `${cObj.name}${datePart}`; html.push(`<li>${escapeHtml(line)}</li>`); text.push(`• ${line}`); }); html.push("</ul>"); text.push(""); } else { html.push(`<div>Cities / regions: —</div>`); text.push(`Cities / regions: —`); }
@@ -1566,15 +1593,34 @@ function buildSummaryFromEvents(state, mergedEventsAllTrips) {
          html.push(`<div>Exposures: —</div>`);
          text.push(`Exposures: —`);
       }
-
-      const betweenList = (layoversByStop.get(s.id)?.between || []).map(fmtLayover);
-      if (betweenList.length) { html.push(`<div>Layovers to next destination:</div>`); text.push(`Layovers to next destination:`); html.push(`<ul>${betweenList.map((v) => `<li>${v.html}</li>`).join("")}</ul>`); betweenList.forEach((v) => text.push(`- ${v.text}`)); }
-
-      if (isLastStop) {
-        const afterList = (layoversByStop.get(s.id)?.after || []).map(fmtLayover);
-        if (afterList.length) { html.push(`<div>Layovers after this trip:</div>`); text.push(`Layovers after this trip:`); html.push(`<ul>${afterList.map((v) => `<li>${v.html}</li>`).join("")}</ul>`); afterList.forEach((v) => text.push(`- ${v.text}`)); }
-      }
     });
+
+    // --- Layovers (Dedicated Section at end of Trip) ---
+    const tripLayovers = events.filter(e => e.type === 'layover');
+    if (tripLayovers.length > 0) {
+      html.push(`<div style="height:12px"></div>`);
+      html.push(`<p><strong>Transit / Layovers</strong></p>`);
+      html.push('<ul class="list-disc pl-5">');
+      
+      text.push("");
+      text.push("Transit / Layovers:");
+
+      const fmtLayover = (l) => { 
+        const place = `${(l.city ? `${l.city}, ` : "") + (l.country || "")}`.trim(); 
+        const dates = `(${formatDMY(l.start) || "—"} to ${formatDMY(l.end) || "—"})`; 
+        const act = l.leftAirport === "yes" && (l.activitiesText || "").trim() ? ` · ${l.activitiesText.trim()}` : ""; 
+        const line = `${place} ${dates}${act}`; 
+        return { html: escapeHtml(line), text: line }; 
+      };
+
+      tripLayovers.forEach(ev => {
+        const { html: h, text: t } = fmtLayover(ev.layover);
+        html.push(`<li>${h}</li>`);
+        text.push(`- ${t}`);
+      });
+      html.push('</ul>');
+    }
+
     tripIndex += 1;
   }
 
