@@ -45,11 +45,11 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-slate-900/60 transition-opacity" />
+          <div className="fixed inset-0 bg-slate-900/60 transition-opacity print:hidden" />
         </TransitionChild>
 
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex min-h-full items-end justify-center p-0 text-center sm:items-center sm:p-0">
+        <div className="fixed inset-0 z-10 overflow-y-auto print:overflow-visible print:inset-auto print:absolute print:top-0 print:left-0 print:w-full print:h-full">
+          <div className="flex min-h-full items-end justify-center p-0 text-center sm:items-center sm:p-0 print:block print:min-h-0">
             <TransitionChild
               as={Fragment}
               enter="ease-out duration-300"
@@ -59,7 +59,32 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <DialogPanel className="relative transform bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl sm:rounded-lg h-[90vh] flex flex-col">
+              <DialogPanel className="relative transform bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl sm:rounded-lg h-[90vh] flex flex-col print:h-auto print:shadow-none print:my-0 print:w-full print:max-w-none print:rounded-none">
+                
+                {/* --- MAGIC PRINT FIX: Force hide everything else --- */}
+                <style jsx global>{`
+                  @media print {
+                    body * {
+                      visibility: hidden;
+                    }
+                    #print-root, #print-root * {
+                      visibility: visible;
+                    }
+                    #print-root {
+                      position: absolute;
+                      left: 0;
+                      top: 0;
+                      width: 100%;
+                      margin: 0;
+                      padding: 0;
+                    }
+                    /* Hide scrollbars during print */
+                    body {
+                      overflow: hidden; 
+                    }
+                  }
+                `}</style>
+
                 {/* Header (No Print) */}
                 <div className="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-b border-slate-200 print:hidden shrink-0">
                   <div className="flex gap-2">
@@ -70,7 +95,7 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
 
                 {/* Printable Content */}
                 <div className="flex-1 overflow-y-auto p-8 sm:p-12 print:p-0 print:overflow-visible" id="print-root">
-                  <div className="max-w-3xl mx-auto space-y-8">
+                  <div className="max-w-3xl mx-auto space-y-8 print:max-w-none">
                     
                     {/* Header */}
                     <div className="border-b-2 border-slate-900 pb-4 mb-8">
@@ -85,7 +110,7 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
 
                     {/* TEXT SUMMARY */}
                     <div>
-                       <div className="flex items-center justify-between mb-4 border-b border-slate-200 pb-2">
+                       <div className="flex items-center justify-between mb-4 border-b border-slate-200 pb-2 print:border-none">
                          <h2 className="text-lg font-bold uppercase tracking-wider text-slate-900">Detailed Summary</h2>
                          <button 
                            type="button" 
