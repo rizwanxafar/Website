@@ -61,26 +61,41 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
             >
               <DialogPanel className="relative transform bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl sm:rounded-lg h-[90vh] flex flex-col print:h-auto print:shadow-none print:my-0 print:w-full print:max-w-none print:rounded-none">
                 
-                {/* --- MAGIC PRINT FIX: Force hide everything else --- */}
+                {/* --- MAGIC PRINT FIX: Ghost Page Removal --- */}
                 <style jsx global>{`
                   @media print {
+                    /* 1. Remove the main form from flow completely to kill blank pages */
+                    main {
+                      display: none !important;
+                    }
+                    
+                    /* 2. Hide everything else by default just in case */
                     body * {
                       visibility: hidden;
                     }
+
+                    /* 3. Make the report visible */
                     #print-root, #print-root * {
                       visibility: visible;
                     }
-                    #print-root {
-                      position: absolute;
-                      left: 0;
-                      top: 0;
-                      width: 100%;
-                      margin: 0;
-                      padding: 0;
+
+                    /* 4. Reset Headless UI fixed positioning (The "Trap") */
+                    /* This prevents the report from cutting off after 1 page */
+                    html, body, [role="dialog"], .fixed {
+                      position: static !important;
+                      overflow: visible !important;
+                      height: auto !important;
+                      width: auto !important;
                     }
-                    /* Hide scrollbars during print */
-                    body {
-                      overflow: hidden; 
+
+                    /* 5. Position the report at the top */
+                    #print-root {
+                      position: absolute !important;
+                      left: 0 !important;
+                      top: 0 !important;
+                      width: 100% !important;
+                      margin: 0 !important;
+                      padding: 0 !important;
                     }
                   }
                 `}</style>
