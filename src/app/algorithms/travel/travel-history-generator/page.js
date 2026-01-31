@@ -1,13 +1,6 @@
 'use client';
 
 // src/app/algorithms/travel/travel-history-generator/page.js
-// Travel History Generator — v46 (Refined Summary & UX Polish)
-// Changes:
-// - FEAT: Layovers moved to dedicated "Transit / Layovers" section at end of trip summary.
-// - FEAT: Added "Copy to Clipboard" button in report modal.
-// - FEAT: Added second "Generate Report" button at bottom of page.
-// - REFINE: Changed "Did you leave" to "Did they leave" in Layover card.
-// - FIX: Maintained Dynamic Map Import.
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { 
