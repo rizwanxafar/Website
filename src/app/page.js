@@ -15,7 +15,7 @@ import {
   Globe,
   ExternalLink,
   Wifi,
-  AlertCircle
+  AlertTriangle
 } from "lucide-react";
 
 // --- ANIMATION CONFIG ---
@@ -33,61 +33,60 @@ const staggerContainer = {
 };
 
 export default function Home() {
-  const [newsItems, setNewsItems] = useState([]);
+  const [latestNews, setLatestNews] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [debugError, setDebugError] = useState(null);
 
-  // --- CLIENT-SIDE DATA FETCHING (RAW XML STRATEGY) ---
+  // --- SINGLE ENTRY FETCH (DEBUG MODE) ---
   useEffect(() => {
-    async function fetchNews() {
+    async function fetchSingleEntry() {
       try {
-        // 1. Target URL
         const FEED_URL = "https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml";
-        
-        // 2. Use 'AllOrigins' proxy to fetch RAW XML string (Bypasses CORS & format errors)
-        const PROXY_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(FEED_URL)}`;
+        // Using 'codetabs' proxy which is often more permissive than others
+        const PROXY_URL = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(FEED_URL)}`;
 
         const res = await fetch(PROXY_URL);
-        if (!res.ok) throw new Error(`Proxy error: ${res.status}`);
         
-        const data = await res.json();
-        const xmlString = data.contents; // AllOrigins puts the body in 'contents'
+        if (!res.ok) {
+          throw new Error(`HTTP Error: ${res.status}`);
+        }
 
-        // 3. Parse XML Natively in Browser
+        const xmlString = await res.text();
+        
+        // Basic check to see if we actually got XML or a Block Page
+        if (!xmlString.includes("<?xml") && !xmlString.includes("<rss")) {
+          throw new Error("Received invalid data (likely a firewall block).");
+        }
+
+        // Native Browser Parser
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlString, "text/xml");
         
-        // Check for parse errors
-        const parseError = xmlDoc.querySelector("parsererror");
-        if (parseError) throw new Error("XML Parse failed");
+        // GET ONLY THE FIRST ITEM
+        const firstItem = xmlDoc.querySelector("item");
+        
+        if (!firstItem) {
+          throw new Error("Feed is empty or unreadable.");
+        }
 
-        const items = Array.from(xmlDoc.querySelectorAll("item")).slice(0, 5);
+        const title = firstItem.querySelector("title")?.textContent || "Unknown Title";
+        const pubDate = firstItem.querySelector("pubDate")?.textContent || "";
+        const link = firstItem.querySelector("link")?.textContent || "#";
 
-        const cleanedItems = items.map(item => {
-          // Robust extraction that handles CDATA or standard text
-          const title = item.querySelector("title")?.textContent || "Update";
-          const link = item.querySelector("link")?.textContent || "#";
-          const pubDate = item.querySelector("pubDate")?.textContent;
-
-          return {
-            title: title.replace("<![CDATA[", "").replace("]]>", "").trim(), // Cleanup
-            date: pubDate 
-              ? new Date(pubDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-              : 'Unknown',
-            link: link.trim()
-          };
+        setLatestNews({
+          title: title.replace("<![CDATA[", "").replace("]]>", "").trim(),
+          date: pubDate ? new Date(pubDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "Unknown Date",
+          link: link.trim()
         });
 
-        setNewsItems(cleanedItems);
       } catch (e) {
-        console.error("Feed Error Details:", e); // Check Console if this fails again
-        setErrorMsg(e.message);
+        setDebugError(e.message);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchNews();
+    fetchSingleEntry();
   }, []);
 
   return (
@@ -144,65 +143,62 @@ export default function Home() {
             />
           </motion.div>
 
-          {/* 3. GLOBAL SURVEILLANCE (ROBUST CLIENT-SIDE WIDGET) */}
+          {/* 3. GLOBAL SURVEILLANCE (DEBUG / SINGLE ENTRY MODE) */}
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-6">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
                 <Globe className="w-3 h-3" />
-                Global Surveillance // WHO-DON
+                Global Surveillance // LATEST_ENTRY
               </span>
               <div className="h-px flex-1 bg-neutral-900" />
             </div>
             
-            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 overflow-hidden min-h-[120px]">
-               {loading ? (
-                 // LOADING STATE
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 overflow-hidden min-h-[100px]">
+               
+               {loading && (
                  <div className="p-8 flex flex-col items-center justify-center text-neutral-600 gap-3">
                     <Wifi className="w-5 h-5 animate-pulse opacity-50" />
-                    <span className="font-mono text-xs tracking-widest animate-pulse">ESTABLISHING UPLINK...</span>
-                 </div>
-               ) : newsItems.length > 0 ? (
-                 // SUCCESS STATE
-                 <div className="divide-y divide-neutral-800/50">
-                   {newsItems.map((item, idx) => (
-                     <a 
-                       key={idx} 
-                       href={item.link} 
-                       target="_blank" 
-                       rel="noopener noreferrer"
-                       className="group flex items-start gap-4 p-4 hover:bg-neutral-800/30 transition-colors"
-                     >
-                       <span className="font-mono text-xs text-neutral-500 whitespace-nowrap pt-1 min-w-[80px]">
-                         {item.date}
-                       </span>
-                       <div className="flex-1">
-                         <h4 className="text-sm font-medium text-neutral-300 group-hover:text-white transition-colors leading-snug">
-                           {item.title}
-                         </h4>
-                       </div>
-                       <ExternalLink className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 opacity-0 group-hover:opacity-100 transition-all" />
-                     </a>
-                   ))}
-                 </div>
-               ) : (
-                 // ERROR STATE (Now with details)
-                 <div className="p-8 flex flex-col items-center justify-center text-center gap-2">
-                   <div className="flex items-center gap-2 text-red-500/50">
-                     <AlertCircle className="w-5 h-5" />
-                     <span className="font-mono text-xs tracking-wider">CONNECTION FAILED</span>
-                   </div>
-                   <p className="text-xs text-neutral-600 font-mono">
-                     {errorMsg || "Unable to parse feed data."}
-                   </p>
-                   <a 
-                     href="https://www.who.int/emergencies/disease-outbreak-news" 
-                     target="_blank"
-                     className="mt-4 text-xs text-emerald-500 hover:text-emerald-400 underline decoration-dotted underline-offset-4"
-                   >
-                     OPEN MANUAL LINK
-                   </a>
+                    <span className="font-mono text-xs tracking-widest animate-pulse">CONNECTING TO WHO FEED...</span>
                  </div>
                )}
+
+               {!loading && latestNews && (
+                 <a 
+                   href={latestNews.link} 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   className="group flex items-center gap-6 p-6 hover:bg-neutral-800/30 transition-colors"
+                 >
+                   <div className="flex flex-col items-start gap-1 min-w-[100px] border-r border-neutral-800 pr-6">
+                      <span className="text-[10px] uppercase tracking-widest text-emerald-500 font-mono">Latest Alert</span>
+                      <span className="font-mono text-xs text-neutral-400">{latestNews.date}</span>
+                   </div>
+                   
+                   <div className="flex-1">
+                     <h4 className="text-lg font-medium text-white group-hover:text-emerald-400 transition-colors">
+                       {latestNews.title}
+                     </h4>
+                   </div>
+                   
+                   <ExternalLink className="w-5 h-5 text-neutral-600 group-hover:text-white transition-all" />
+                 </a>
+               )}
+
+               {!loading && debugError && (
+                 <div className="p-6 border-l-2 border-red-500/50 bg-red-900/10 flex items-start gap-4">
+                    <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+                    <div className="space-y-1">
+                      <h4 className="text-red-500 font-mono text-sm uppercase tracking-wider">Connection Failed</h4>
+                      <p className="text-red-400/60 font-mono text-xs">
+                        Error: {debugError}
+                      </p>
+                      <p className="text-neutral-500 text-xs pt-2">
+                        *Paste this error code to your developer.*
+                      </p>
+                    </div>
+                 </div>
+               )}
+
             </div>
           </motion.div>
 
