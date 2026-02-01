@@ -15,7 +15,7 @@ import {
   Globe,
   ExternalLink,
   Wifi,
-  AlertTriangle
+  Lock
 } from "lucide-react";
 
 // --- ANIMATION CONFIG ---
@@ -35,58 +35,54 @@ const staggerContainer = {
 export default function Home() {
   const [latestNews, setLatestNews] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [debugError, setDebugError] = useState(null);
+  const [connectionFailed, setConnectionFailed] = useState(false);
 
-  // --- SINGLE ENTRY FETCH (DEBUG MODE) ---
+  // --- ROBUST FETCH WITH FALLBACK ---
   useEffect(() => {
-    async function fetchSingleEntry() {
+    async function fetchNews() {
       try {
         const FEED_URL = "https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml";
-        // Using 'codetabs' proxy which is often more permissive than others
-        const PROXY_URL = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(FEED_URL)}`;
+        // LAST RESORT PROXY: corsproxy.io is often whitelisted where others are not.
+        const PROXY_URL = `https://corsproxy.io/?${encodeURIComponent(FEED_URL)}`;
 
         const res = await fetch(PROXY_URL);
         
-        if (!res.ok) {
-          throw new Error(`HTTP Error: ${res.status}`);
-        }
+        if (!res.ok) throw new Error("Proxy Blocked");
 
         const xmlString = await res.text();
         
-        // Basic check to see if we actually got XML or a Block Page
-        if (!xmlString.includes("<?xml") && !xmlString.includes("<rss")) {
-          throw new Error("Received invalid data (likely a firewall block).");
+        // Validation: Ensure we actually got XML back
+        if (!xmlString.startsWith("<?xml") && !xmlString.includes("<rss")) {
+          throw new Error("Invalid Data");
         }
 
-        // Native Browser Parser
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlString, "text/xml");
-        
-        // GET ONLY THE FIRST ITEM
         const firstItem = xmlDoc.querySelector("item");
-        
-        if (!firstItem) {
-          throw new Error("Feed is empty or unreadable.");
-        }
 
-        const title = firstItem.querySelector("title")?.textContent || "Unknown Title";
+        if (!firstItem) throw new Error("No items found");
+
+        const title = firstItem.querySelector("title")?.textContent || "Update Available";
         const pubDate = firstItem.querySelector("pubDate")?.textContent || "";
-        const link = firstItem.querySelector("link")?.textContent || "#";
+        const link = firstItem.querySelector("link")?.textContent || "https://www.who.int/emergencies/disease-outbreak-news";
 
         setLatestNews({
           title: title.replace("<![CDATA[", "").replace("]]>", "").trim(),
-          date: pubDate ? new Date(pubDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "Unknown Date",
+          date: pubDate ? new Date(pubDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "Today",
           link: link.trim()
         });
 
       } catch (e) {
-        setDebugError(e.message);
+        // SILENT FAIL: If this fails, we simply switch to "Manual Mode" 
+        // instead of showing an ugly error message.
+        console.log("Feed fetch failed, switching to manual link.", e);
+        setConnectionFailed(true);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchSingleEntry();
+    fetchNews();
   }, []);
 
   return (
@@ -143,59 +139,70 @@ export default function Home() {
             />
           </motion.div>
 
-          {/* 3. GLOBAL SURVEILLANCE (DEBUG / SINGLE ENTRY MODE) */}
+          {/* 3. GLOBAL SURVEILLANCE (FAIL-SAFE WIDGET) */}
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-6">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
                 <Globe className="w-3 h-3" />
-                Global Surveillance // LATEST_ENTRY
+                Global Surveillance
               </span>
               <div className="h-px flex-1 bg-neutral-900" />
             </div>
             
-            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 overflow-hidden min-h-[100px]">
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 overflow-hidden min-h-[100px] flex items-center">
                
+               {/* STATE 1: LOADING */}
                {loading && (
-                 <div className="p-8 flex flex-col items-center justify-center text-neutral-600 gap-3">
+                 <div className="w-full p-8 flex flex-col items-center justify-center text-neutral-600 gap-3">
                     <Wifi className="w-5 h-5 animate-pulse opacity-50" />
-                    <span className="font-mono text-xs tracking-widest animate-pulse">CONNECTING TO WHO FEED...</span>
+                    <span className="font-mono text-xs tracking-widest animate-pulse">CONNECTING...</span>
                  </div>
                )}
 
-               {!loading && latestNews && (
+               {/* STATE 2: SUCCESS (SHOWS DATA) */}
+               {!loading && !connectionFailed && latestNews && (
                  <a 
                    href={latestNews.link} 
                    target="_blank" 
                    rel="noopener noreferrer"
-                   className="group flex items-center gap-6 p-6 hover:bg-neutral-800/30 transition-colors"
+                   className="group flex items-center gap-6 p-6 w-full hover:bg-neutral-800/30 transition-colors"
                  >
                    <div className="flex flex-col items-start gap-1 min-w-[100px] border-r border-neutral-800 pr-6">
                       <span className="text-[10px] uppercase tracking-widest text-emerald-500 font-mono">Latest Alert</span>
                       <span className="font-mono text-xs text-neutral-400">{latestNews.date}</span>
                    </div>
-                   
                    <div className="flex-1">
                      <h4 className="text-lg font-medium text-white group-hover:text-emerald-400 transition-colors">
                        {latestNews.title}
                      </h4>
                    </div>
-                   
                    <ExternalLink className="w-5 h-5 text-neutral-600 group-hover:text-white transition-all" />
                  </a>
                )}
 
-               {!loading && debugError && (
-                 <div className="p-6 border-l-2 border-red-500/50 bg-red-900/10 flex items-start gap-4">
-                    <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
-                    <div className="space-y-1">
-                      <h4 className="text-red-500 font-mono text-sm uppercase tracking-wider">Connection Failed</h4>
-                      <p className="text-red-400/60 font-mono text-xs">
-                        Error: {debugError}
-                      </p>
-                      <p className="text-neutral-500 text-xs pt-2">
-                        *Paste this error code to your developer.*
-                      </p>
+               {/* STATE 3: FIREWALL BLOCK (SHOWS PROFESSIONAL FALLBACK) */}
+               {!loading && connectionFailed && (
+                 <div className="w-full p-6 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-neutral-800/50 rounded-lg border border-neutral-700/50">
+                        <Lock className="w-5 h-5 text-neutral-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-white">Direct Feed Restricted</h4>
+                        <p className="text-xs text-neutral-500 font-mono mt-1">
+                          SECURITY_PROTOCOL: MANUAL ACCESS REQUIRED
+                        </p>
+                      </div>
                     </div>
+                    
+                    <a 
+                      href="https://www.who.int/emergencies/disease-outbreak-news" 
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-xs font-mono text-white rounded border border-neutral-700 hover:border-neutral-500 transition-all flex items-center gap-2"
+                    >
+                      OPEN PORTAL <ArrowUpRight className="w-3 h-3" />
+                    </a>
                  </div>
                )}
 
