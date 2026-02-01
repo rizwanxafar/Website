@@ -2,14 +2,13 @@ import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 import { HCID_FALLBACK_MAP } from '@/data/hcidFallbackSnapshot';
 
-// 1. REVALIDATION: Run this once every 24 hours (86400 seconds)
-// This respects your wish to stay within Vercel free limits.
+// 1. REVALIDATION: Run once every 24 hours
 export const revalidate = 86400; 
 
 const GOV_UK_URL = "https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk";
 
 export async function GET() {
-  let debugLog = []; // We will capture logs to send to the frontend if needed
+  let debugLog = []; 
   
   try {
     const log = (msg) => {
@@ -17,17 +16,16 @@ export async function GET() {
       debugLog.push(msg);
     };
 
-    log("⚡️ [ISR 24h] Starting Stealth Scrape...");
+    log("⚡️ [ISR 24h] Starting Fill-Down Scrape...");
 
-    // 2. STEALTH FETCH: Mimic a real browser to avoid WAF blocks (403 Forbidden)
+    // 2. STEALTH FETCH: Bypass basic WAFs
     const response = await fetch(GOV_UK_URL, {
       method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
-        'Referer': 'https://www.google.com/',
-        'Cache-Control': 'no-cache', // Force the fetch to go to the live site, not Vercel's data cache
+        'Cache-Control': 'no-cache', 
       }
     });
 
@@ -38,64 +36,67 @@ export async function GET() {
     const html = await response.text();
     const $ = cheerio.load(html);
     const newData = {};
+    let totalDiseasesFound = 0;
 
-    log(`📄 Page Title: ${$('title').text()}`);
+    // --- STRATEGY: THE FILL-DOWN SCAPER ---
+    // We search for ALL tables, assuming they might be inside accordions or divs.
+    
+    $('table').each((tableIndex, table) => {
+      const $table = $(table);
+      let currentCountry = null; // Reset for each new table
 
-    // --- STRATEGY A: THE ACCORDION RIPPER ---
-    // GOV.UK puts data inside <div class="govuk-accordion__section">
-    const $accordions = $('.govuk-accordion__section');
-    log(`🔎 Found ${$accordions.length} accordion sections.`);
+      // Iterate over every row in the body
+      $table.find('tbody tr').each((rowIndex, tr) => {
+        const cells = $(tr).find('td');
+        
+        // We need at least 2 columns (Country, Disease) to be useful
+        if (cells.length >= 2) {
+          const col0 = $(cells[0]).text().trim(); // Country
+          const col1 = $(cells[1]).text().trim(); // Disease
+          const col2 = cells.length > 2 ? $(cells[2]).text().trim() : ""; // Evidence
+          const col3 = cells.length > 3 ? $(cells[3]).text().trim() : ""; // Year (Sometimes Col 2 is year, logic handles flexible columns below)
 
-    if ($accordions.length > 0) {
-      $accordions.each((i, el) => {
-        const $section = $(el);
-        // The country name is on the button
-        const rawName = $section.find('.govuk-accordion__section-button').text().trim();
-        const countryName = rawName.replace(/Show section|Hide section/gi, '').trim();
+          // 1. FILL-DOWN LOGIC
+          // If Col 0 has text, it's a new country (e.g. "Afghanistan")
+          // If Col 0 is empty, it belongs to the previous country (e.g. "Plague" row)
+          if (col0) {
+            // Ignore headers if they got into tbody
+            if (col0.toLowerCase() !== "country") {
+              currentCountry = col0;
+            }
+          }
 
-        if (countryName) {
-          // The table is inside the content div
-          const $table = $section.find('.govuk-accordion__section-content table');
-          const diseases = extractDiseases($, $table);
-          if (diseases.length > 0) {
-            newData[countryName] = diseases;
+          // 2. DATA EXTRACTION
+          // Only proceed if we have a valid country context and a disease listed
+          if (currentCountry && col1) {
+            
+            // Normalize disease/evidence structure
+            // Some tables are: [Country, Disease, Evidence, Year]
+            // Some might be:   [Country, Disease, Year]
+            // We assume standard: Col 1 is Disease.
+            
+            if (!newData[currentCountry]) {
+              newData[currentCountry] = [];
+            }
+
+            newData[currentCountry].push({
+              disease: col1,
+              evidence: col2, // Usually Evidence
+              year: col3      // Usually Year
+            });
+
+            totalDiseasesFound++;
           }
         }
       });
-    }
-
-    // --- STRATEGY B: THE HUNTER-SEEKER (FALLBACK) ---
-    // If Strategy A failed (no accordions found), assume a flat layout.
-    if (Object.keys(newData).length === 0) {
-      log("⚠️ No accordion data found. Switching to Hunter-Seeker mode...");
-      
-      $('h2, h3').each((i, el) => {
-        const $header = $(el);
-        const countryName = $header.text().trim();
-        
-        // Look ahead until the next header
-        const $contentBlock = $header.nextUntil('h2, h3');
-        const $table = $contentBlock.filter('table').first();
-        
-        // Also check if the table is nested inside a div immediately following
-        const $nestedTable = $contentBlock.find('table').first();
-        
-        const $targetTable = $table.length ? $table : $nestedTable;
-
-        if ($targetTable.length) {
-           const diseases = extractDiseases($, $targetTable);
-           if (diseases.length > 0) {
-             newData[countryName] = diseases;
-           }
-        }
-      });
-    }
+    });
 
     // --- INTEGRITY CHECK ---
     const countryCount = Object.keys(newData).length;
-    log(`📊 Final Count: Found ${countryCount} countries.`);
+    log(`📊 Final Count: Found ${countryCount} countries and ${totalDiseasesFound} disease entries.`);
     
-    // Safety Net: If we found fewer than 10 countries, the scrape failed.
+    // Safety Net: Raise the bar. We expect ~100+ countries globally.
+    // If we find less than 10, the "Fill-Down" logic likely failed (e.g. columns moved).
     if (countryCount < 10) {
       log("❌ Integrity Check Failed. Reverting to fallback.");
       return NextResponse.json({ 
@@ -125,24 +126,4 @@ export async function GET() {
       debug: debugLog
     });
   }
-}
-
-// Helper to parse table rows
-function extractDiseases($, $table) {
-  const diseases = [];
-  $table.find('tbody tr').each((j, tr) => {
-    const cells = $(tr).find('td');
-    if (cells.length >= 2) {
-      const name = $(cells[0]).text().trim();
-      // Ignore empty rows or "No known HCIDs" lines if you prefer
-      if (name) {
-        diseases.push({
-          disease: name,
-          evidence: $(cells[1]).text().trim(),
-          year: cells.length > 2 ? $(cells[2]).text().trim() : ''
-        });
-      }
-    }
-  });
-  return diseases;
 }
