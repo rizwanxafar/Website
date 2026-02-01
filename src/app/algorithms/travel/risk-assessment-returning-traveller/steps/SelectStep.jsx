@@ -3,32 +3,25 @@
 import { useEffect, useMemo } from "react";
 import DecisionCard from "@/components/DecisionCard";
 import { vhfCountryNames } from "@/data/vhfCountries";
-import { Trash, Plus } from "lucide-react";
-import ResponsiveDatePicker from "src/app/algorithms/travel/travel-history-generator/_components/ui/ResponsiveDatePicker.js"; 
+// Import the shared normalizer
+import { normalizeName } from "@/utils/names"; 
 
-// --- THEME CONSTANTS ---
+// ---- THEME HELPERS ----
 const btnPrimary =
-  "inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 " +
-  "text-sm font-bold font-mono tracking-wide text-white uppercase " +
-  "bg-red-600 hover:bg-red-500 shadow-[0_0_15px_rgba(220,38,38,0.4)] " +
-  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500/70 " +
-  "disabled:opacity-50 disabled:cursor-not-allowed transition-all";
+  "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 " +
+  "text-sm font-medium text-white " +
+  "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95 " +
+  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70 " +
+  "disabled:opacity-50 disabled:cursor-not-allowed transition";
 
 const btnSecondary =
-  "rounded-lg px-4 py-2 border border-neutral-800 bg-neutral-900 text-neutral-400 " +
-  "hover:text-white hover:border-neutral-600 text-xs font-bold font-mono uppercase tracking-wide transition-all";
-
-const inputStyles = 
-  "w-full rounded bg-neutral-950 border border-neutral-800 px-3 py-2 text-sm text-white " +
-  "placeholder:text-neutral-600 focus:border-red-500 focus:outline-none transition-colors";
+  "rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 " +
+  "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]";
 
 // -----------------------
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 const todayISO = () => new Date().toISOString().slice(0, 10);
-
-const normalize = (s = "") =>
-  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
 
 const sortByLeaving = (arr) =>
   [...arr].sort((a, b) => {
@@ -48,14 +41,28 @@ function validateNoOverlap(rows) {
 }
 
 export default function SelectStep({
-  selected, setSelected, onset, setOnset, query, setQuery, open, setOpen, showInput, setShowInput, inputRef, onBackToScreen, onReset, onContinue,
+  selected,
+  setSelected,
+  onset,
+  setOnset,
+  query,
+  setQuery,
+  open,
+  setOpen,
+  showInput,
+  setShowInput,
+  inputRef,
+  onBackToScreen,
+  onReset,
+  onContinue,
 }) {
+  // Use normalizeName here to match the rest of the app
   const filtered = useMemo(() => {
-    const q = normalize(query);
+    const q = normalizeName(query); 
     if (!q) return [];
     const out = [];
     for (const name of vhfCountryNames) {
-      if (normalize(name).includes(q)) {
+      if (normalizeName(name).includes(q)) {
         out.push(name);
         if (out.length >= 12) break;
       }
@@ -87,7 +94,8 @@ export default function SelectStep({
       const next = prev.map((c) => {
         if (c.id !== id) return c;
         if (field === "arrival") {
-          const leavingOk = c.leaving && value && new Date(value) > new Date(c.leaving) ? "" : c.leaving || "";
+          const leavingOk =
+            c.leaving && value && new Date(value) > new Date(c.leaving) ? "" : c.leaving || "";
           return { ...c, arrival: value, leaving: leavingOk };
         }
         if (field === "leaving") {
@@ -105,7 +113,9 @@ export default function SelectStep({
 
   const removeRow = (id) => {
     setSelected((prev) => prev.filter((c) => c.id !== id));
-    if (selected.length <= 1) setShowInput(true);
+    if (selected.length <= 1) {
+      setShowInput(true);
+    }
   };
 
   const allDatesFilled = selected.every((c) => c.arrival && c.leaving);
@@ -113,122 +123,160 @@ export default function SelectStep({
   const canContinue = selected.length > 0 && allDatesFilled && onset && noOverlap;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-lg font-bold text-white mb-4">Country / Countries of Travel</h2>
-        
-        {!showInput && (
-          <button type="button" onClick={addAnother} className={btnSecondary}>
-            <Plus className="w-4 h-4 mr-2 inline" /> Add another country
-          </button>
-        )}
+    <div className="space-y-6">
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+        Country / countries of travel
+      </h2>
 
-        {showInput && (
-          <div className="relative max-w-xl">
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-              onFocus={() => setOpen(true)}
-              onBlur={() => setTimeout(() => setOpen(false), 150)}
-              placeholder="Start typing a country name…"
-              className={inputStyles}
-            />
-            {open && query && (
-              <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950 shadow-2xl">
-                <ul className="max-h-64 overflow-auto custom-scrollbar">
-                  {filtered.length > 0 ? (
-                    filtered.map((name) => (
-                      <li key={name}>
-                        <button
-                          type="button"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => addCountry(name)}
-                          className="w-full text-left px-4 py-2 text-sm text-neutral-300 hover:bg-red-900/20 hover:text-red-400 transition-colors"
-                        >
-                          {name}
-                        </button>
-                      </li>
-                    ))
-                  ) : (
-                    <li className="px-4 py-2 text-sm text-neutral-500 font-mono">NO_MATCHES_FOUND</li>
-                  )}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      {!showInput && (
+        <button
+          type="button"
+          onClick={addAnother}
+          className={btnSecondary}
+        >
+          + Add another country
+        </button>
+      )}
+
+      {showInput && (
+        <div className="relative max-w-xl">
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+            placeholder="Start typing a country name…"
+            className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
+          />
+          {open && query && (
+            <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 shadow">
+              <ul className="max-h-64 overflow-auto">
+                {filtered.length > 0 ? (
+                  filtered.map((name) => (
+                    <li key={name}>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => addCountry(name)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        {name}
+                      </button>
+                    </li>
+                  ))
+                ) : (
+                  <li className="px-3 py-2 text-sm text-slate-500">No matches</li>
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-4">
         {selected.length === 0 ? (
-          <p className="text-sm text-neutral-500 font-mono">No countries added. Use the search box above.</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            No countries added yet. Use the search box above to add your first country.
+          </p>
         ) : (
           selected.map((c) => (
-            <div key={c.id} className="rounded-xl border border-neutral-800 bg-neutral-900/30 p-5 transition-all hover:border-neutral-700">
-              <div className="flex items-start justify-between gap-3 mb-4">
-                <div className="font-bold text-white text-lg">{c.name}</div>
+            <div
+              key={c.id}
+              className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="font-medium">{c.name}</div>
                 <button
                   type="button"
                   onClick={() => removeRow(c.id)}
-                  className="text-neutral-500 hover:text-red-500 transition-colors"
+                  className="rounded-md border-2 border-slate-300 dark:border-slate-700 px-2 py-1 text-xs hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400"
                 >
-                  <Trash className="w-4 h-4" />
+                  Remove
                 </button>
               </div>
 
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div>
-                  <span className="block text-xs font-mono font-bold text-neutral-500 uppercase mb-2">Arrival</span>
-                  <ResponsiveDatePicker
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <label className="text-sm">
+                  Arrival
+                  <input
+                    type="date"
                     value={c.arrival}
-                    onChange={(val) => updateDates(c.id, "arrival", val)}
+                    max={c.leaving || todayISO()}
+                    onChange={(e) => updateDates(c.id, "arrival", e.target.value)}
+                    className="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-700 px-2 py-1 text-sm dark:bg-slate-950"
                   />
-                </div>
+                </label>
 
-                <div>
-                  <span className="block text-xs font-mono font-bold text-neutral-500 uppercase mb-2">Leaving</span>
-                  <ResponsiveDatePicker
+                <label className="text-sm">
+                  Leaving
+                  <input
+                    type="date"
                     value={c.leaving}
-                    onChange={(val) => updateDates(c.id, "leaving", val)}
+                    min={c.arrival || undefined}
+                    max={todayISO()}
+                    onChange={(e) => updateDates(c.id, "leaving", e.target.value)}
+                    className="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-700 px-2 py-1 text-sm dark:bg-slate-950"
                   />
-                </div>
+                </label>
               </div>
             </div>
           ))
         )}
       </div>
 
-      <div className="pt-6 border-t border-neutral-800">
-        <label className="block text-sm font-bold text-white mb-2">Date of Symptom Onset</label>
-        <div className="max-w-xs">
-            <ResponsiveDatePicker
-              value={onset}
-              onChange={(val) => setOnset(val)}
-            />
-        </div>
-        <p className="mt-2 text-xs text-neutral-500 font-mono">Needed to calculate 21‑day window.</p>
+      <div>
+        <label className="block text-sm font-medium mb-1">Date of symptom onset</label>
+        <input
+          type="date"
+          value={onset}
+          max={todayISO()}
+          onChange={(e) => setOnset(e.target.value)}
+          className="rounded-md border-2 border-slate-300 dark:border-slate-700 px-3 py-2 text-sm dark:bg-slate-950"
+        />
       </div>
 
       {!noOverlap && (
-        <DecisionCard tone="red" title="Invalid Dates">
-          <p className="text-neutral-300">Overlapping dates detected. Please adjust.</p>
+        <DecisionCard tone="red" title="Invalid dates">
+          <p>
+            Overlapping dates detected. Adjust arrival/leaving dates. Same-day transfer is allowed.
+          </p>
         </DecisionCard>
       )}
       {selected.length > 0 && !allDatesFilled && (
-        <DecisionCard tone="red" title="Missing Dates">
-          <p className="text-neutral-300">Please enter arrival and leaving dates for each country.</p>
+        <DecisionCard tone="red" title="Missing dates">
+          <p>Please enter arrival and leaving dates for each country.</p>
         </DecisionCard>
       )}
 
-      <div className="flex gap-3 pt-4">
-        <button type="button" onClick={onBackToScreen} className={btnSecondary}>Back</button>
-        <button type="button" onClick={onReset} className={btnSecondary}>Reset</button>
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onBackToScreen}
+          className={btnSecondary}
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          onClick={onReset}
+          className={btnSecondary}
+        >
+          Reset
+        </button>
         <button
           type="button"
           disabled={!canContinue}
           onClick={onContinue}
           className={btnPrimary}
+          title={
+            canContinue
+              ? "Continue"
+              : "Add at least one country, fill arrival & leaving dates for each, and set symptom onset"
+          }
         >
           Continue
         </button>
