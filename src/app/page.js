@@ -13,7 +13,7 @@ import {
   ShieldAlert,
   Globe,
   Siren,
-  Database
+  Link as LinkIcon
 } from "lucide-react";
 
 // --- ANIMATION CONFIG ---
@@ -35,7 +35,7 @@ export default function Home() {
     <main className="min-h-screen bg-black text-neutral-200 selection:bg-white selection:text-black overflow-x-hidden font-sans">
       
       {/* --- PROFESSIONAL HEADER --- */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-neutral-900 bg-black/80 backdrop-blur-md">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Terminal className="w-4 h-4 text-neutral-500" />
@@ -69,6 +69,7 @@ export default function Home() {
 
           {/* 2. ACTIVE TOOLS */}
           <motion.div variants={fadeInUp} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
             <ToolCard 
               href="/algorithms/travel/risk-assessment-returning-traveller"
               variant="critical"
@@ -76,6 +77,7 @@ export default function Home() {
               title="VHF Risk Assessment"
               subtitle="VHF risk assessment for returned traveller"
             />
+            
             <ToolCard 
               href="/algorithms/travel/travel-history-generator"
               variant="standard"
@@ -83,16 +85,17 @@ export default function Home() {
               title="Travel History Generator"
               subtitle="Create accurate travel history"
             />
+
           </motion.div>
 
-          {/* 3. INTELLIGENCE COMMAND (Replaces Feed Widget) */}
+          {/* 3. IMPORTANT LINKS (Formerly Global Intelligence) */}
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-6">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                <Globe className="w-3 h-3" />
-                Global Intelligence // EXTERNAL_UPLINKS
+                <LinkIcon className="w-3 h-3" />
+                IMPORTANT LINKS
               </span>
-              <div className="h-px flex-1 bg-neutral-900" />
+              <div className="h-px flex-1 bg-gradient-to-r from-neutral-900 to-transparent" />
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -108,7 +111,7 @@ export default function Home() {
                 title="NaTHNaC"
                 subtitle="Travel Health Pro"
                 icon={Plane}
-                href="https://travelhealthpro.org.uk/news"
+                href="https://travelhealthpro.org.uk"
               />
 
               <UplinkCard 
@@ -134,7 +137,7 @@ export default function Home() {
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest">
                 Resources
               </span>
-              <div className="h-px flex-1 bg-neutral-900" />
+              <div className="h-px flex-1 bg-gradient-to-r from-neutral-900 to-transparent" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -173,14 +176,14 @@ export default function Home() {
   );
 }
 
-// --- REUSABLE COMPONENTS ---
+// --- REUSABLE COMPONENTS WITH LIQUID GLASS EFFECT ---
 
 function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
   const styles = {
     critical: {
       border: "border-red-900/30",
-      bg: "bg-neutral-900/20",
-      hoverBg: "hover:bg-red-950/10",
+      bg: "bg-red-950/5", // Very subtle tint
+      hoverBg: "hover:bg-red-950/20",
       hoverBorder: "hover:border-red-500/50",
       iconBg: "bg-red-500/10",
       iconColor: "text-red-500",
@@ -188,12 +191,12 @@ function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
       arrowHover: "group-hover:text-red-500",
       textHover: "group-hover:text-red-100",
       subtext: "text-red-200/50",
-      gradient: "from-red-950/20"
+      glow: "from-red-500/10"
     },
     standard: {
-      border: "border-neutral-800",
-      bg: "bg-neutral-900/20",
-      hoverBg: "hover:bg-emerald-950/10",
+      border: "border-white/10",
+      bg: "bg-white/5",
+      hoverBg: "hover:bg-white/10",
       hoverBorder: "hover:border-emerald-500/50",
       iconBg: "bg-emerald-500/10",
       iconColor: "text-emerald-500",
@@ -201,7 +204,7 @@ function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
       arrowHover: "group-hover:text-emerald-500",
       textHover: "group-hover:text-emerald-100",
       subtext: "text-emerald-200/50",
-      gradient: "from-emerald-950/20"
+      glow: "from-emerald-500/10"
     }
   };
 
@@ -210,12 +213,16 @@ function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
   return (
     <Link 
       href={href}
-      className={`group relative h-48 md:h-64 rounded-2xl border ${s.border} ${s.bg} 
-                 ${s.hoverBg} ${s.hoverBorder} transition-all duration-300 overflow-hidden`}
+      className={`group relative h-48 md:h-64 rounded-2xl border ${s.border} ${s.bg} backdrop-blur-md
+                 ${s.hoverBg} ${s.hoverBorder} transition-all duration-500 overflow-hidden`}
     >
-      <div className="absolute inset-0 p-8 flex flex-col justify-between z-10">
+      {/* Top Glass Highlight */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50" />
+      
+      {/* Content */}
+      <div className="absolute inset-0 p-8 flex flex-col justify-between z-20">
         <div className="flex justify-between items-start">
-          <span className={`p-3 rounded-lg ${s.iconBg} ${s.iconColor} border ${s.iconBorder}`}>
+          <span className={`p-3 rounded-lg ${s.iconBg} ${s.iconColor} border ${s.iconBorder} backdrop-blur-sm`}>
             <Icon className="w-6 h-6" />
           </span>
           <ArrowUpRight className={`w-5 h-5 text-neutral-700 ${s.arrowHover} transition-colors`} />
@@ -229,7 +236,12 @@ function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
           </p>
         </div>
       </div>
-      <div className={`absolute inset-0 bg-gradient-to-t ${s.gradient} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+
+      {/* The "Liquid Sheen" Animation */}
+      <div className="absolute inset-0 z-10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12" />
+      
+      {/* Bottom Glow */}
+      <div className={`absolute inset-0 bg-gradient-to-t ${s.glow} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
     </Link>
   );
 }
@@ -240,14 +252,17 @@ function UplinkCard({ title, subtitle, icon: Icon, href }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative p-4 rounded-xl border border-neutral-800 bg-neutral-900/10 
-                 hover:bg-neutral-800/30 hover:border-neutral-700 transition-all flex items-center gap-4"
+      className="group relative p-4 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md
+                 hover:bg-white/10 hover:border-white/20 transition-all duration-300 flex items-center gap-4 overflow-hidden"
     >
-      <div className="p-2 rounded-lg bg-neutral-800/50 text-neutral-400 group-hover:text-white group-hover:bg-neutral-700 transition-colors">
+      {/* Top Edge Highlight */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-30" />
+      
+      <div className="relative z-10 p-2 rounded-lg bg-black/40 border border-white/5 text-neutral-400 group-hover:text-white group-hover:border-white/20 transition-all">
         <Icon className="w-5 h-5" />
       </div>
       
-      <div className="flex-1 min-w-0">
+      <div className="relative z-10 flex-1 min-w-0">
         <h4 className="text-sm font-medium text-neutral-300 group-hover:text-white truncate transition-colors">
           {title}
         </h4>
@@ -256,7 +271,10 @@ function UplinkCard({ title, subtitle, icon: Icon, href }) {
         </p>
       </div>
 
-      <ExternalLink className="w-3 h-3 text-neutral-600 group-hover:text-neutral-400 transition-colors" />
+      <ExternalLink className="relative z-10 w-3 h-3 text-neutral-600 group-hover:text-white transition-colors" />
+      
+      {/* Subtle Sheen */}
+      <div className="absolute inset-0 z-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12" />
     </a>
   );
 }
@@ -265,20 +283,27 @@ function ResourceCard({ href, icon: Icon, title, description }) {
   return (
     <Link 
       href={href}
-      className="group p-6 rounded-xl border border-neutral-800 bg-black hover:border-neutral-600 transition-all duration-300"
+      className="group relative p-6 rounded-xl border border-white/10 bg-black/40 backdrop-blur-md 
+                 hover:bg-white/5 hover:border-white/20 transition-all duration-300 overflow-hidden"
     >
-      <div className="mb-8 opacity-50 group-hover:opacity-100 transition-opacity">
+       {/* Top Edge Highlight */}
+       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50" />
+
+      <div className="relative z-10 mb-8 opacity-50 group-hover:opacity-100 transition-opacity">
         <Icon className="w-6 h-6 text-white" />
       </div>
-      <h4 className="text-lg font-medium text-white mb-2">{title}</h4>
-      <p className="text-sm text-neutral-500 leading-relaxed">
+      <h4 className="relative z-10 text-lg font-medium text-white mb-2">{title}</h4>
+      <p className="relative z-10 text-sm text-neutral-500 leading-relaxed group-hover:text-neutral-400 transition-colors">
         {description}
       </p>
+
+      {/* Sheen Effect */}
+      <div className="absolute inset-0 z-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12" />
     </Link>
   );
 }
 
-// Small helper for the external link icon inside UplinkCard
+// Helper Icon
 function ExternalLink({ className }) {
   return (
     <svg 
