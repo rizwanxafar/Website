@@ -1,10 +1,10 @@
 import { Fragment, useState, useEffect } from 'react';
 import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/react';
 import { format } from 'date-fns';
-import { Printer, Clipboard, X, Loader2 } from 'lucide-react'; // Swapped icons
+import { Printer, Clipboard, X, Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
-// ---- Dynamic Map Import (Dark Mode Loader) ----
+// ---- Dynamic Map Import ----
 const TravelMap = dynamic(() => import('./TravelMap'), { 
   ssr: false,
   loading: () => (
@@ -64,45 +64,57 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              {/* MODAL PANEL: Dark Frame */}
+              {/* MODAL PANEL */}
               <DialogPanel className="relative transform overflow-hidden rounded-xl bg-neutral-950 border border-neutral-800 text-left shadow-2xl transition-all w-full max-w-5xl h-[85vh] flex flex-col print:h-auto print:shadow-none print:w-full print:max-w-none print:rounded-none print:border-none print:bg-white">
                 
-                {/* --- MAGIC PRINT FIX: Ghost Page Removal --- */}
+                {/* --- CSS RESET FOR PRINTING --- */}
                 <style jsx global>{`
                   @media print {
-                    /* 1. Hide the entire app UI */
-                    main, header, nav, footer, .fixed {
-                      display: none !important;
-                    }
-                    
-                    /* 2. Reset Body */
-                    body {
-                      background-color: white !important;
-                      color: black !important;
+                    /* 1. Force White Background on Root Elements */
+                    html, body {
+                      background-color: #ffffff !important;
+                      color: #000000 !important;
+                      height: auto !important;
+                      overflow: visible !important;
+                      -webkit-print-color-adjust: exact !important;
+                      print-color-adjust: exact !important;
                     }
 
-                    /* 3. Make only the print root visible */
+                    /* 2. Hide User Interface */
+                    header, footer, nav, aside, .fixed, .no-print, [role="dialog"] > div > div {
+                      display: none !important;
+                    }
+
+                    /* 3. Ensure the Print Root is Visible and Reset */
                     #print-root {
                       display: block !important;
                       visibility: visible !important;
-                      position: absolute !important;
-                      top: 0 !important;
-                      left: 0 !important;
+                      position: relative !important;
+                      inset: 0 !important;
                       width: 100% !important;
+                      height: auto !important;
                       margin: 0 !important;
                       padding: 20px !important;
-                      background-color: white !important;
-                      color: black !important;
+                      background-color: #ffffff !important;
+                      color: #000000 !important;
+                      box-shadow: none !important;
+                      overflow: visible !important;
                     }
 
-                    /* 4. Ensure map prints correctly */
+                    /* 4. Text Contrast Fixes */
+                    h1, h2, h3, p, span, div {
+                      color: #000000 !important;
+                      text-shadow: none !important;
+                    }
+                    
+                    /* 5. Map Fixes */
                     .leaflet-container {
-                      print-color-adjust: exact;
+                      z-index: 0 !important;
                     }
                   }
                 `}</style>
 
-                {/* HEADER (Dark Mode Controls) - Hidden on Print */}
+                {/* HEADER (Controls) */}
                 <div className="bg-neutral-900/50 px-4 py-3 border-b border-neutral-800 flex items-center justify-between shrink-0 print:hidden backdrop-blur-md">
                   <div className="flex items-center gap-3">
                     <Printer className="w-5 h-5 text-emerald-500" />
@@ -118,7 +130,7 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
                   </div>
                 </div>
 
-                {/* CONTENT AREA: Dark Background, White Paper */}
+                {/* CONTENT AREA */}
                 <div className="flex-1 overflow-y-auto bg-neutral-900/50 p-8 print:p-0 print:bg-white print:overflow-visible custom-scrollbar">
                   
                   {/* THE PAPER (White Sheet) */}
@@ -155,14 +167,13 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
                          </button>
                        </div>
                        
-                       {/* The summary HTML is trusted content generated by the engine */}
                        <div 
                          className="prose prose-sm max-w-none prose-slate text-slate-900 prose-headings:font-bold prose-headings:uppercase prose-headings:text-xs prose-headings:tracking-widest prose-p:leading-relaxed" 
                          dangerouslySetInnerHTML={{ __html: summaryHtml }} 
                        />
                     </div>
 
-                    {/* Footer for Print */}
+                    {/* Footer */}
                     <div className="mt-12 pt-4 border-t border-slate-200 text-[10px] text-slate-400 text-center font-mono uppercase">
                       Generated via ID-Northwest Clinical Portal // Do not store without patient consent
                     </div>
