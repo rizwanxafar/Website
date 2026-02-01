@@ -2,13 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { clsx } from 'clsx';
-import { CSC_COUNTRIES, BTN_PRIMARY, BTN_SECONDARY, LINKISH_SECONDARY, TEXT_INPUT_CLASS, INPUT_BASE, TEXTAREA_CLASS, SECTION_HEADING } from './_lib/constants';
-import { uid, classNames, parseDate, buildTripEvents, emptyTrip, emptyStop, emptyLayover, emptyPastTravel, initialState } from './_lib/utils';
+// We keep these imports for logic, but we will override styles locally
+import { CSC_COUNTRIES, TEXT_INPUT_CLASS, INPUT_BASE, TEXTAREA_CLASS } from './_lib/constants';
+import { classNames, parseDate, buildTripEvents, emptyTrip, emptyStop, emptyLayover, emptyPastTravel, initialState } from './_lib/utils';
 import { buildSummaryFromEvents } from './_lib/summary-engine';
-import { Printer, Alert, Trash } from './_components/icons';
+import { Printer, AlertTriangle, Trash, ArrowLeft, Plane, Plus, RefreshCw, Terminal } from 'lucide-react'; // Swapped to Lucide icons for consistency
 import SearchableSelect from './_components/ui/SearchableSelect';
 import TripCard from './_components/TravelForm/TripCard';
 import PrintOverlay from './_components/Print/PrintOverlay';
+import Link from 'next/link';
 
 export default function TravelHistoryGeneratorPage() {
   const [state, setState] = useState(initialState);
@@ -20,6 +22,7 @@ export default function TravelHistoryGeneratorPage() {
   const itemRefs = useRef(new Map());
   const setItemRef = (id) => (el) => { if (el) itemRefs.current.set(id, el); };
 
+  // --- Logic Hooks (Unchanged) ---
   useEffect(() => {
     const hasData = state.trips.some(t => t.stops.length > 0 || t.layovers.length > 0) || state.pastTravels.length > 0;
     const onBeforeUnload = (e) => { if (!hasData) return; e.preventDefault(); e.returnValue = ""; };
@@ -73,7 +76,7 @@ export default function TravelHistoryGeneratorPage() {
     [state, mergedEventsAllTrips]
   );
 
-  // --- State Actions ---
+  // --- Actions (Unchanged) ---
   const updateTrip = (tripId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, ...patch } : t)) }));
   const updateStop = (tripId, stopId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, stops: t.stops.map((s) => (s.id === stopId ? { ...s, ...patch } : s)) } : t)) }));
   const addTrip = () => { const tr = emptyTrip(); setState((p) => ({ ...p, trips: [...p.trips, tr] })); setPendingScrollId(tr.id); };
@@ -89,126 +92,176 @@ export default function TravelHistoryGeneratorPage() {
   const clearAll = () => { if (confirm('Clear all data?')) setState(initialState); };
 
   return (
-    <main className="py-10 sm:py-14">
-      <header className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Travel History Generator</h1>
-          <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl">
-            Build a clear, concise travel history for clinical use.
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <button type="button" onClick={() => setPrintOpen(true)} className={BTN_PRIMARY}>
-            <Printer className="w-4 h-4" />
-            <span>Generate Report</span>
-          </button>
-          <button type="button" onClick={clearAll} className={BTN_SECONDARY}>Clear all</button>
+    <div className="min-h-screen bg-black text-neutral-300 font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
+      
+      {/* --- PAGE HEADER --- */}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-black/90 backdrop-blur-md border-b border-neutral-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-neutral-500 hover:text-emerald-400 transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div className="h-6 w-px bg-neutral-800" />
+            <div className="flex items-center gap-3">
+              <Plane className="w-5 h-5 text-emerald-500" />
+              <span className="font-mono text-xs tracking-widest text-neutral-400 uppercase hidden sm:inline-block">
+                Travel_History_Generator
+              </span>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={clearAll}
+              className="px-3 py-1.5 rounded-md text-xs font-mono text-neutral-500 hover:text-red-400 hover:bg-red-950/30 transition-colors flex items-center gap-2"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">RESET</span>
+            </button>
+            <button 
+              onClick={() => setPrintOpen(true)}
+              className="px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-mono tracking-wide shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all flex items-center gap-2"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              GENERATE_REPORT
+            </button>
+          </div>
         </div>
       </header>
 
-      <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-600 p-4 text-amber-900 dark:text-amber-200 flex items-center gap-3">
-        <span className="shrink-0 text-amber-600 dark:text-amber-400">
-           <Alert className="w-5 h-5" />
-        </span>
-        <p className="text-sm font-medium">Do not enter private or patient-identifiable information.</p>
-      </div>
+      {/* --- MAIN CONTENT --- */}
+      <main className="pt-24 pb-20 px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto space-y-8">
 
-      {issues.length > 0 && (
-        <div className="mb-6 space-y-2" aria-live="polite">
-          {issues.map((e, i) => (
-            <div key={i} className={classNames('rounded-lg border px-3 py-2 text-sm', e.level === 'error' ? 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-700/60 dark:bg-rose-900/20 dark:text-rose-200' : 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600/60 dark:bg-amber-900/20 dark:text-amber-200')}>
-              {e.msg}
+          {/* PRIVACY WARNING (AMBER) */}
+          <div className="rounded border border-amber-900/50 bg-amber-950/10 p-4 flex items-start gap-4">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-bold text-amber-500 uppercase tracking-wide">Privacy Protocol</h3>
+              <p className="mt-1 text-sm text-amber-500/80">
+                Do not enter patient-identifiable data (PID). This tool processes data locally.
+              </p>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
 
-      {/* Trip Builder */}
-      <section className="space-y-10">
-        {state.trips.map((trip, tIdx) => (
-          <TripCard
-            key={trip.id}
-            innerRef={setItemRef(trip.id)}
-            trip={trip}
-            index={tIdx}
-            totalTrips={state.trips.length}
-            updateTrip={updateTrip}
-            updateStop={updateStop}
-            addStop={addStop}
-            removeStop={removeStop}
-            addLayover={addLayover}
-            updateLayover={updateLayover}
-            removeLayover={removeLayover}
-            removeTrip={removeTrip}
-            highlight={highlight}
-            setItemRef={setItemRef}
-          />
-        ))}
-        <div>
-          <button type="button" onClick={addTrip} className={BTN_PRIMARY}>+ Add another trip</button>
-        </div>
-      </section>
-
-      {/* Significant Past Travel */}
-      <section className="mt-10 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-        <h2 className={SECTION_HEADING}>Significant Past Travel</h2>
-        <div className="space-y-4 mt-4">
-          {state.pastTravels.length === 0 && (
-            <p className="text-sm text-slate-500 italic">No past travels added.</p>
-          )}
-          {state.pastTravels.map((pt, i) => (
-            <div key={pt.id} ref={setItemRef(pt.id)} className="grid gap-4 sm:grid-cols-12 items-start p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20">
-              <div className="sm:col-span-4">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Country</label>
-                <SearchableSelect 
-                  value={pt.country} 
-                  onChange={(val) => updatePastTravel(pt.id, { country: val })} 
-                  options={CSC_COUNTRIES.map(c => c.name)}
-                  placeholder="Select country"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Year / Time</label>
-                <div className={TEXT_INPUT_CLASS}>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. 2012" 
-                    className={INPUT_BASE}
-                    value={pt.year}
-                    onChange={(e) => updatePastTravel(pt.id, { year: e.target.value })} 
-                  />
+          {/* ERROR DISPLAY */}
+          {issues.length > 0 && (
+            <div className="space-y-2">
+              {issues.map((e, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 rounded border border-red-900/50 bg-red-950/20 text-red-400 text-sm font-mono">
+                  <Terminal className="w-4 h-4" />
+                  {e.msg}
                 </div>
-              </div>
-              <div className="sm:col-span-5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Details</label>
-                <textarea 
-                  rows={1}
-                  placeholder="Describe details..."
-                  className={clsx(TEXTAREA_CLASS, "min-h-[42px]")}
-                  value={pt.details}
-                  onChange={(e) => updatePastTravel(pt.id, { details: e.target.value })}
-                />
-              </div>
-              <div className="sm:col-span-1 flex justify-end pt-6">
-                <button type="button" onClick={() => removePastTravel(pt.id)} className="text-slate-400 hover:text-rose-500 transition p-2">
-                  <Trash className="w-5 h-5" />
-                </button>
-              </div>
+              ))}
             </div>
-          ))}
-          <button type="button" onClick={addPastTravel} className={LINKISH_SECONDARY}>+ Add entry</button>
+          )}
+
+          {/* TRIP BUILDER SECTION */}
+          <section className="space-y-8">
+            {state.trips.map((trip, tIdx) => (
+              <TripCard
+                key={trip.id}
+                innerRef={setItemRef(trip.id)}
+                trip={trip}
+                index={tIdx}
+                totalTrips={state.trips.length}
+                updateTrip={updateTrip}
+                updateStop={updateStop}
+                addStop={addStop}
+                removeStop={removeStop}
+                addLayover={addLayover}
+                updateLayover={updateLayover}
+                removeLayover={removeLayover}
+                removeTrip={removeTrip}
+                highlight={highlight}
+                setItemRef={setItemRef}
+              />
+            ))}
+            
+            <button 
+              type="button" 
+              onClick={addTrip} 
+              className="w-full py-4 rounded-xl border border-dashed border-neutral-800 text-neutral-500 hover:text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-950/10 transition-all flex items-center justify-center gap-2 group"
+            >
+              <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              <span className="font-mono text-sm tracking-wider uppercase">Initialize New Trip</span>
+            </button>
+          </section>
+
+          {/* SIGNIFICANT PAST TRAVEL SECTION */}
+          <section className="rounded-xl border border-neutral-800 bg-neutral-900/30 overflow-hidden">
+            <div className="px-6 py-4 border-b border-neutral-800 bg-neutral-900/50 flex items-center gap-3">
+               <div className="h-2 w-2 rounded-full bg-neutral-600" />
+               <h2 className="text-sm font-bold text-neutral-300 uppercase tracking-wider">Significant Past Travel</h2>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {state.pastTravels.length === 0 && (
+                <p className="text-sm text-neutral-600 font-mono italic px-2">No historical data recorded.</p>
+              )}
+              
+              {state.pastTravels.map((pt) => (
+                <div key={pt.id} ref={setItemRef(pt.id)} className="grid gap-4 sm:grid-cols-12 items-start p-4 rounded-lg border border-neutral-800 bg-black/40 hover:border-neutral-700 transition-colors">
+                  
+                  {/* Country Input */}
+                  <div className="sm:col-span-4">
+                    <label className="block text-[10px] font-mono text-neutral-500 uppercase mb-1.5">Country</label>
+                    <SearchableSelect 
+                      value={pt.country} 
+                      onChange={(val) => updatePastTravel(pt.id, { country: val })} 
+                      options={CSC_COUNTRIES.map(c => c.name)}
+                      placeholder="Select country"
+                    />
+                  </div>
+
+                  {/* Year Input */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-mono text-neutral-500 uppercase mb-1.5">Year</label>
+                    <input 
+                      type="text" 
+                      placeholder="YYYY" 
+                      className="w-full bg-neutral-900 border border-neutral-800 rounded px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-emerald-500 font-mono"
+                      value={pt.year}
+                      onChange={(e) => updatePastTravel(pt.id, { year: e.target.value })} 
+                    />
+                  </div>
+
+                  {/* Details Input */}
+                  <div className="sm:col-span-5">
+                    <label className="block text-[10px] font-mono text-neutral-500 uppercase mb-1.5">Clinical Notes</label>
+                    <textarea 
+                      rows={1}
+                      placeholder="Details..."
+                      className="w-full bg-neutral-900 border border-neutral-800 rounded px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-emerald-500 min-h-[42px] resize-none"
+                      value={pt.details}
+                      onChange={(e) => updatePastTravel(pt.id, { details: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Delete Button */}
+                  <div className="sm:col-span-1 flex justify-end pt-7">
+                    <button type="button" onClick={() => removePastTravel(pt.id)} className="text-neutral-600 hover:text-red-500 transition-colors">
+                      <Trash className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              
+              <button 
+                type="button" 
+                onClick={addPastTravel} 
+                className="mt-2 text-xs font-mono text-emerald-500 hover:text-emerald-400 flex items-center gap-2"
+              >
+                <Plus className="w-3 h-3" />
+                ADD_ENTRY
+              </button>
+            </div>
+          </section>
+
         </div>
-      </section>
+      </main>
 
-      {/* FOOTER ACTION AREA */}
-      <section className="mt-8 flex justify-end">
-         <button type="button" onClick={() => setPrintOpen(true)} className={clsx(BTN_PRIMARY, "w-full sm:w-auto shadow-lg")}>
-            <Printer className="w-4 h-4" />
-            <span>Generate Report</span>
-          </button>
-      </section>
-
-      {/* Print Overlay */}
+      {/* --- PRINT OVERLAY --- */}
       <PrintOverlay 
         open={printOpen} 
         onClose={() => setPrintOpen(false)} 
@@ -216,6 +269,6 @@ export default function TravelHistoryGeneratorPage() {
         summaryHtml={summaryHtml} 
         summaryText={summaryTextPlain}
       />
-    </main>
+    </div>
   );
 }
