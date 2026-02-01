@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import { HCID_FALLBACK_MAP } from '@/data/hcidFallbackSnapshot';
-// ⬇️ IMPORT THE LOGIC FROM YOUR FILE
 import { buildNormalizedMap } from '@/utils/names';
 
 export default function useGovUkHcid() {
@@ -30,7 +29,7 @@ export default function useGovUkHcid() {
     loadData();
   }, []);
 
-  // ⬇️ USE THE SHARED HELPER
+  // STRICT: Only use the shared helper to build the map
   const normalizedMap = useMemo(() => {
     return buildNormalizedMap(data);
   }, [data]);
