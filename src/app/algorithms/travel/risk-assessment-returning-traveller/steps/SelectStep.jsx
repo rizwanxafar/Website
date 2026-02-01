@@ -1,10 +1,10 @@
-// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/SelectStep.jsx
 "use client";
 
 import { useEffect, useMemo } from "react";
 import DecisionCard from "@/components/DecisionCard";
 import { vhfCountryNames } from "@/data/vhfCountries";
 import { Trash, Plus } from "lucide-react";
+import ResponsiveDatePicker from "src/app/algorithms/travel/travel-history-generator/_components/ui/ResponsiveDatePicker.js"; 
 
 // --- THEME CONSTANTS ---
 const btnPrimary =
@@ -165,7 +165,7 @@ export default function SelectStep({
           <p className="text-sm text-neutral-500 font-mono">No countries added. Use the search box above.</p>
         ) : (
           selected.map((c) => (
-            <div key={c.id} className="rounded-xl border border-neutral-800 bg-neutral-900/30 p-5">
+            <div key={c.id} className="rounded-xl border border-neutral-800 bg-neutral-900/30 p-5 transition-all hover:border-neutral-700">
               <div className="flex items-start justify-between gap-3 mb-4">
                 <div className="font-bold text-white text-lg">{c.name}</div>
                 <button
@@ -177,29 +177,22 @@ export default function SelectStep({
                 </button>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block">
-                  <span className="text-xs font-mono font-bold text-neutral-500 uppercase">Arrival</span>
-                  <input
-                    type="date"
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div>
+                  <span className="block text-xs font-mono font-bold text-neutral-500 uppercase mb-2">Arrival</span>
+                  <ResponsiveDatePicker
                     value={c.arrival}
-                    max={c.leaving || todayISO()}
-                    onChange={(e) => updateDates(c.id, "arrival", e.target.value)}
-                    className={`mt-1 ${inputStyles}`}
+                    onChange={(val) => updateDates(c.id, "arrival", val)}
                   />
-                </label>
+                </div>
 
-                <label className="block">
-                  <span className="text-xs font-mono font-bold text-neutral-500 uppercase">Leaving</span>
-                  <input
-                    type="date"
+                <div>
+                  <span className="block text-xs font-mono font-bold text-neutral-500 uppercase mb-2">Leaving</span>
+                  <ResponsiveDatePicker
                     value={c.leaving}
-                    min={c.arrival || undefined}
-                    max={todayISO()}
-                    onChange={(e) => updateDates(c.id, "leaving", e.target.value)}
-                    className={`mt-1 ${inputStyles}`}
+                    onChange={(val) => updateDates(c.id, "leaving", val)}
                   />
-                </label>
+                </div>
               </div>
             </div>
           ))
@@ -209,12 +202,9 @@ export default function SelectStep({
       <div className="pt-6 border-t border-neutral-800">
         <label className="block text-sm font-bold text-white mb-2">Date of Symptom Onset</label>
         <div className="max-w-xs">
-            <input
-            type="date"
-            value={onset}
-            max={todayISO()}
-            onChange={(e) => setOnset(e.target.value)}
-            className={inputStyles}
+            <ResponsiveDatePicker
+              value={onset}
+              onChange={(val) => setOnset(val)}
             />
         </div>
         <p className="mt-2 text-xs text-neutral-500 font-mono">Needed to calculate 21‑day window.</p>
