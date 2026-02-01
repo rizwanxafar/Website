@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
-import { HCID_FALLBACK_MAP } from '@/data/hcidFallbackSnapshot'; // Keep fallback ready
+import { HCID_FALLBACK_MAP } from '@/data/hcidFallbackSnapshot';
 
-// 1. Set Revalidation to 24 hours (86400 seconds)
-// Vercel will cache this response and only re-run the logic once per day.
+// Revalidate once every 24 hours
 export const revalidate = 86400; 
 
 const GOV_UK_URL = "https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk";
@@ -12,7 +11,6 @@ export async function GET() {
   try {
     console.log("⚡️ [ISR] Refreshing HCID data from GOV.UK...");
     
-    // 2. Fetch the live HTML
     const response = await fetch(GOV_UK_URL, {
       headers: {
         'User-Agent': 'ID-Northwest-Clinical-Tool/1.0 (Public Health Tool)'
@@ -25,46 +23,54 @@ export async function GET() {
     const $ = cheerio.load(html);
     const newData = {};
 
-    // 3. Scrape Logic
-    // GOV.UK structure usually pairs an H2/H3 (Country Name) with a Table immediately following it.
-    // We iterate through headers to find countries.
-    
-    // Note: Adjust selector based on actual page structure. 
-    // Usually countries are H2 or H3 IDs, or text within specific sections.
-    // This is a robust generic scraper for GOV.UK definition lists or tables.
+    // --- ROBUST SCRAPER V2: THE HUNTER-SEEKER ---
+    // Problem: GOV.UK often puts a <p> or <div> between the H2 and the Table.
+    // Solution: Don't check .next(). Scan everything *until* the next header.
     
     $('h2, h3').each((i, el) => {
-      const countryName = $(el).text().trim();
+      const $header = $(el);
+      const countryName = $header.text().trim();
       
-      // Basic validation to ensure it's likely a country header (and not "Cookies" or "Contact")
-      // You might want to validate against a known list of countries if this is too loose.
-      const nextElem = $(el).next();
+      // Stop scanning when we hit the next H2, H3, or the end of the container
+      // This creates a "Block" of content belonging to this country.
+      const $contentBlock = $header.nextUntil('h2, h3');
       
-      if (nextElem.is('table')) {
+      // Find the first table within this block
+      const $table = $contentBlock.filter('table').first();
+
+      if ($table.length) {
         const diseases = [];
         
-        // Iterate table rows
-        nextElem.find('tbody tr').each((j, tr) => {
+        $table.find('tbody tr').each((j, tr) => {
           const cells = $(tr).find('td');
-          if (cells.length >= 3) {
-            diseases.push({
-              disease: $(cells[0]).text().trim(),
-              evidence: $(cells[1]).text().trim(),
-              year: $(cells[2]).text().trim()
-            });
+          // Some tables have 2 columns (Disease, Evidence), some have 3 (Year)
+          if (cells.length >= 2) {
+            const name = $(cells[0]).text().trim();
+            // Filter out empty rows or header artifacts
+            if (name) {
+              diseases.push({
+                disease: name,
+                evidence: $(cells[1]).text().trim(),
+                year: cells.length > 2 ? $(cells[2]).text().trim() : ''
+              });
+            }
           }
         });
 
+        // Only add if we actually found data
         if (diseases.length > 0) {
           newData[countryName] = diseases;
         }
       }
     });
 
-    // 4. Validation / Safety Net
-    // If the scrape failed completely (e.g. GOV.UK changed layout), return fallback
-    if (Object.keys(newData).length < 5) {
-      console.warn("⚠️ [ISR] Scrape yielded too few results. Reverting to fallback.");
+    // --- INTEGRITY CHECK ---
+    // If the scrape missed most countries (e.g. layout changed drastically),
+    // we must reject it to prevent overwriting the valid fallback.
+    const countryCount = Object.keys(newData).length;
+    
+    if (countryCount < 20) {
+      console.warn(`⚠️ [ISR] Integrity Check Failed: Only found ${countryCount} countries. Reverting to fallback.`);
       return NextResponse.json({ 
         source: 'fallback', 
         date: new Date().toISOString(), 
@@ -72,7 +78,8 @@ export async function GET() {
       });
     }
 
-    // 5. Success
+    console.log(`✅ [ISR] Scrape Successful: Found ${countryCount} countries.`);
+    
     return NextResponse.json({ 
       source: 'live', 
       date: new Date().toISOString(), 
@@ -81,7 +88,6 @@ export async function GET() {
 
   } catch (error) {
     console.error("❌ [ISR] Error fetching HCID data:", error);
-    // Fail gracefully to fallback
     return NextResponse.json({ 
       source: 'fallback-error', 
       date: new Date().toISOString(), 
