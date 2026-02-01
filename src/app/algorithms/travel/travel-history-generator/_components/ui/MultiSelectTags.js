@@ -1,8 +1,7 @@
 import { useState, useMemo, Fragment } from 'react';
 import { Combobox, ComboboxInput, ComboboxOptions, ComboboxOption, Transition } from '@headlessui/react';
 import { clsx } from 'clsx';
-import { X, Plus } from '../icons';
-import { CONTAINER_BASE } from '../../_lib/constants';
+import { X, Plus } from 'lucide-react'; // Swapped icons
 import { normalize } from '../../_lib/utils';
 
 export default function MultiSelectTags({ value = [], onChange, options, placeholder }) {
@@ -27,16 +26,22 @@ export default function MultiSelectTags({ value = [], onChange, options, placeho
     setQuery('');
   };
 
+  // --- STYLES ---
+  const CONTAINER = "flex flex-wrap items-center gap-1.5 p-1.5 min-h-[42px] w-full bg-neutral-900 border border-neutral-800 rounded";
+  const DROPDOWN_BASE = "absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-neutral-950 border border-neutral-800 py-1 text-base shadow-2xl ring-1 ring-black/5 focus:outline-none sm:text-sm";
+  const TAG_BASE = "inline-flex items-center gap-1 rounded bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-xs font-medium text-emerald-400";
+  const INPUT_STYLES = "min-w-[120px] flex-1 border-none bg-transparent py-1 pl-1 text-sm leading-5 text-neutral-200 focus:ring-0 placeholder:text-neutral-600";
+
   return (
     <Combobox value={null} onChange={addTag} nullable>
       <div className="relative mt-1">
-        <div className={clsx(CONTAINER_BASE, "flex flex-wrap items-center gap-1.5 p-1.5 min-h-[42px]")}>
+        <div className={CONTAINER}>
           {value.map((tag) => (
-            <span key={tag} className="inline-flex items-center gap-1 rounded bg-[hsl(var(--brand))]/10 border border-[hsl(var(--brand))]/20 px-2 py-0.5 text-xs font-medium text-[hsl(var(--brand))] dark:text-[hsl(var(--accent))]">
+            <span key={tag} className={TAG_BASE}>
               {tag}
               <button
                 type="button"
-                className="group relative -mr-1 h-3.5 w-3.5 rounded-sm hover:bg-[hsl(var(--brand))]/20"
+                className="group relative -mr-1 h-3.5 w-3.5 rounded-sm hover:bg-emerald-500/20 text-emerald-500"
                 onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
               >
                 <X className="h-3 w-3" />
@@ -44,7 +49,7 @@ export default function MultiSelectTags({ value = [], onChange, options, placeho
             </span>
           ))}
           <ComboboxInput
-            className="min-w-[120px] flex-1 border-none bg-transparent py-1 pl-1 text-sm leading-5 text-slate-900 focus:ring-0 dark:text-slate-100 placeholder:text-slate-400"
+            className={INPUT_STYLES}
             displayValue={() => query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={value.length === 0 ? placeholder : ""}
@@ -57,11 +62,11 @@ export default function MultiSelectTags({ value = [], onChange, options, placeho
           leaveTo="opacity-0"
           afterLeave={() => setQuery('')}
         >
-          <ComboboxOptions className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+          <ComboboxOptions className={DROPDOWN_BASE}>
             {filteredOptions.length === 0 && query !== '' ? (
               <ComboboxOption
                 className={({ active }) =>
-                  clsx('relative cursor-pointer select-none py-2 pl-4 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
+                  clsx('relative cursor-pointer select-none py-2 pl-4 pr-4', active ? 'bg-emerald-900/30 text-emerald-400' : 'text-neutral-400')
                 }
                 value={query}
               >
@@ -75,7 +80,7 @@ export default function MultiSelectTags({ value = [], onChange, options, placeho
                 <ComboboxOption
                   key={idx}
                   className={({ active }) =>
-                    clsx('relative cursor-default select-none py-2 pl-4 pr-4', active ? 'bg-[hsl(var(--brand))] text-white' : 'text-slate-900 dark:text-slate-100')
+                    clsx('relative cursor-default select-none py-2 pl-4 pr-4 transition-colors', active ? 'bg-emerald-900/20 text-emerald-400' : 'text-neutral-300')
                   }
                   value={opt}
                 >
