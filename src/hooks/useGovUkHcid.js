@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { HCID_FALLBACK_MAP } from '@/data/hcidFallbackSnapshot';
-// Import the shared logic from your uploaded file
+// ⬇️ IMPORT THE LOGIC FROM YOUR FILE
 import { buildNormalizedMap } from '@/utils/names';
 
 export default function useGovUkHcid() {
@@ -30,8 +30,7 @@ export default function useGovUkHcid() {
     loadData();
   }, []);
 
-  // Use the shared helper to build the map. 
-  // This handles aliases (e.g. Türkiye -> Turkey) and cleaning (removing 'The', brackets, etc.) automatically.
+  // ⬇️ USE THE SHARED HELPER
   const normalizedMap = useMemo(() => {
     return buildNormalizedMap(data);
   }, [data]);
