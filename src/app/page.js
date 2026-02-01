@@ -2,7 +2,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -13,9 +12,8 @@ import {
   Terminal,
   ShieldAlert,
   Globe,
-  ExternalLink,
-  Wifi,
-  Lock
+  Siren,
+  Database
 } from "lucide-react";
 
 // --- ANIMATION CONFIG ---
@@ -33,58 +31,6 @@ const staggerContainer = {
 };
 
 export default function Home() {
-  const [latestNews, setLatestNews] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [connectionFailed, setConnectionFailed] = useState(false);
-
-  // --- ROBUST FETCH WITH FALLBACK ---
-  useEffect(() => {
-    async function fetchNews() {
-      try {
-        const FEED_URL = "https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml";
-        // LAST RESORT PROXY: corsproxy.io is often whitelisted where others are not.
-        const PROXY_URL = `https://corsproxy.io/?${encodeURIComponent(FEED_URL)}`;
-
-        const res = await fetch(PROXY_URL);
-        
-        if (!res.ok) throw new Error("Proxy Blocked");
-
-        const xmlString = await res.text();
-        
-        // Validation: Ensure we actually got XML back
-        if (!xmlString.startsWith("<?xml") && !xmlString.includes("<rss")) {
-          throw new Error("Invalid Data");
-        }
-
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlString, "text/xml");
-        const firstItem = xmlDoc.querySelector("item");
-
-        if (!firstItem) throw new Error("No items found");
-
-        const title = firstItem.querySelector("title")?.textContent || "Update Available";
-        const pubDate = firstItem.querySelector("pubDate")?.textContent || "";
-        const link = firstItem.querySelector("link")?.textContent || "https://www.who.int/emergencies/disease-outbreak-news";
-
-        setLatestNews({
-          title: title.replace("<![CDATA[", "").replace("]]>", "").trim(),
-          date: pubDate ? new Date(pubDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "Today",
-          link: link.trim()
-        });
-
-      } catch (e) {
-        // SILENT FAIL: If this fails, we simply switch to "Manual Mode" 
-        // instead of showing an ugly error message.
-        console.log("Feed fetch failed, switching to manual link.", e);
-        setConnectionFailed(true);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchNews();
-  }, []);
-
   return (
     <main className="min-h-screen bg-black text-neutral-200 selection:bg-white selection:text-black overflow-x-hidden font-sans">
       
@@ -139,72 +85,45 @@ export default function Home() {
             />
           </motion.div>
 
-          {/* 3. GLOBAL SURVEILLANCE (FAIL-SAFE WIDGET) */}
+          {/* 3. INTELLIGENCE COMMAND (Replaces Feed Widget) */}
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-6">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
                 <Globe className="w-3 h-3" />
-                Global Surveillance
+                Global Intelligence // EXTERNAL_UPLINKS
               </span>
               <div className="h-px flex-1 bg-neutral-900" />
             </div>
             
-            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 overflow-hidden min-h-[100px] flex items-center">
-               
-               {/* STATE 1: LOADING */}
-               {loading && (
-                 <div className="w-full p-8 flex flex-col items-center justify-center text-neutral-600 gap-3">
-                    <Wifi className="w-5 h-5 animate-pulse opacity-50" />
-                    <span className="font-mono text-xs tracking-widest animate-pulse">CONNECTING...</span>
-                 </div>
-               )}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              
+              <UplinkCard 
+                title="WHO DONs"
+                subtitle="Disease Outbreak News"
+                icon={Globe}
+                href="https://www.who.int/emergencies/disease-outbreak-news"
+              />
+              
+              <UplinkCard 
+                title="NaTHNaC"
+                subtitle="Travel Health Pro"
+                icon={Plane}
+                href="https://travelhealthpro.org.uk/news"
+              />
 
-               {/* STATE 2: SUCCESS (SHOWS DATA) */}
-               {!loading && !connectionFailed && latestNews && (
-                 <a 
-                   href={latestNews.link} 
-                   target="_blank" 
-                   rel="noopener noreferrer"
-                   className="group flex items-center gap-6 p-6 w-full hover:bg-neutral-800/30 transition-colors"
-                 >
-                   <div className="flex flex-col items-start gap-1 min-w-[100px] border-r border-neutral-800 pr-6">
-                      <span className="text-[10px] uppercase tracking-widest text-emerald-500 font-mono">Latest Alert</span>
-                      <span className="font-mono text-xs text-neutral-400">{latestNews.date}</span>
-                   </div>
-                   <div className="flex-1">
-                     <h4 className="text-lg font-medium text-white group-hover:text-emerald-400 transition-colors">
-                       {latestNews.title}
-                     </h4>
-                   </div>
-                   <ExternalLink className="w-5 h-5 text-neutral-600 group-hover:text-white transition-all" />
-                 </a>
-               )}
+              <UplinkCard 
+                title="CDC Travel"
+                subtitle="Notices & Levels"
+                icon={ShieldAlert}
+                href="https://wwwnc.cdc.gov/travel/notices"
+              />
 
-               {/* STATE 3: FIREWALL BLOCK (SHOWS PROFESSIONAL FALLBACK) */}
-               {!loading && connectionFailed && (
-                 <div className="w-full p-6 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-neutral-800/50 rounded-lg border border-neutral-700/50">
-                        <Lock className="w-5 h-5 text-neutral-400" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-white">Direct Feed Restricted</h4>
-                        <p className="text-xs text-neutral-500 font-mono mt-1">
-                          SECURITY_PROTOCOL: MANUAL ACCESS REQUIRED
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <a 
-                      href="https://www.who.int/emergencies/disease-outbreak-news" 
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-xs font-mono text-white rounded border border-neutral-700 hover:border-neutral-500 transition-all flex items-center gap-2"
-                    >
-                      OPEN PORTAL <ArrowUpRight className="w-3 h-3" />
-                    </a>
-                 </div>
-               )}
+              <UplinkCard 
+                title="ProMED-mail"
+                subtitle="Rapid Alerts"
+                icon={Siren}
+                href="https://promedmail.org/"
+              />
 
             </div>
           </motion.div>
@@ -315,6 +234,33 @@ function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
   );
 }
 
+function UplinkCard({ title, subtitle, icon: Icon, href }) {
+  return (
+    <a 
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group relative p-4 rounded-xl border border-neutral-800 bg-neutral-900/10 
+                 hover:bg-neutral-800/30 hover:border-neutral-700 transition-all flex items-center gap-4"
+    >
+      <div className="p-2 rounded-lg bg-neutral-800/50 text-neutral-400 group-hover:text-white group-hover:bg-neutral-700 transition-colors">
+        <Icon className="w-5 h-5" />
+      </div>
+      
+      <div className="flex-1 min-w-0">
+        <h4 className="text-sm font-medium text-neutral-300 group-hover:text-white truncate transition-colors">
+          {title}
+        </h4>
+        <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-mono truncate">
+          {subtitle}
+        </p>
+      </div>
+
+      <ExternalLink className="w-3 h-3 text-neutral-600 group-hover:text-neutral-400 transition-colors" />
+    </a>
+  );
+}
+
 function ResourceCard({ href, icon: Icon, title, description }) {
   return (
     <Link 
@@ -329,5 +275,25 @@ function ResourceCard({ href, icon: Icon, title, description }) {
         {description}
       </p>
     </Link>
+  );
+}
+
+// Small helper for the external link icon inside UplinkCard
+function ExternalLink({ className }) {
+  return (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      className={className}
+    >
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline points="15 3 21 3 21 9" />
+      <line x1="10" y1="14" x2="21" y2="3" />
+    </svg>
   );
 }
