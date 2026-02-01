@@ -5,6 +5,7 @@ import DecisionCard from "@/components/DecisionCard";
 import { vhfCountryNames } from "@/data/vhfCountries";
 import { Trash, Plus } from "lucide-react";
 import ResponsiveDatePicker from "src/app/algorithms/travel/travel-history-generator/_components/ui/ResponsiveDatePicker.js"; 
+import { normalizeName } from "@/utils/names";
 
 // --- THEME CONSTANTS ---
 const btnPrimary =
@@ -25,10 +26,6 @@ const inputStyles =
 // -----------------------
 
 const uid = () => Math.random().toString(36).slice(2, 9);
-const todayISO = () => new Date().toISOString().slice(0, 10);
-
-const normalize = (s = "") =>
-  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
 
 const sortByLeaving = (arr) =>
   [...arr].sort((a, b) => {
@@ -51,11 +48,12 @@ export default function SelectStep({
   selected, setSelected, onset, setOnset, query, setQuery, open, setOpen, showInput, setShowInput, inputRef, onBackToScreen, onReset, onContinue,
 }) {
   const filtered = useMemo(() => {
-    const q = normalize(query);
+    // FIX: strict usage of normalizeName from utils
+    const q = normalizeName(query);
     if (!q) return [];
     const out = [];
     for (const name of vhfCountryNames) {
-      if (normalize(name).includes(q)) {
+      if (normalizeName(name).includes(q)) {
         out.push(name);
         if (out.length >= 12) break;
       }
