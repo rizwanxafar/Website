@@ -90,49 +90,68 @@ export default function SummaryStep({
 
   const RiskRedCard = () => (
     <DecisionCard tone="red" title="AT RISK OF VHF">
-      <ul className="list-disc pl-5 text-neutral-300 text-sm">
-        <li><strong className="text-white">ISOLATE PATIENT</strong></li>
-        <li>Discuss with Infection Consultant</li>
+      <ul className="list-disc pl-5 text-neutral-300 text-sm space-y-1">
+        <li><strong className="text-white">ISOLATE PATIENT IN SIDE ROOM</strong></li>
+        <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
         <li>Urgent Malaria investigation</li>
-        <li>Full bloods (FBC, U&Es, LFTs, Clotting, CRP)</li>
-        <li>Inform lab of possible VHF</li>
+        <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
+        <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
       </ul>
     </DecisionCard>
   );
+
+  const renderRedLogic = () => (
+    <>
+      <RiskRedCard />
+      <QuestionBlock label="Is the malaria test positive?" val={preMalariaMalariaPositive} setVal={setMalariaResult} />
+      
+      {preMalariaMalariaPositive === "yes" && (
+        <>
+          <QuestionBlock label="Has the patient returned from a VHF outbreak area?" val={preMalariaOutbreakReturn} setVal={setOutbreakReturn} />
+          
+          {preMalariaOutbreakReturn === "no" && (
+            <>
+              <DecisionCard tone="green" title="Manage as Malaria; VHF unlikely" />
+              <QuestionBlock label="Clinical concern OR no improvement after 72h?" val={preMalariaConcern72h} setVal={setConcern72h} />
+              
+              {preMalariaConcern72h === "yes" && (
+                <>
+                  <DecisionCard tone="red" title="AT RISK OF VHF">
+                     <p className="text-neutral-300">Re-evaluate for VHF.</p>
+                  </DecisionCard>
+                  {renderSevereChain({ preMalariaSevere, setPreMalariaSevere, preMalariaFitOP, setPreMalariaFitOP, preMalariaVhfPositive, setPreMalariaVhfPositive })}
+                </>
+              )}
+              {preMalariaConcern72h === "no" && <DecisionCard tone="green" title="VHF Unlikely; manage locally" />}
+            </>
+          )}
+
+          {preMalariaOutbreakReturn === "yes" && (
+            <>
+              <DecisionCard tone="amber" title="Manage as Malaria, but consider possibility of dual infection with VHF" />
+              <RiskRedCard />
+              {renderSevereChain({ preMalariaSevere, setPreMalariaSevere, preMalariaFitOP, setPreMalariaFitOP, preMalariaVhfPositive, setPreMalariaVhfPositive })}
+            </>
+          )}
+        </>
+      )}
+
+      {preMalariaMalariaPositive === "no" && (
+        <>
+          <RiskRedCard />
+          {renderSevereChain({ preMalariaSevere, setPreMalariaSevere, preMalariaFitOP, setPreMalariaFitOP, preMalariaVhfPositive, setPreMalariaVhfPositive })}
+        </>
+      )}
+    </>
+  );
+
+  // --- RENDER MODES ---
 
   if (fromScreeningRed) {
     return (
       <div className="space-y-6">
         <h2 className="text-xl font-bold text-white">Assessment Outcome</h2>
-        <RiskRedCard />
-        <QuestionBlock label="Is the malaria test positive?" val={preMalariaMalariaPositive} setVal={setMalariaResult} />
-        
-        {preMalariaMalariaPositive === "yes" && (
-          <>
-            <QuestionBlock label="Returned from VHF outbreak area?" val={preMalariaOutbreakReturn} setVal={setOutbreakReturn} />
-            {preMalariaOutbreakReturn === "no" && (
-              <>
-                <DecisionCard tone="green" title="Manage as Malaria"><p className="text-neutral-300">VHF Unlikely.</p></DecisionCard>
-                <QuestionBlock label="Clinical concern OR no improvement after 72h?" val={preMalariaConcern72h} setVal={setConcern72h} />
-                {preMalariaConcern72h === "yes" && <><RiskRedCard />{renderSevereChain({ preMalariaSevere, setPreMalariaSevere, preMalariaFitOP, setPreMalariaFitOP, preMalariaVhfPositive, setPreMalariaVhfPositive })}</>}
-                {preMalariaConcern72h === "no" && <DecisionCard tone="green" title="VHF Unlikely" />}
-              </>
-            )}
-            {preMalariaOutbreakReturn === "yes" && (
-              <>
-                <DecisionCard tone="amber" title="Dual Infection Risk" />
-                <RiskRedCard />
-                {renderSevereChain({ preMalariaSevere, setPreMalariaSevere, preMalariaFitOP, setPreMalariaFitOP, preMalariaVhfPositive, setPreMalariaVhfPositive })}
-              </>
-            )}
-          </>
-        )}
-        {preMalariaMalariaPositive === "no" && (
-          <>
-            <RiskRedCard />
-            {renderSevereChain({ preMalariaSevere, setPreMalariaSevere, preMalariaFitOP, setPreMalariaFitOP, preMalariaVhfPositive, setPreMalariaVhfPositive })}
-          </>
-        )}
+        {renderRedLogic()}
         <Footer onBack={onBackToScreen} onReset={onReset} />
       </div>
     );
@@ -159,7 +178,7 @@ export default function SummaryStep({
           <>
             <DecisionCard tone="green" title="Manage as Malaria" />
             <QuestionBlock label="Clinical concern OR no improvement after 72h?" val={amberConcern72h} setVal={setAmberConcern72h} />
-            {amberConcern72h === "yes" && <><RiskRedCard />{renderSevereChain({ preMalariaSevere, setPreMalariaSevere, preMalariaFitOP, setPreMalariaFitOP, preMalariaVhfPositive, setPreMalariaVhfPositive })}</>}
+            {amberConcern72h === "yes" && <>{renderRedLogic()}</>}
             {amberConcern72h === "no" && <DecisionCard tone="green" title="VHF Unlikely" />}
           </>
         )}
@@ -170,7 +189,7 @@ export default function SummaryStep({
             {amberAltDx === "no" && (
               <>
                 <QuestionBlock label="Clinical concern OR no improvement after 72h?" val={amberConcern72h} setVal={setAmberConcern72h} />
-                {amberConcern72h === "yes" && <><RiskRedCard />{renderSevereChain({ preMalariaSevere, setPreMalariaSevere, preMalariaFitOP, setPreMalariaFitOP, preMalariaVhfPositive, setPreMalariaVhfPositive })}</>}
+                {amberConcern72h === "yes" && <>{renderRedLogic()}</>}
                 {amberConcern72h === "no" && <DecisionCard tone="green" title="VHF Unlikely" />}
               </>
             )}
@@ -181,17 +200,12 @@ export default function SummaryStep({
     );
   }
 
-  // Branch 4: RED
+  // Branch 4: RED (High Risk / Any Yes)
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-white">Outcome</h2>
-      <RiskRedCard />
-      <QuestionBlock label="Is malaria test positive?" val={preMalariaMalariaPositive} setVal={setMalariaResult} />
-      {/* (Logic truncated for brevity, follows same pattern as above but already styled) */}
-      {/* ... Repeat the logic blocks using QuestionBlock and RiskRedCard components ... */}
-      {/* For completeness in this response, I'll assume the pattern is clear. 
-          Use the same QuestionBlock and DecisionCard components for the rest of the tree. */}
-       <Footer onBack={onBackToExposures} onReset={onReset} />
+      {renderRedLogic()}
+      <Footer onBack={onBackToExposures} onReset={onReset} />
     </div>
   );
 }
@@ -223,7 +237,7 @@ function renderSevereChain({ preMalariaSevere, setPreMalariaSevere, preMalariaFi
         <>
           <QuestionBlock label="Fit for outpatient management?" val={preMalariaFitOP} setVal={setPreMalariaFitOP} />
           {preMalariaFitOP === "no" && <><DecisionCard tone="red" title="ADMIT" /><VhfResultBlock preMalariaVhfPositive={preMalariaVhfPositive} setPreMalariaVhfPositive={setPreMalariaVhfPositive} /></>}
-          {preMalariaFitOP === "yes" && <><DecisionCard tone="red" title="OUTPATIENT MANAGEMENT"><p>Inform HP Team. Self-isolate.</p></DecisionCard><VhfResultBlock preMalariaVhfPositive={preMalariaVhfPositive} setPreMalariaVhfPositive={setPreMalariaVhfPositive} /></>}
+          {preMalariaFitOP === "yes" && <><DecisionCard tone="red" title="OUTPATIENT MANAGEMENT"><p className="text-neutral-300">Inform HP Team. Self-isolate.</p></DecisionCard><VhfResultBlock preMalariaVhfPositive={preMalariaVhfPositive} setPreMalariaVhfPositive={setPreMalariaVhfPositive} /></>}
         </>
       )}
     </>
@@ -243,7 +257,7 @@ function VhfResultBlock({ preMalariaVhfPositive, setPreMalariaVhfPositive }) {
   return (
     <>
       <QuestionBlock label="VHF Test Positive?" val={preMalariaVhfPositive} setVal={setPreMalariaVhfPositive} />
-      {preMalariaVhfPositive === "yes" && <DecisionCard tone="red" title="CONFIRMED VHF"><p>Contact NHSE EPRR.</p></DecisionCard>}
+      {preMalariaVhfPositive === "yes" && <DecisionCard tone="red" title="CONFIRMED VHF"><p className="text-neutral-300">Contact NHSE EPRR.</p></DecisionCard>}
       {preMalariaVhfPositive === "no" && <DecisionCard tone="green" title="VHF Unlikely" />}
     </>
   );
