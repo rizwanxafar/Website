@@ -1,25 +1,66 @@
-// src/app/algorithms/travel/risk-assessment-returning-traveller/page.jsx
+'use client';
+
+import Link from "next/link";
+import { ShieldAlert, ArrowLeft, AlertTriangle } from "lucide-react";
 import CountrySelect from "./CountrySelect";
 import WarningBox from "@/components/WarningBox";
 
-export const metadata = {
-  title: "VHF Risk Assessment in Returning Traveller | ID Northwest",
-  description:
-    "Screening and country-specific risk assessment for viral haemorrhagic fevers in returning travellers.",
-};
-
 export default function Page() {
   return (
-    <main className="py-8">
-      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-        VHF Risk Assessment in Returning Traveller
-      </h1>
+    <div className="min-h-screen bg-black text-neutral-300 font-sans selection:bg-red-900/30 selection:text-red-200">
 
-      <WarningBox />
+      {/* SYSTEM HEADER (Red Alert Version) */}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-black/90 backdrop-blur-md border-b border-red-900/30">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-neutral-500 hover:text-red-500 transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div className="h-6 w-px bg-red-900/20" />
+            <div className="flex items-center gap-3">
+              <ShieldAlert className="w-5 h-5 text-red-600 animate-pulse" />
+              <span className="font-mono text-xs tracking-widest text-red-600/80 uppercase hidden sm:inline-block">
+                VHF_Risk_Protocol
+              </span>
+            </div>
+          </div>
 
-      <div className="mt-6">
-        <CountrySelect />
-      </div>
-    </main>
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse" />
+            <span className="font-mono text-[10px] text-red-500/60 uppercase tracking-widest">
+              Critical
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* MAIN CONTENT */}
+      <main className="pt-24 pb-20 px-4 sm:px-6">
+        <div className="max-w-3xl mx-auto space-y-10">
+            
+            {/* Title Section */}
+            <div className="space-y-4">
+               <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+                VHF Risk Assessment<span className="text-red-600">.</span>
+               </h1>
+               <p className="text-lg text-neutral-500 leading-relaxed max-w-2xl">
+                Rapid screening and risk stratification for <span className="text-neutral-300">Viral Haemorrhagic Fevers</span> in returning travellers.
+               </p>
+            </div>
+
+            {/* The Components */}
+            <div className="space-y-8">
+               {/* We wrap these in divs to ensure spacing, but the inner styling depends on the files you upload next */}
+               <div className="rounded-xl overflow-hidden">
+                 <WarningBox />
+               </div>
+               
+               <div className="pt-4 border-t border-neutral-800">
+                 <CountrySelect />
+               </div>
+            </div>
+        </div>
+      </main>
+    </div>
   );
 }
