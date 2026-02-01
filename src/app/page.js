@@ -1,5 +1,9 @@
 // src/app/page.js
+"use client";
+
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   Activity,
   Plane,
@@ -9,52 +13,61 @@ import {
   Terminal,
   ShieldAlert,
   Globe,
-  ExternalLink
+  ExternalLink,
+  Wifi
 } from "lucide-react";
 
-// --- SERVER SIDE DATA FETCHING ---
-async function getGlobalSurveillance() {
-  try {
-    // STRATEGY: Use rss2json as a bridge to bypass WHO firewalls and strict XML parsing.
-    // This converts the XML feed directly into a clean JSON object.
-    const FEED_URL = "https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml";
-    const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(FEED_URL)}`;
-
-    const res = await fetch(API_URL, {
-      next: { revalidate: 3600 }, // Cache for 1 hour
-    });
-
-    if (!res.ok) {
-      throw new Error(`Feed API responded with ${res.status}`);
-    }
-
-    const data = await res.json();
-
-    // If the proxy fails or feed is empty
-    if (!data.items || data.items.length === 0) {
-      return [];
-    }
-
-    // Map the cleaner JSON response
-    return data.items.slice(0, 5).map(item => ({
-      title: item.title,
-      // rss2json returns dates like "2024-01-01 12:00:00", we format it
-      date: new Date(item.pubDate).toLocaleDateString('en-GB', { 
-        day: '2-digit', 
-        month: 'short', 
-        year: 'numeric' 
-      }),
-      link: item.link
-    }));
-
-  } catch (e) {
-    console.error("Global Surveillance Error:", e);
-    return []; // Fail gracefully
+// --- ANIMATION CONFIG ---
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } 
   }
-}
+};
 
-export default async function Home() {
-  const newsItems = await getGlobalSurveillance();
+const staggerContainer = {
+  visible: { transition: { staggerChildren: 0.1 } }
+};
+
+export default function Home() {
+  const [newsItems, setNewsItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // --- CLIENT-SIDE DATA FETCHING ---
+  // Runs in your browser, bypassing Vercel server IP blocks
+  useEffect(() => {
+    async function fetchNews() {
+      try {
+        const FEED_URL = "https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml";
+        // We use a random string to prevent browser caching: &t=${Date.now()}
+        const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(FEED_URL)}&t=${Date.now()}`;
+
+        const res = await fetch(API_URL);
+        const data = await res.json();
+
+        if (data.items) {
+          const cleanedItems = data.items.slice(0, 5).map(item => ({
+            title: item.title,
+            date: new Date(item.pubDate).toLocaleDateString('en-GB', { 
+              day: '2-digit', 
+              month: 'short', 
+              year: 'numeric' 
+            }),
+            link: item.link
+          }));
+          setNewsItems(cleanedItems);
+        }
+      } catch (e) {
+        console.error("Feed Error:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchNews();
+  }, []);
 
   return (
     <main className="min-h-screen bg-black text-neutral-200 selection:bg-white selection:text-black overflow-x-hidden font-sans">
@@ -74,11 +87,15 @@ export default async function Home() {
       {/* --- MAIN CONTENT --- */}
       <div className="relative pt-32 pb-24 px-6 max-w-7xl mx-auto">
         
-        <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <motion.div 
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+          className="space-y-16"
+        >
 
           {/* 1. WELCOME SECTION */}
-          <div className="max-w-4xl">
-             {/* Color Logic: Grey base, White highlight */}
+          <motion.div variants={fadeInUp} className="max-w-4xl">
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-neutral-600 mb-6">
               Welcome to <span className="text-white">Infectious Diseases</span> Portal
             </h1>
@@ -86,10 +103,10 @@ export default async function Home() {
               High-precision algorithms and local guidelines for Infectious Diseases. 
               Designed for rapid deployment in clinical settings.
             </p>
-          </div>
+          </motion.div>
 
           {/* 2. ACTIVE TOOLS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <motion.div variants={fadeInUp} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ToolCard 
               href="/algorithms/travel/risk-assessment-returning-traveller"
               variant="critical"
@@ -104,10 +121,10 @@ export default async function Home() {
               title="Travel History Generator"
               subtitle="Create accurate travel history"
             />
-          </div>
+          </motion.div>
 
-          {/* 3. GLOBAL SURVEILLANCE (NEW WIDGET) */}
-          <div>
+          {/* 3. GLOBAL SURVEILLANCE (CLIENT-SIDE WIDGET) */}
+          <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-6">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
                 <Globe className="w-3 h-3" />
@@ -116,8 +133,15 @@ export default async function Home() {
               <div className="h-px flex-1 bg-neutral-900" />
             </div>
             
-            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 overflow-hidden">
-               {newsItems.length > 0 ? (
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 overflow-hidden min-h-[100px]">
+               {loading ? (
+                 // LOADING STATE (Skeleton)
+                 <div className="p-8 flex flex-col items-center justify-center text-neutral-600 gap-3">
+                    <Wifi className="w-5 h-5 animate-pulse opacity-50" />
+                    <span className="font-mono text-xs tracking-widest animate-pulse">ESTABLISHING UPLINK...</span>
+                 </div>
+               ) : newsItems.length > 0 ? (
+                 // SUCCESS STATE
                  <div className="divide-y divide-neutral-800/50">
                    {newsItems.map((item, idx) => (
                      <a 
@@ -140,16 +164,16 @@ export default async function Home() {
                    ))}
                  </div>
                ) : (
+                 // ERROR STATE
                  <div className="p-8 text-center text-neutral-600 text-sm font-mono">
-                   {/* If this still appears, the API is temporarily down or rate-limited */}
-                   // SYSTEM_OFFLINE: UNABLE TO FETCH FEED (CHECK CONNECTION)
+                   // SYSTEM_OFFLINE: UNABLE TO FETCH FEED (CHECK NETWORK)
                  </div>
                )}
             </div>
-          </div>
+          </motion.div>
 
           {/* 4. RESOURCES */}
-          <div>
+          <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-8">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest">
                 Resources
@@ -177,17 +201,17 @@ export default async function Home() {
                 description="Teaching materials, case studies, and departmental slides."
               />
             </div>
-          </div>
+          </motion.div>
 
           {/* 5. FOOTER */}
-          <div className="pt-12 border-t border-neutral-900 flex justify-between items-center text-xs text-neutral-600 font-mono">
+          <motion.div variants={fadeInUp} className="pt-12 border-t border-neutral-900 flex justify-between items-center text-xs text-neutral-600 font-mono">
             <span>ID-NW © 2024</span>
             <a href="mailto:infectionnw@gmail.com" className="hover:text-white transition-colors">
               CONTACT ADMIN
             </a>
-          </div>
+          </motion.div>
 
-        </div>
+        </motion.div>
       </div>
     </main>
   );
