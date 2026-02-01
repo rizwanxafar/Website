@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 import { HCID_FALLBACK_MAP } from '@/data/hcidFallbackSnapshot';
 
-// Revalidate once every 24 hours
+// Revalidate every 24 hours
 export const revalidate = 86400; 
 
 const GOV_UK_URL = "https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk";
@@ -13,7 +13,8 @@ export async function GET() {
     
     const response = await fetch(GOV_UK_URL, {
       headers: {
-        'User-Agent': 'ID-Northwest-Clinical-Tool/1.0 (Public Health Tool)'
+        'User-Agent': 'ID-Northwest-Clinical-Tool/1.0 (Public Health Tool)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml'
       }
     });
 
@@ -23,30 +24,47 @@ export async function GET() {
     const $ = cheerio.load(html);
     const newData = {};
 
-    // --- ROBUST SCRAPER V2: THE HUNTER-SEEKER ---
-    // Problem: GOV.UK often puts a <p> or <div> between the H2 and the Table.
-    // Solution: Don't check .next(). Scan everything *until* the next header.
+    // --- STRATEGY: TABLE-FIRST (The "Omni-Scraper") ---
+    // Instead of looking for headers, we look for the Data Tables themselves.
+    // This bypasses layout issues (Accordions, divs, paragraphs).
     
-    $('h2, h3').each((i, el) => {
-      const $header = $(el);
-      const countryName = $header.text().trim();
+    $('table').each((i, table) => {
+      const $table = $(table);
       
-      // Stop scanning when we hit the next H2, H3, or the end of the container
-      // This creates a "Block" of content belonging to this country.
-      const $contentBlock = $header.nextUntil('h2, h3');
+      // 1. Verify this is a Disease Table (Check headers)
+      const headers = $table.find('thead th').map((_, th) => $(th).text().trim().toLowerCase()).get();
+      const hasDiseaseCol = headers.some(h => h.includes('disease'));
       
-      // Find the first table within this block
-      const $table = $contentBlock.filter('table').first();
+      if (!hasDiseaseCol) return; // Skip random tables
 
-      if ($table.length) {
+      // 2. Find the Country Name (The "Owner" of this table)
+      // We traverse up and prev to find the nearest H2 or H3.
+      let countryName = "";
+
+      // Strategy A: Preceding Sibling (Flat Layout)
+      // Check previous siblings for a header
+      const $prevHeader = $table.prevAll('h2, h3').first();
+      if ($prevHeader.length) {
+        countryName = $prevHeader.text().trim();
+      } 
+      // Strategy B: Accordion Parent (Nested Layout)
+      // If table is inside an accordion content div, the header is in the sibling button
+      else {
+        const $section = $table.closest('.govuk-accordion__section');
+        if ($section.length) {
+          const $accordionHeader = $section.find('.govuk-accordion__section-header');
+          // Text often includes "Show section", so we just get the clean text node or button text
+          countryName = $accordionHeader.text().replace(/(Show|Hide) section/gi, '').trim();
+        }
+      }
+
+      // 3. Extract Data
+      if (countryName) {
         const diseases = [];
-        
         $table.find('tbody tr').each((j, tr) => {
           const cells = $(tr).find('td');
-          // Some tables have 2 columns (Disease, Evidence), some have 3 (Year)
           if (cells.length >= 2) {
             const name = $(cells[0]).text().trim();
-            // Filter out empty rows or header artifacts
             if (name) {
               diseases.push({
                 disease: name,
@@ -57,7 +75,6 @@ export async function GET() {
           }
         });
 
-        // Only add if we actually found data
         if (diseases.length > 0) {
           newData[countryName] = diseases;
         }
@@ -65,10 +82,9 @@ export async function GET() {
     });
 
     // --- INTEGRITY CHECK ---
-    // If the scrape missed most countries (e.g. layout changed drastically),
-    // we must reject it to prevent overwriting the valid fallback.
     const countryCount = Object.keys(newData).length;
     
+    // Safety Net: If we found fewer than 20 countries, the scrape likely failed.
     if (countryCount < 20) {
       console.warn(`⚠️ [ISR] Integrity Check Failed: Only found ${countryCount} countries. Reverting to fallback.`);
       return NextResponse.json({ 
@@ -78,8 +94,7 @@ export async function GET() {
       });
     }
 
-    console.log(`✅ [ISR] Scrape Successful: Found ${countryCount} countries.`);
-    
+    // Success!
     return NextResponse.json({ 
       source: 'live', 
       date: new Date().toISOString(), 
