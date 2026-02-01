@@ -4,8 +4,19 @@ import Link from "next/link";
 import { ShieldAlert, ArrowLeft } from "lucide-react";
 import CountrySelect from "./CountrySelect";
 import WarningBox from "@/components/WarningBox";
+import { useEffect } from "react"; // 1. Import useEffect
 
 export default function Page() {
+  
+  // 2. ADD THIS EFFECT: Clear the specific storage key when visiting the homepage.
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem("riskFormV1"); // Matches the key in useSessionForm.js
+      console.log("Storage cleared for fresh assessment.");
+    } catch (e) {
+      // Ignore errors
+    }
+  }, []);
   return (
     <div className="min-h-screen bg-black text-neutral-300 font-sans selection:bg-red-900/30 selection:text-red-200">
 
