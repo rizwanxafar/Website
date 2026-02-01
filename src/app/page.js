@@ -14,7 +14,8 @@ import {
   ShieldAlert,
   Globe,
   ExternalLink,
-  Wifi
+  Wifi,
+  AlertCircle
 } from "lucide-react";
 
 // --- ANIMATION CONFIG ---
@@ -34,33 +35,53 @@ const staggerContainer = {
 export default function Home() {
   const [newsItems, setNewsItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  // --- CLIENT-SIDE DATA FETCHING ---
-  // Runs in your browser, bypassing Vercel server IP blocks
+  // --- CLIENT-SIDE DATA FETCHING (RAW XML STRATEGY) ---
   useEffect(() => {
     async function fetchNews() {
       try {
+        // 1. Target URL
         const FEED_URL = "https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml";
-        // We use a random string to prevent browser caching: &t=${Date.now()}
-        const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(FEED_URL)}&t=${Date.now()}`;
+        
+        // 2. Use 'AllOrigins' proxy to fetch RAW XML string (Bypasses CORS & format errors)
+        const PROXY_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(FEED_URL)}`;
 
-        const res = await fetch(API_URL);
+        const res = await fetch(PROXY_URL);
+        if (!res.ok) throw new Error(`Proxy error: ${res.status}`);
+        
         const data = await res.json();
+        const xmlString = data.contents; // AllOrigins puts the body in 'contents'
 
-        if (data.items) {
-          const cleanedItems = data.items.slice(0, 5).map(item => ({
-            title: item.title,
-            date: new Date(item.pubDate).toLocaleDateString('en-GB', { 
-              day: '2-digit', 
-              month: 'short', 
-              year: 'numeric' 
-            }),
-            link: item.link
-          }));
-          setNewsItems(cleanedItems);
-        }
+        // 3. Parse XML Natively in Browser
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+        
+        // Check for parse errors
+        const parseError = xmlDoc.querySelector("parsererror");
+        if (parseError) throw new Error("XML Parse failed");
+
+        const items = Array.from(xmlDoc.querySelectorAll("item")).slice(0, 5);
+
+        const cleanedItems = items.map(item => {
+          // Robust extraction that handles CDATA or standard text
+          const title = item.querySelector("title")?.textContent || "Update";
+          const link = item.querySelector("link")?.textContent || "#";
+          const pubDate = item.querySelector("pubDate")?.textContent;
+
+          return {
+            title: title.replace("<![CDATA[", "").replace("]]>", "").trim(), // Cleanup
+            date: pubDate 
+              ? new Date(pubDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+              : 'Unknown',
+            link: link.trim()
+          };
+        });
+
+        setNewsItems(cleanedItems);
       } catch (e) {
-        console.error("Feed Error:", e);
+        console.error("Feed Error Details:", e); // Check Console if this fails again
+        setErrorMsg(e.message);
       } finally {
         setLoading(false);
       }
@@ -123,7 +144,7 @@ export default function Home() {
             />
           </motion.div>
 
-          {/* 3. GLOBAL SURVEILLANCE (CLIENT-SIDE WIDGET) */}
+          {/* 3. GLOBAL SURVEILLANCE (ROBUST CLIENT-SIDE WIDGET) */}
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-6">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
@@ -133,9 +154,9 @@ export default function Home() {
               <div className="h-px flex-1 bg-neutral-900" />
             </div>
             
-            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 overflow-hidden min-h-[100px]">
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 overflow-hidden min-h-[120px]">
                {loading ? (
-                 // LOADING STATE (Skeleton)
+                 // LOADING STATE
                  <div className="p-8 flex flex-col items-center justify-center text-neutral-600 gap-3">
                     <Wifi className="w-5 h-5 animate-pulse opacity-50" />
                     <span className="font-mono text-xs tracking-widest animate-pulse">ESTABLISHING UPLINK...</span>
@@ -164,9 +185,22 @@ export default function Home() {
                    ))}
                  </div>
                ) : (
-                 // ERROR STATE
-                 <div className="p-8 text-center text-neutral-600 text-sm font-mono">
-                   // SYSTEM_OFFLINE: UNABLE TO FETCH FEED (CHECK NETWORK)
+                 // ERROR STATE (Now with details)
+                 <div className="p-8 flex flex-col items-center justify-center text-center gap-2">
+                   <div className="flex items-center gap-2 text-red-500/50">
+                     <AlertCircle className="w-5 h-5" />
+                     <span className="font-mono text-xs tracking-wider">CONNECTION FAILED</span>
+                   </div>
+                   <p className="text-xs text-neutral-600 font-mono">
+                     {errorMsg || "Unable to parse feed data."}
+                   </p>
+                   <a 
+                     href="https://www.who.int/emergencies/disease-outbreak-news" 
+                     target="_blank"
+                     className="mt-4 text-xs text-emerald-500 hover:text-emerald-400 underline decoration-dotted underline-offset-4"
+                   >
+                     OPEN MANUAL LINK
+                   </a>
                  </div>
                )}
             </div>
