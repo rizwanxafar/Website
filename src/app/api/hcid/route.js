@@ -2,16 +2,21 @@ import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 import { HCID_FALLBACK_MAP } from '@/data/hcidFallbackSnapshot';
 
-// Revalidate every 24 hours
-export const revalidate = 86400; 
+// 🔴 CHANGE 1: FORCE DYNAMIC
+// This tells Vercel: "Do not cache this. Run the code fresh every time a user asks."
+// This breaks the 24-hour lock you are currently stuck in.
+export const dynamic = 'force-dynamic';
 
 const GOV_UK_URL = "https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk";
 
 export async function GET() {
   try {
-    console.log("⚡️ [ISR] Refreshing HCID data from GOV.UK...");
+    console.log("⚡️ [Dynamic] Refreshing HCID data from GOV.UK...");
     
+    // 🔴 CHANGE 2: NO-STORE FETCH
+    // We add 'cache: no-store' to be doubly sure the fetch request itself isn't cached.
     const response = await fetch(GOV_UK_URL, {
+      cache: 'no-store',
       headers: {
         'User-Agent': 'ID-Northwest-Clinical-Tool/1.0 (Public Health Tool)',
         'Accept': 'text/html,application/xhtml+xml,application/xml'
@@ -25,8 +30,7 @@ export async function GET() {
     const newData = {};
 
     // --- STRATEGY: TABLE-FIRST (The "Omni-Scraper") ---
-    // Instead of looking for headers, we look for the Data Tables themselves.
-    // This bypasses layout issues (Accordions, divs, paragraphs).
+    // Hunts down tables first, then looks up for the Country Name.
     
     $('table').each((i, table) => {
       const $table = $(table);
@@ -38,22 +42,18 @@ export async function GET() {
       if (!hasDiseaseCol) return; // Skip random tables
 
       // 2. Find the Country Name (The "Owner" of this table)
-      // We traverse up and prev to find the nearest H2 or H3.
       let countryName = "";
 
       // Strategy A: Preceding Sibling (Flat Layout)
-      // Check previous siblings for a header
       const $prevHeader = $table.prevAll('h2, h3').first();
       if ($prevHeader.length) {
         countryName = $prevHeader.text().trim();
       } 
       // Strategy B: Accordion Parent (Nested Layout)
-      // If table is inside an accordion content div, the header is in the sibling button
       else {
         const $section = $table.closest('.govuk-accordion__section');
         if ($section.length) {
           const $accordionHeader = $section.find('.govuk-accordion__section-header');
-          // Text often includes "Show section", so we just get the clean text node or button text
           countryName = $accordionHeader.text().replace(/(Show|Hide) section/gi, '').trim();
         }
       }
@@ -84,9 +84,9 @@ export async function GET() {
     // --- INTEGRITY CHECK ---
     const countryCount = Object.keys(newData).length;
     
-    // Safety Net: If we found fewer than 20 countries, the scrape likely failed.
+    // Safety Net
     if (countryCount < 20) {
-      console.warn(`⚠️ [ISR] Integrity Check Failed: Only found ${countryCount} countries. Reverting to fallback.`);
+      console.warn(`⚠️ [Dynamic] Integrity Check Failed: Only found ${countryCount} countries. Reverting to fallback.`);
       return NextResponse.json({ 
         source: 'fallback', 
         date: new Date().toISOString(), 
@@ -95,6 +95,7 @@ export async function GET() {
     }
 
     // Success!
+    console.log(`✅ [Dynamic] Scrape Successful: Found ${countryCount} countries.`);
     return NextResponse.json({ 
       source: 'live', 
       date: new Date().toISOString(), 
@@ -102,7 +103,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error("❌ [ISR] Error fetching HCID data:", error);
+    console.error("❌ [Dynamic] Error fetching HCID data:", error);
     return NextResponse.json({ 
       source: 'fallback-error', 
       date: new Date().toISOString(), 
