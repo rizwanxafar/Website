@@ -27,15 +27,17 @@ const inputStyles =
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 
-const sortByLeaving = (arr) =>
-  [...arr].sort((a, b) => {
+// 🔴 REMOVED: sortByLeaving function
+// const sortByLeaving = (arr) => ... 
+
+function validateNoOverlap(rows) {
+  // We still need to sort TEMPORARILY for validation, but not for display
+  const sorted = [...rows].sort((a, b) => {
     const ta = a.leaving ? new Date(a.leaving).getTime() : 0;
     const tb = b.leaving ? new Date(b.leaving).getTime() : 0;
     return ta - tb;
   });
-
-function validateNoOverlap(rows) {
-  const sorted = sortByLeaving(rows);
+  
   for (let i = 0; i < sorted.length - 1; i++) {
     const leave = sorted[i].leaving && new Date(sorted[i].leaving).getTime();
     const arrive = sorted[i + 1].arrival && new Date(sorted[i + 1].arrival).getTime();
@@ -48,7 +50,6 @@ export default function SelectStep({
   selected, setSelected, onset, setOnset, query, setQuery, open, setOpen, showInput, setShowInput, inputRef, onBackToScreen, onReset, onContinue,
 }) {
   const filtered = useMemo(() => {
-    // FIX: strict usage of normalizeName from utils
     const q = normalizeName(query);
     if (!q) return [];
     const out = [];
@@ -67,7 +68,8 @@ export default function SelectStep({
 
   const addCountry = (name) => {
     if (!name) return;
-    setSelected((prev) => sortByLeaving([...prev, { id: uid(), name, arrival: "", leaving: "" }]));
+    // 🔴 CHANGED: Simply append to array, do not sort
+    setSelected((prev) => [...prev, { id: uid(), name, arrival: "", leaving: "" }]);
     setQuery("");
     setOpen(false);
     setShowInput(false);
@@ -97,7 +99,8 @@ export default function SelectStep({
         }
         return c;
       });
-      return sortByLeaving(next);
+      // 🔴 CHANGED: Return mapped array directly, do not sort
+      return next;
     });
   };
 
@@ -107,6 +110,8 @@ export default function SelectStep({
   };
 
   const allDatesFilled = selected.every((c) => c.arrival && c.leaving);
+  // Optional: You might want to remove overlap validation if chronological order doesn't matter, 
+  // but it's usually safer to keep it.
   const noOverlap = validateNoOverlap(selected);
   const canContinue = selected.length > 0 && allDatesFilled && onset && noOverlap;
 
