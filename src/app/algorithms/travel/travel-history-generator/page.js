@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { clsx } from 'clsx';
 // We keep these imports for logic, but we will override styles locally
-import { CSC_COUNTRIES, TEXT_INPUT_CLASS, INPUT_BASE, TEXTAREA_CLASS } from './_lib/constants';
+import { CSC_COUNTRIES } from './_lib/constants';
 import { classNames, parseDate, buildTripEvents, emptyTrip, emptyStop, emptyLayover, emptyPastTravel, initialState } from './_lib/utils';
 import { buildSummaryFromEvents } from './_lib/summary-engine';
-import { Printer, AlertTriangle, Trash, ArrowLeft, Plane, Plus, RefreshCw, Terminal } from 'lucide-react'; // Swapped to Lucide icons for consistency
+import { Printer, AlertTriangle, Trash, ArrowLeft, Plane, Plus, RefreshCw, Terminal } from 'lucide-react';
 import SearchableSelect from './_components/ui/SearchableSelect';
 import TripCard from './_components/TravelForm/TripCard';
 import PrintOverlay from './_components/Print/PrintOverlay';
@@ -76,7 +76,7 @@ export default function TravelHistoryGeneratorPage() {
     [state, mergedEventsAllTrips]
   );
 
-  // --- Actions (Unchanged) ---
+  // --- Actions ---
   const updateTrip = (tripId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, ...patch } : t)) }));
   const updateStop = (tripId, stopId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, stops: t.stops.map((s) => (s.id === stopId ? { ...s, ...patch } : s)) } : t)) }));
   const addTrip = () => { const tr = emptyTrip(); setState((p) => ({ ...p, trips: [...p.trips, tr] })); setPendingScrollId(tr.id); };
@@ -133,15 +133,12 @@ export default function TravelHistoryGeneratorPage() {
       <main className="pt-24 pb-20 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto space-y-8">
 
-          {/* PRIVACY WARNING (AMBER) */}
-          <div className="rounded border border-amber-900/50 bg-amber-950/10 p-4 flex items-start gap-4">
-            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-sm font-bold text-amber-500 uppercase tracking-wide">Privacy Protocol</h3>
-              <p className="mt-1 text-sm text-amber-500/80">
-                Do not enter patient-identifiable data (PID). This tool processes data locally.
-              </p>
-            </div>
+          {/* PRIVACY WARNING (Fixed: Single line, no title) */}
+          <div className="rounded border border-amber-900/50 bg-amber-950/10 p-3 flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+            <p className="text-sm font-mono text-amber-500/90">
+              Do not enter patient-identifiable data (PID). This tool processes data locally.
+            </p>
           </div>
 
           {/* ERROR DISPLAY */}
@@ -184,7 +181,8 @@ export default function TravelHistoryGeneratorPage() {
               className="w-full py-4 rounded-xl border border-dashed border-neutral-800 text-neutral-500 hover:text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-950/10 transition-all flex items-center justify-center gap-2 group"
             >
               <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              <span className="font-mono text-sm tracking-wider uppercase">Initialize New Trip</span>
+              {/* Changed Text: Initialize New Trip -> Add New Trip */}
+              <span className="font-mono text-sm tracking-wider uppercase">Add New Trip</span>
             </button>
           </section>
 
