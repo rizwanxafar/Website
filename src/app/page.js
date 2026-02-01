@@ -16,19 +16,30 @@ import {
 // This runs on the server. It caches the result for 1 hour (3600s) to save Vercel limits.
 async function getGlobalSurveillance() {
   try {
+    // 1. We add headers to mimic a real browser so WHO doesn't block us.
     const res = await fetch('https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml', {
-      next: { revalidate: 3600 } 
+      next: { revalidate: 3600 },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'application/xml, text/xml, */*; q=0.01'
+      }
     });
     
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error(`WHO Feed Error: ${res.status} ${res.statusText}`);
+      return [];
+    }
 
     const xml = await res.text();
     
-    // Simple "Zero-Dependency" XML Parser for the WHO Feed
-    // We look for <item> blocks and extract title, date, and link.
+    // 2. XML Parser for WHO Feed (Handles CDATA and Standard Text)
     const items = [];
     const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-    const titleRegex = /<title><!\[CDATA\[(.*?)\]\]><\/title>|<title>(.*?)<\/title>/;
+    
+    // Regex explanation: Matches <title>...text...</title> OR <title><![CDATA[...text...]]></title>
+    // Group 1: CDATA content
+    // Group 2: Regular content
+    const titleRegex = /<title>(?:\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*|([^<]*))<\/title>/;
     const dateRegex = /<pubDate>(.*?)<\/pubDate>/;
     const linkRegex = /<link>(.*?)<\/link>/;
 
@@ -41,10 +52,14 @@ async function getGlobalSurveillance() {
       const linkMatch = linkRegex.exec(content);
 
       if (titleMatch && linkMatch) {
+        // Clean up the title (decode HTML entities if necessary, but usually raw is fine here)
+        const rawTitle = titleMatch[1] || titleMatch[2];
+        const cleanTitle = rawTitle ? rawTitle.trim() : 'Update';
+
         items.push({
-          title: titleMatch[1] || titleMatch[2],
+          title: cleanTitle,
           date: dateMatch ? new Date(dateMatch[1]).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Unknown',
-          link: linkMatch[1]
+          link: linkMatch[1].trim()
         });
       }
     }
@@ -80,6 +95,7 @@ export default async function Home() {
 
           {/* 1. WELCOME SECTION */}
           <div className="max-w-4xl">
+             {/* Color Logic: Grey base, White highlight */}
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-neutral-600 mb-6">
               Welcome to <span className="text-white">Infectious Diseases</span> Portal
             </h1>
@@ -132,7 +148,7 @@ export default async function Home() {
                          {item.date}
                        </span>
                        <div className="flex-1">
-                         <h4 className="text-sm font-medium text-neutral-300 group-hover:text-white transition-colors">
+                         <h4 className="text-sm font-medium text-neutral-300 group-hover:text-white transition-colors leading-snug">
                            {item.title}
                          </h4>
                        </div>
@@ -142,7 +158,7 @@ export default async function Home() {
                  </div>
                ) : (
                  <div className="p-8 text-center text-neutral-600 text-sm font-mono">
-                   // SYSTEM_OFFLINE: UNABLE TO FETCH FEED
+                   // SYSTEM_OFFLINE: UNABLE TO FETCH FEED (CHECK CONNECTION OR SERVER LOGS)
                  </div>
                )}
             </div>
