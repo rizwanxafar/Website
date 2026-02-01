@@ -25,12 +25,12 @@ export default function Page() {
             </div>
           </div>
           
-          {/* Right side kept empty/clean as requested */}
+          {/* Right side clean (No blinking indicators) */}
           <div></div>
         </div>
       </header>
 
-      {/* MAIN CONTENT (Matches Travel History Spacing & Width) */}
+      {/* MAIN CONTENT */}
       <main className="pt-24 pb-20 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto space-y-8">
             
@@ -46,10 +46,12 @@ export default function Page() {
 
             {/* Components Container */}
             <div className="space-y-8">
+               {/* Warning Box Container */}
                <div className="rounded-xl overflow-hidden">
                  <WarningBox />
                </div>
                
+               {/* Tool Container */}
                <div className="pt-4 border-t border-neutral-800">
                  <CountrySelect />
                </div>
