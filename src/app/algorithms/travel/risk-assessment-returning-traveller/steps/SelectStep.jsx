@@ -4,12 +4,9 @@ import { useEffect, useMemo } from "react";
 import DecisionCard from "@/components/DecisionCard";
 import { vhfCountryNames } from "@/data/vhfCountries";
 import { Trash, Plus } from "lucide-react";
-// ⬇️ LOGIC FIX
-import { normalizeName } from "@/utils/names";
-// ⬇️ COMPONENT FIX
-import ResponsiveDatePicker from "@/components/ui/ResponsiveDatePicker";
+import ResponsiveDatePicker from "src/app/algorithms/travel/travel-history-generator/_components/ui/ResponsiveDatePicker.js"; 
 
-// --- BLACKOUT THEME CONSTANTS ---
+// --- THEME CONSTANTS ---
 const btnPrimary =
   "inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 " +
   "text-sm font-bold font-mono tracking-wide text-white uppercase " +
@@ -29,6 +26,9 @@ const inputStyles =
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 const todayISO = () => new Date().toISOString().slice(0, 10);
+
+const normalize = (s = "") =>
+  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
 
 const sortByLeaving = (arr) =>
   [...arr].sort((a, b) => {
@@ -51,12 +51,11 @@ export default function SelectStep({
   selected, setSelected, onset, setOnset, query, setQuery, open, setOpen, showInput, setShowInput, inputRef, onBackToScreen, onReset, onContinue,
 }) {
   const filtered = useMemo(() => {
-    // ⬇️ USE SHARED NORMALIZER
-    const q = normalizeName(query);
+    const q = normalize(query);
     if (!q) return [];
     const out = [];
     for (const name of vhfCountryNames) {
-      if (normalizeName(name).includes(q)) {
+      if (normalize(name).includes(q)) {
         out.push(name);
         if (out.length >= 12) break;
       }
