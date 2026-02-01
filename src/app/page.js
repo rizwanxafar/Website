@@ -1,8 +1,5 @@
 // src/app/page.js
-"use client";
-
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
   Activity,
   Plane,
@@ -10,28 +7,57 @@ import {
   GraduationCap,
   ArrowUpRight,
   Terminal,
-  ShieldAlert
+  ShieldAlert,
+  Globe,
+  ExternalLink
 } from "lucide-react";
 
-// --- Animation Config (Sterile/Precision) ---
-const fadeInUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } 
-  }
-};
+// --- SERVER SIDE DATA FETCHING ---
+// This runs on the server. It caches the result for 1 hour (3600s) to save Vercel limits.
+async function getGlobalSurveillance() {
+  try {
+    const res = await fetch('https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml', {
+      next: { revalidate: 3600 } 
+    });
+    
+    if (!res.ok) return [];
 
-const staggerContainer = {
-  visible: {
-    transition: {
-      staggerChildren: 0.1
+    const xml = await res.text();
+    
+    // Simple "Zero-Dependency" XML Parser for the WHO Feed
+    // We look for <item> blocks and extract title, date, and link.
+    const items = [];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    const titleRegex = /<title><!\[CDATA\[(.*?)\]\]><\/title>|<title>(.*?)<\/title>/;
+    const dateRegex = /<pubDate>(.*?)<\/pubDate>/;
+    const linkRegex = /<link>(.*?)<\/link>/;
+
+    let match;
+    // Get top 5 items only
+    while ((match = itemRegex.exec(xml)) !== null && items.length < 5) {
+      const content = match[1];
+      const titleMatch = titleRegex.exec(content);
+      const dateMatch = dateRegex.exec(content);
+      const linkMatch = linkRegex.exec(content);
+
+      if (titleMatch && linkMatch) {
+        items.push({
+          title: titleMatch[1] || titleMatch[2],
+          date: dateMatch ? new Date(dateMatch[1]).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Unknown',
+          link: linkMatch[1]
+        });
+      }
     }
+    return items;
+  } catch (e) {
+    console.error("Failed to fetch WHO news:", e);
+    return []; // Return empty array if offline so app doesn't crash
   }
-};
+}
 
-export default function Home() {
+export default async function Home() {
+  const newsItems = await getGlobalSurveillance();
+
   return (
     <main className="min-h-screen bg-black text-neutral-200 selection:bg-white selection:text-black overflow-x-hidden font-sans">
       
@@ -44,26 +70,16 @@ export default function Home() {
               ID-Northwest
             </span>
           </div>
-          {/* Right side kept clean/empty for professional feel */}
         </div>
       </header>
 
       {/* --- MAIN CONTENT --- */}
       <div className="relative pt-32 pb-24 px-6 max-w-7xl mx-auto">
         
-        <motion.div 
-          initial="hidden"
-          animate="visible"
-          variants={staggerContainer}
-          className="space-y-16"
-        >
+        <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
           {/* 1. WELCOME SECTION */}
-          <motion.div variants={fadeInUp} className="max-w-4xl">
-            {/* Color Logic: 
-                Base text is neutral-600 (Grey).
-                "Infectious Diseases" is text-white (High Contrast).
-            */}
+          <div className="max-w-4xl">
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-neutral-600 mb-6">
               Welcome to <span className="text-white">Infectious Diseases</span> Portal
             </h1>
@@ -71,12 +87,10 @@ export default function Home() {
               High-precision algorithms and local guidelines for Infectious Diseases. 
               Designed for rapid deployment in clinical settings.
             </p>
-          </motion.div>
+          </div>
 
           {/* 2. ACTIVE TOOLS */}
-          <motion.div variants={fadeInUp} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* TOOL A: VHF Assessment (Critical/Red) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ToolCard 
               href="/algorithms/travel/risk-assessment-returning-traveller"
               variant="critical"
@@ -84,8 +98,6 @@ export default function Home() {
               title="VHF Risk Assessment"
               subtitle="VHF risk assessment for returned traveller"
             />
-
-            {/* TOOL B: Travel History (Standard/Emerald) */}
             <ToolCard 
               href="/algorithms/travel/travel-history-generator"
               variant="standard"
@@ -93,11 +105,51 @@ export default function Home() {
               title="Travel History Generator"
               subtitle="Create accurate travel history"
             />
+          </div>
 
-          </motion.div>
+          {/* 3. GLOBAL SURVEILLANCE (NEW WIDGET) */}
+          <div>
+            <div className="flex items-center gap-4 mb-6">
+              <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                <Globe className="w-3 h-3" />
+                Global Surveillance // WHO-DON
+              </span>
+              <div className="h-px flex-1 bg-neutral-900" />
+            </div>
+            
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 overflow-hidden">
+               {newsItems.length > 0 ? (
+                 <div className="divide-y divide-neutral-800/50">
+                   {newsItems.map((item, idx) => (
+                     <a 
+                       key={idx} 
+                       href={item.link} 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       className="group flex items-start gap-4 p-4 hover:bg-neutral-800/30 transition-colors"
+                     >
+                       <span className="font-mono text-xs text-neutral-500 whitespace-nowrap pt-1">
+                         {item.date}
+                       </span>
+                       <div className="flex-1">
+                         <h4 className="text-sm font-medium text-neutral-300 group-hover:text-white transition-colors">
+                           {item.title}
+                         </h4>
+                       </div>
+                       <ExternalLink className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 opacity-0 group-hover:opacity-100 transition-all" />
+                     </a>
+                   ))}
+                 </div>
+               ) : (
+                 <div className="p-8 text-center text-neutral-600 text-sm font-mono">
+                   // SYSTEM_OFFLINE: UNABLE TO FETCH FEED
+                 </div>
+               )}
+            </div>
+          </div>
 
-          {/* 3. CLINICAL RESOURCES */}
-          <motion.div variants={fadeInUp}>
+          {/* 4. RESOURCES */}
+          <div>
             <div className="flex items-center gap-4 mb-8">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest">
                 Resources
@@ -106,43 +158,36 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
-              {/* Card 1: Algorithms */}
               <ResourceCard 
                 href="/algorithms"
                 icon={Activity}
                 title="Algorithms"
                 description="Interactive flowcharts for clinical pathways and diagnostics."
               />
-
-              {/* Card 2: Guidelines */}
               <ResourceCard 
                 href="/guidelines"
                 icon={FileText}
                 title="Guidelines"
                 description="Static reference documents, policy PDFs, and local protocols."
               />
-
-              {/* Card 3: Education */}
               <ResourceCard 
                 href="/teaching"
                 icon={GraduationCap}
                 title="Education"
                 description="Teaching materials, case studies, and departmental slides."
               />
-
             </div>
-          </motion.div>
+          </div>
 
-          {/* 4. FOOTER */}
-          <motion.div variants={fadeInUp} className="pt-12 border-t border-neutral-900 flex justify-between items-center text-xs text-neutral-600 font-mono">
+          {/* 5. FOOTER */}
+          <div className="pt-12 border-t border-neutral-900 flex justify-between items-center text-xs text-neutral-600 font-mono">
             <span>ID-NW © 2024</span>
             <a href="mailto:infectionnw@gmail.com" className="hover:text-white transition-colors">
               CONTACT ADMIN
             </a>
-          </motion.div>
+          </div>
 
-        </motion.div>
+        </div>
       </div>
     </main>
   );
@@ -151,7 +196,6 @@ export default function Home() {
 // --- REUSABLE COMPONENTS ---
 
 function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
-  // Styles based on variant
   const styles = {
     critical: {
       border: "border-red-900/30",
@@ -205,7 +249,6 @@ function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
           </p>
         </div>
       </div>
-      {/* Subtle Glow Gradient */}
       <div className={`absolute inset-0 bg-gradient-to-t ${s.gradient} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
     </Link>
   );
