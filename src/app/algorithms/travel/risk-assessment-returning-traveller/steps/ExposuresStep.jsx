@@ -1,4 +1,3 @@
-// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/ExposuresStep.jsx
 "use client";
 
 import { useMemo } from "react";
@@ -43,6 +42,7 @@ export default function ExposuresStep({
   const { countryBlocks, allAnswered } = useMemo(() => {
     let requiredCountryQs = 0, answeredCountryQs = 0;
     const blocks = selected.map((c, idx) => {
+      // FIX: Single Source of Truth for Lookup
       const key = normalizeName(c.name || "");
       const entries = normalizedMap.get(key) || [];
       const entriesFiltered = (entries || []).filter(e => !isNoKnownHcid(e.disease) && !isTravelAssociated(e.disease) && !isImportedLike(e.evidence));
@@ -81,7 +81,7 @@ export default function ExposuresStep({
                 </div>
               </div>
             )}
-            {/* Same structure for EbMarb and CCHF */}
+            
             {showEbMarb && (
               <div className="mt-4 border-l-2 border-neutral-700 pl-4">
                 <div className="text-sm text-neutral-300 mb-2">Did they visit caves/mines, or contact primates/antelopes/bats (or eat bushmeat)?</div>
