@@ -1,8 +1,19 @@
 import { useMemo } from 'react';
 import { City } from "country-state-city";
 import { clsx } from 'clsx';
-import { CSC_COUNTRIES, SECTION_HEADING, BTN_PRIMARY, BTN_SECONDARY, TEXT_INPUT_CLASS, INPUT_BASE, COMPANION_GROUPS, COMPANION_WELL_OPTIONS, VACCINE_STATUS_OPTIONS, VACCINE_SUGGESTIONS, MALARIA_STATUS_OPTIONS, MALARIA_DRUGS, ADHERENCE_OPTIONS } from '../../_lib/constants';
+// We retain logic constants but will ignore the style constants to force the new look
+import { 
+  CSC_COUNTRIES, 
+  COMPANION_GROUPS, 
+  COMPANION_WELL_OPTIONS, 
+  VACCINE_STATUS_OPTIONS, 
+  VACCINE_SUGGESTIONS, 
+  MALARIA_STATUS_OPTIONS, 
+  MALARIA_DRUGS, 
+  ADHERENCE_OPTIONS 
+} from '../../_lib/constants';
 import { getIsoFromCountryName } from '../../_lib/utils';
+import { MapPin, Users, Syringe, Pill, Trash, Plus, Navigation } from 'lucide-react'; // Added Icons
 import SearchableSelect from '../ui/SearchableSelect';
 import MultiSelectTags from '../ui/MultiSelectTags';
 import SimpleSelect from '../ui/SimpleSelect';
@@ -38,64 +49,96 @@ export default function TripCard({
     return names;
   }, [originISO2]);
 
-  const headerTitle = totalTrips > 1 ? `Trip ${index + 1}` : "Trip details";
+  const headerTitle = totalTrips > 1 ? `TRIP_0${index + 1}` : "TRIP_DETAILS";
+
+  // --- STYLES (Hardcoded for "Blackout Protocol") ---
+  const CARD_BASE = "rounded-2xl border border-neutral-800 bg-neutral-900/20 p-6";
+  const LABEL = "block text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-wider mb-2";
+  const SUB_LABEL = "block text-[10px] font-mono text-neutral-600 uppercase mb-1";
+  
+  const INPUT_STYLES = "w-full bg-black/50 border border-neutral-800 rounded px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-emerald-500 placeholder:text-neutral-700 transition-colors font-sans";
+  
+  const BTN_TOGGLE_BASE = "px-3 py-1.5 text-[11px] font-mono uppercase tracking-wide rounded border transition-all duration-200";
+  const BTN_TOGGLE_ACTIVE = "bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]";
+  const BTN_TOGGLE_INACTIVE = "bg-neutral-950 border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300";
+
+  const BTN_ACTION = "flex items-center gap-2 px-3 py-1.5 rounded text-[11px] font-mono uppercase tracking-wide border transition-all";
+  const BTN_ADD = "bg-neutral-900 border-neutral-800 text-emerald-500 hover:border-emerald-500/50 hover:bg-emerald-950/20";
+  const BTN_REMOVE = "bg-transparent border-transparent text-neutral-600 hover:text-red-400";
 
   return (
-    <div ref={innerRef} className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-6">
-      <div className="flex items-start justify-between gap-3">
-        <h2 className={SECTION_HEADING}>{headerTitle}</h2>
+    <div ref={innerRef} className={CARD_BASE}>
+      
+      {/* HEADER */}
+      <div className="flex items-start justify-between gap-3 mb-6 border-b border-neutral-800/50 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center h-8 w-8 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+             <Navigation className="w-4 h-4" />
+          </div>
+          <h2 className="text-sm font-bold text-neutral-200 font-mono tracking-widest">{headerTitle}</h2>
+        </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => addStop(trip.id)} className={BTN_PRIMARY}>+ Add destination</button>
-          <button type="button" onClick={() => addLayover(trip.id)} className={BTN_PRIMARY}>+ Add layover</button>
-          <button type="button" onClick={() => removeTrip(trip.id)} className={BTN_SECONDARY}>Remove trip</button>
+          <button type="button" onClick={() => addStop(trip.id)} className={BTN_ADD}>
+            <Plus className="w-3 h-3" /> Destination
+          </button>
+          <button type="button" onClick={() => addLayover(trip.id)} className={BTN_ADD}>
+            <Plus className="w-3 h-3" /> Layover
+          </button>
+          <button type="button" onClick={() => removeTrip(trip.id)} className={BTN_REMOVE}>
+            <Trash className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      <div className="mt-6">
-        <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Travelling from</label>
-        <div className="mt-2 grid sm:grid-cols-2 gap-4">
+      {/* ORIGIN SECTION */}
+      <div className="mb-8">
+        <label className={LABEL}>Origin Point</label>
+        <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">Country</label>
-            <SearchableSelect 
-              value={trip.originCountry} 
-              onChange={(val) => updateTrip(trip.id, { originCountry: val, originCity: '' })} 
-              options={CSC_COUNTRIES.map(c => c.name)}
-              placeholder="Select country"
-            />
+            <label className={SUB_LABEL}>Country</label>
+            <div className="relative group">
+              <SearchableSelect 
+                value={trip.originCountry} 
+                onChange={(val) => updateTrip(trip.id, { originCountry: val, originCity: '' })} 
+                options={CSC_COUNTRIES.map(c => c.name)}
+                placeholder="Select country..."
+              />
+            </div>
           </div>
           <div className="w-full">
-            <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">City</label>
+            <label className={SUB_LABEL}>City</label>
             <SearchableSelect 
               value={trip.originCity} 
               onChange={(val) => updateTrip(trip.id, { originCity: val })} 
               options={originCityNames}
-              placeholder="Search city"
+              placeholder="Select city..."
               allowCustom={true} 
             />
           </div>
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30">
+      {/* META DATA GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* TOP LEFT: Reason */}
-        <div>
-          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">What was the reason for travel?</label>
-          <div className={TEXT_INPUT_CLASS}>
-            <input 
-              type="text" 
-              placeholder="Work, VFR, tourism, etc." 
-              className={INPUT_BASE} 
-              value={trip.purpose} 
-              onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })} 
-            />
-          </div>
+        {/* REASON */}
+        <div className="p-4 rounded-xl border border-neutral-800 bg-black/40">
+          <label className={LABEL}>Travel Purpose</label>
+          <input 
+            type="text" 
+            placeholder="e.g. VFR, Business, Tourism" 
+            className={INPUT_STYLES} 
+            value={trip.purpose} 
+            onChange={(e) => updateTrip(trip.id, { purpose: e.target.value })} 
+          />
         </div>
 
-        {/* TOP RIGHT: Companions */}
-        <div>
-          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Who did they travel with?</label>
-          <div className="flex flex-wrap gap-2">
+        {/* COMPANIONS */}
+        <div className="p-4 rounded-xl border border-neutral-800 bg-black/40">
+          <label className={clsx(LABEL, "flex items-center gap-2")}>
+            <Users className="w-3 h-3" /> Companions
+          </label>
+          <div className="flex flex-wrap gap-2 mb-3">
             {COMPANION_GROUPS.map((opt) => (
               <button
                 key={opt}
@@ -110,10 +153,8 @@ export default function TripCard({
                   updateCompanions(next);
                 }}
                 className={clsx(
-                  "px-3 py-1.5 text-xs font-medium rounded-lg border transition",
-                  trip.companions.group === opt
-                    ? "bg-[hsl(var(--brand))] text-white border-transparent"
-                    : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[hsl(var(--brand))]"
+                  BTN_TOGGLE_BASE,
+                  trip.companions.group === opt ? BTN_TOGGLE_ACTIVE : BTN_TOGGLE_INACTIVE
                 )}
               >
                 {opt}
@@ -122,23 +163,21 @@ export default function TripCard({
           </div>
 
           <SmoothReveal show={trip.companions.group === 'Other'}>
-            <div className="mt-2">
-              <div className={TEXT_INPUT_CLASS}>
-                <input 
-                  type="text" 
-                  className={INPUT_BASE}
-                  placeholder="Describe companions..."
-                  value={trip.companions.otherText}
-                  onChange={(e) => updateCompanions({ otherText: e.target.value })}
-                />
-              </div>
+            <div className="mb-3">
+              <input 
+                type="text" 
+                className={INPUT_STYLES}
+                placeholder="Describe companions..."
+                value={trip.companions.otherText}
+                onChange={(e) => updateCompanions({ otherText: e.target.value })}
+              />
             </div>
           </SmoothReveal>
 
           <SmoothReveal show={trip.companions.group !== 'Alone'}>
-            <div className="mt-2 grid gap-2">
+            <div className="grid gap-3 border-t border-neutral-800 pt-3">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Are they well?</label>
+                <label className={SUB_LABEL}>Are they well?</label>
                 <div className="flex gap-2">
                   {COMPANION_WELL_OPTIONS.map((opt) => {
                     const val = opt.toLowerCase(); 
@@ -148,10 +187,8 @@ export default function TripCard({
                         type="button"
                         onClick={() => updateCompanions({ companionsWell: val, companionsUnwellDetails: val === 'no' ? trip.companions.companionsUnwellDetails : '' })}
                         className={clsx(
-                          "px-2 py-1 text-xs font-medium rounded border transition",
-                          trip.companions.companionsWell === val
-                            ? "bg-[hsl(var(--brand))] text-white border-transparent"
-                            : "bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-400"
+                          BTN_TOGGLE_BASE,
+                          trip.companions.companionsWell === val ? BTN_TOGGLE_ACTIVE : BTN_TOGGLE_INACTIVE
                         )}
                       >
                         {opt}
@@ -161,36 +198,34 @@ export default function TripCard({
                 </div>
               </div>
               <SmoothReveal show={trip.companions.companionsWell === 'no'}>
-                <div>
-                  <div className={TEXT_INPUT_CLASS}>
-                    <input 
-                      type="text" 
-                      placeholder="Details (symptoms, etc.)"
-                      className={INPUT_BASE}
-                      value={trip.companions.companionsUnwellDetails}
-                      onChange={(e) => updateCompanions({ companionsUnwellDetails: e.target.value })}
-                    />
-                  </div>
+                <div className="mt-2">
+                  <input 
+                    type="text" 
+                    placeholder="Describe symptoms..."
+                    className={INPUT_STYLES}
+                    value={trip.companions.companionsUnwellDetails}
+                    onChange={(e) => updateCompanions({ companionsUnwellDetails: e.target.value })}
+                  />
                 </div>
               </SmoothReveal>
             </div>
           </SmoothReveal>
         </div>
 
-        {/* BOTTOM LEFT: Vaccines */}
-        <div>
-          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Did they have any pre-travel vaccinations?</label>
-          <div className="flex flex-wrap gap-2 mb-2">
+        {/* VACCINES */}
+        <div className="p-4 rounded-xl border border-neutral-800 bg-black/40">
+          <label className={clsx(LABEL, "flex items-center gap-2")}>
+            <Syringe className="w-3 h-3" /> Pre-Travel Vaccines
+          </label>
+          <div className="flex flex-wrap gap-2 mb-3">
             {VACCINE_STATUS_OPTIONS.map(opt => (
               <button
                 key={opt}
                 type="button"
                 onClick={() => setVaccines({ status: opt })}
                 className={clsx(
-                  "px-3 py-1.5 text-xs font-medium rounded-lg border transition",
-                  (trip.vaccines?.status || 'unknown') === opt
-                    ? "bg-[hsl(var(--brand))] text-white border-transparent"
-                    : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[hsl(var(--brand))]"
+                   BTN_TOGGLE_BASE,
+                   (trip.vaccines?.status || 'unknown') === opt ? BTN_TOGGLE_ACTIVE : BTN_TOGGLE_INACTIVE
                 )}
               >
                 {opt}
@@ -198,32 +233,32 @@ export default function TripCard({
             ))}
           </div>
           <SmoothReveal show={trip.vaccines?.status === 'Taken'}>
-             <div>
-               <label className="block text-xs font-medium text-slate-500 mb-1">Details (Select multiple or type custom)</label>
+             <div className="border-t border-neutral-800 pt-3">
+               <label className={SUB_LABEL}>Select Vaccines</label>
                <MultiSelectTags 
                  value={trip.vaccines.details || []}
                  onChange={(val) => setVaccines({ details: val })}
                  options={VACCINE_SUGGESTIONS}
-                 placeholder="Select or type..."
+                 placeholder="Search vaccines..."
                />
              </div>
           </SmoothReveal>
         </div>
 
-        {/* BOTTOM RIGHT: Malaria */}
-        <div>
-          <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Did they take any malaria prophylaxis?</label>
-          <div className="flex flex-wrap gap-2 mb-2">
+        {/* MALARIA */}
+        <div className="p-4 rounded-xl border border-neutral-800 bg-black/40">
+          <label className={clsx(LABEL, "flex items-center gap-2")}>
+            <Pill className="w-3 h-3" /> Malaria Prophylaxis
+          </label>
+          <div className="flex flex-wrap gap-2 mb-3">
             {MALARIA_STATUS_OPTIONS.map(opt => (
               <button
                 key={opt}
                 type="button"
                 onClick={() => setMalaria({ indication: opt })}
                 className={clsx(
-                  "px-3 py-1.5 text-xs font-medium rounded-lg border transition",
-                  trip.malaria.indication === opt
-                    ? "bg-[hsl(var(--brand))] text-white border-transparent"
-                    : "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-[hsl(var(--brand))]"
+                  BTN_TOGGLE_BASE,
+                  trip.malaria.indication === opt ? BTN_TOGGLE_ACTIVE : BTN_TOGGLE_INACTIVE
                 )}
               >
                 {opt}
@@ -231,13 +266,13 @@ export default function TripCard({
             ))}
           </div>
           <SmoothReveal show={trip.malaria.indication === 'Taken'}>
-            <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-neutral-800">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Drug</label>
+                <label className={SUB_LABEL}>Drug</label>
                 <SimpleSelect value={trip.malaria.drug} onChange={(val) => setMalaria({ drug: val })} options={MALARIA_DRUGS} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Adherence</label>
+                <label className={SUB_LABEL}>Adherence</label>
                 <SimpleSelect value={trip.malaria.adherence} onChange={(val) => setMalaria({ adherence: val })} options={ADHERENCE_OPTIONS} />
               </div>
             </div>
@@ -245,7 +280,8 @@ export default function TripCard({
         </div>
       </div>
 
-      <div className="mt-6 space-y-6">
+      {/* STOPS SECTION */}
+      <div className="mt-8 space-y-6">
         {trip.stops.map((stop, sIdx) => (
           <StopCard 
             key={stop.id} 
@@ -260,9 +296,10 @@ export default function TripCard({
         ))}
       </div>
 
+      {/* LAYOVERS SECTION */}
       {trip.layovers.length > 0 && (
-        <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-6">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-3">Layovers</h3>
+        <div className="mt-8 border-t border-neutral-800 pt-6">
+          <h3 className="text-xs font-bold font-mono text-neutral-500 uppercase tracking-widest mb-4">Transit / Layovers</h3>
           <div className="space-y-4">
             {trip.layovers.map((l) => (
               <LayoverCard key={l.id} innerRef={setItemRef(l.id)} layover={l} onChange={(patch) => updateLayover(trip.id, l.id, patch)} onRemove={() => removeLayover(trip.id, l.id)} highlighted={highlight.layoverIds.has(l.id)} />
