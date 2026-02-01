@@ -13,60 +13,43 @@ import {
 } from "lucide-react";
 
 // --- SERVER SIDE DATA FETCHING ---
-// This runs on the server. It caches the result for 1 hour (3600s) to save Vercel limits.
 async function getGlobalSurveillance() {
   try {
-    // 1. We add headers to mimic a real browser so WHO doesn't block us.
-    const res = await fetch('https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml', {
-      next: { revalidate: 3600 },
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'application/xml, text/xml, */*; q=0.01'
-      }
+    // STRATEGY: Use rss2json as a bridge to bypass WHO firewalls and strict XML parsing.
+    // This converts the XML feed directly into a clean JSON object.
+    const FEED_URL = "https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml";
+    const API_URL = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(FEED_URL)}`;
+
+    const res = await fetch(API_URL, {
+      next: { revalidate: 3600 }, // Cache for 1 hour
     });
-    
+
     if (!res.ok) {
-      console.error(`WHO Feed Error: ${res.status} ${res.statusText}`);
+      throw new Error(`Feed API responded with ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    // If the proxy fails or feed is empty
+    if (!data.items || data.items.length === 0) {
       return [];
     }
 
-    const xml = await res.text();
-    
-    // 2. XML Parser for WHO Feed (Handles CDATA and Standard Text)
-    const items = [];
-    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-    
-    // Regex explanation: Matches <title>...text...</title> OR <title><![CDATA[...text...]]></title>
-    // Group 1: CDATA content
-    // Group 2: Regular content
-    const titleRegex = /<title>(?:\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*|([^<]*))<\/title>/;
-    const dateRegex = /<pubDate>(.*?)<\/pubDate>/;
-    const linkRegex = /<link>(.*?)<\/link>/;
+    // Map the cleaner JSON response
+    return data.items.slice(0, 5).map(item => ({
+      title: item.title,
+      // rss2json returns dates like "2024-01-01 12:00:00", we format it
+      date: new Date(item.pubDate).toLocaleDateString('en-GB', { 
+        day: '2-digit', 
+        month: 'short', 
+        year: 'numeric' 
+      }),
+      link: item.link
+    }));
 
-    let match;
-    // Get top 5 items only
-    while ((match = itemRegex.exec(xml)) !== null && items.length < 5) {
-      const content = match[1];
-      const titleMatch = titleRegex.exec(content);
-      const dateMatch = dateRegex.exec(content);
-      const linkMatch = linkRegex.exec(content);
-
-      if (titleMatch && linkMatch) {
-        // Clean up the title (decode HTML entities if necessary, but usually raw is fine here)
-        const rawTitle = titleMatch[1] || titleMatch[2];
-        const cleanTitle = rawTitle ? rawTitle.trim() : 'Update';
-
-        items.push({
-          title: cleanTitle,
-          date: dateMatch ? new Date(dateMatch[1]).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Unknown',
-          link: linkMatch[1].trim()
-        });
-      }
-    }
-    return items;
   } catch (e) {
-    console.error("Failed to fetch WHO news:", e);
-    return []; // Return empty array if offline so app doesn't crash
+    console.error("Global Surveillance Error:", e);
+    return []; // Fail gracefully
   }
 }
 
@@ -144,7 +127,7 @@ export default async function Home() {
                        rel="noopener noreferrer"
                        className="group flex items-start gap-4 p-4 hover:bg-neutral-800/30 transition-colors"
                      >
-                       <span className="font-mono text-xs text-neutral-500 whitespace-nowrap pt-1">
+                       <span className="font-mono text-xs text-neutral-500 whitespace-nowrap pt-1 min-w-[80px]">
                          {item.date}
                        </span>
                        <div className="flex-1">
@@ -158,7 +141,8 @@ export default async function Home() {
                  </div>
                ) : (
                  <div className="p-8 text-center text-neutral-600 text-sm font-mono">
-                   // SYSTEM_OFFLINE: UNABLE TO FETCH FEED (CHECK CONNECTION OR SERVER LOGS)
+                   {/* If this still appears, the API is temporarily down or rate-limited */}
+                   // SYSTEM_OFFLINE: UNABLE TO FETCH FEED (CHECK CONNECTION)
                  </div>
                )}
             </div>
