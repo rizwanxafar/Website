@@ -1,285 +1,140 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import DecisionCard from "@/components/DecisionCard";
-import { vhfCountryNames } from "@/data/vhfCountries";
-// Import the shared normalizer
-import { normalizeName } from "@/utils/names"; 
+import { useMemo } from "react";
+import { EXPOSURE_QUESTIONS as Q } from "@/data/diseaseQuestions";
+import { normalizeName } from "@/utils/names";
 
-// ---- THEME HELPERS ----
+// --- BLACKOUT THEME HELPERS ---
+const yesNoBtn = (active) =>
+  "px-4 py-2 text-xs font-bold font-mono uppercase tracking-wider rounded border transition-all " +
+  (active
+    ? "bg-red-600 border-red-600 text-white shadow-lg"
+    : "bg-neutral-950 border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300");
+
 const btnPrimary =
-  "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 " +
-  "text-sm font-medium text-white " +
-  "bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95 " +
-  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70 " +
-  "disabled:opacity-50 disabled:cursor-not-allowed transition";
+  "inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 " +
+  "text-sm font-bold font-mono tracking-wide text-white uppercase " +
+  "bg-red-600 hover:bg-red-500 shadow-[0_0_15px_rgba(220,38,38,0.4)] " +
+  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500/70 " +
+  "disabled:opacity-50 disabled:cursor-not-allowed transition-all";
 
 const btnSecondary =
-  "rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 " +
-  "hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]";
+  "rounded-lg px-4 py-2 border border-neutral-800 bg-neutral-900 text-neutral-400 " +
+  "hover:text-white hover:border-neutral-600 text-xs font-bold font-mono uppercase tracking-wide transition-all";
 
-// -----------------------
+const txt = (s = "") => String(s).toLowerCase();
+const isNoKnownHcid = (disease = "") => txt(disease).includes("no known hcid");
+const isTravelAssociated = (disease = "") => txt(disease).includes("travel associated");
+const isImportedLike = (evidence = "") => /(imported cases only|associated with a case import|import[-\s]?related)/i.test(String(evidence || ""));
 
-const uid = () => Math.random().toString(36).slice(2, 9);
-const todayISO = () => new Date().toISOString().slice(0, 10);
+const RX = {
+  lassa: /lassa/i,
+  ebmarb: /(ebola|ebolavirus|ebola\s*virus|e\.?v\.?d|marburg)/i,
+  cchf: /(cchf|crimean[-\s]?congo|crimea[-\s]?congo)/i,
+};
+const hasDisease = (entries = [], rx) => entries.some((e) => rx.test(String(e?.disease || "")));
 
-const sortByLeaving = (arr) =>
-  [...arr].sort((a, b) => {
-    const ta = a.leaving ? new Date(a.leaving).getTime() : 0;
-    const tb = b.leaving ? new Date(b.leaving).getTime() : 0;
-    return ta - tb;
-  });
-
-function validateNoOverlap(rows) {
-  const sorted = sortByLeaving(rows);
-  for (let i = 0; i < sorted.length - 1; i++) {
-    const leave = sorted[i].leaving && new Date(sorted[i].leaving).getTime();
-    const arrive = sorted[i + 1].arrival && new Date(sorted[i + 1].arrival).getTime();
-    if (leave && arrive && leave > arrive) return false;
-  }
-  return true;
-}
-
-export default function SelectStep({
-  selected,
-  setSelected,
-  onset,
-  setOnset,
-  query,
-  setQuery,
-  open,
-  setOpen,
-  showInput,
-  setShowInput,
-  inputRef,
-  onBackToScreen,
-  onReset,
-  onContinue,
+export default function ExposuresStep({
+  selected, normalizedMap, exposuresGlobal = {}, setExposuresGlobal = () => {}, exposuresByCountry = {}, setCountryExposure = () => {}, onBackToReview, onReset, onContinueToSummary,
 }) {
-  // Use normalizeName here to match the rest of the app
-  const filtered = useMemo(() => {
-    const q = normalizeName(query); 
-    if (!q) return [];
-    const out = [];
-    for (const name of vhfCountryNames) {
-      if (normalizeName(name).includes(q)) {
-        out.push(name);
-        if (out.length >= 12) break;
-      }
-    }
-    return out;
-  }, [query]);
+  const { countryBlocks, allAnswered } = useMemo(() => {
+    let requiredCountryQs = 0, answeredCountryQs = 0;
+    const blocks = selected.map((c, idx) => {
+      // ⬇️ USE SHARED NORMALIZER
+      const key = normalizeName(c.name || "");
+      const entries = normalizedMap.get(key) || [];
+      const entriesFiltered = (entries || []).filter(e => !isNoKnownHcid(e.disease) && !isTravelAssociated(e.disease) && !isImportedLike(e.evidence));
 
-  useEffect(() => {
-    if (showInput) setTimeout(() => inputRef?.current?.focus(), 0);
-  }, [showInput, inputRef]);
+      const showLassa = hasDisease(entriesFiltered, RX.lassa);
+      const showEbMarb = hasDisease(entriesFiltered, RX.ebmarb);
+      const showCchf = hasDisease(entriesFiltered, RX.cchf);
+      const row = exposuresByCountry[c.id] || {};
+      const ansLassa = showLassa ? row.lassa || "" : null;
+      const ansEbMarb = showEbMarb ? row.ebola_marburg || "" : null;
+      const ansCchf = showCchf ? row.cchf || "" : null;
 
-  const addCountry = (name) => {
-    if (!name) return;
-    setSelected((prev) => sortByLeaving([...prev, { id: uid(), name, arrival: "", leaving: "" }]));
-    setQuery("");
-    setOpen(false);
-    setShowInput(false);
-  };
-
-  const addAnother = () => {
-    setShowInput(true);
-    setQuery("");
-    setOpen(false);
-    setTimeout(() => inputRef?.current?.focus(), 0);
-  };
-
-  const updateDates = (id, field, value) => {
-    setSelected((prev) => {
-      const next = prev.map((c) => {
-        if (c.id !== id) return c;
-        if (field === "arrival") {
-          const leavingOk =
-            c.leaving && value && new Date(value) > new Date(c.leaving) ? "" : c.leaving || "";
-          return { ...c, arrival: value, leaving: leavingOk };
+      [ansLassa, ansEbMarb, ansCchf].forEach((a) => {
+        if (a !== null) {
+          requiredCountryQs += 1;
+          if (a === "yes" || a === "no") answeredCountryQs += 1;
         }
-        if (field === "leaving") {
-          let newLeaving = value;
-          if (c.arrival && value && new Date(value) < new Date(c.arrival)) {
-            newLeaving = c.arrival;
-          }
-          return { ...c, leaving: newLeaving };
-        }
-        return c;
       });
-      return sortByLeaving(next);
+
+      return (
+        <div key={c.id}>
+          {idx > 0 && <div className="border-t border-neutral-800 pt-6 -mt-2" />}
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900/30 p-5">
+            <div className="font-bold text-white text-lg mb-4">{c.name}</div>
+            
+            {!showLassa && !showEbMarb && !showCchf && (
+              <p className="text-sm text-neutral-500 italic">No specific exposure questions apply.</p>
+            )}
+
+            {showLassa && (
+              <div className="mt-4 border-l-2 border-neutral-700 pl-4">
+                <div className="text-sm text-neutral-300 mb-2">In this country, has the patient lived or worked in basic rural conditions?</div>
+                <div className="flex gap-2">
+                  <button type="button" className={yesNoBtn((exposuresByCountry[c.id]?.lassa || "") === "yes")} onClick={() => setCountryExposure(c.id, "lassa", "yes")}>Yes</button>
+                  <button type="button" className={yesNoBtn((exposuresByCountry[c.id]?.lassa || "") === "no")} onClick={() => setCountryExposure(c.id, "lassa", "no")}>No</button>
+                </div>
+              </div>
+            )}
+            {showEbMarb && (
+              <div className="mt-4 border-l-2 border-neutral-700 pl-4">
+                <div className="text-sm text-neutral-300 mb-2">Did they visit caves/mines, or contact primates/antelopes/bats (or eat bushmeat)?</div>
+                <div className="flex gap-2">
+                  <button type="button" className={yesNoBtn((exposuresByCountry[c.id]?.ebola_marburg || "") === "yes")} onClick={() => setCountryExposure(c.id, "ebola_marburg", "yes")}>Yes</button>
+                  <button type="button" className={yesNoBtn((exposuresByCountry[c.id]?.ebola_marburg || "") === "no")} onClick={() => setCountryExposure(c.id, "ebola_marburg", "no")}>No</button>
+                </div>
+              </div>
+            )}
+            {showCchf && (
+              <div className="mt-4 border-l-2 border-neutral-700 pl-4">
+                <div className="text-sm text-neutral-300 mb-2">Did they sustain a tick bite, crush a tick, or have contact with animal slaughter?</div>
+                <div className="flex gap-2">
+                  <button type="button" className={yesNoBtn((exposuresByCountry[c.id]?.cchf || "") === "yes")} onClick={() => setCountryExposure(c.id, "cchf", "yes")}>Yes</button>
+                  <button type="button" className={yesNoBtn((exposuresByCountry[c.id]?.cchf || "") === "no")} onClick={() => setCountryExposure(c.id, "cchf", "no")}>No</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
     });
-  };
 
-  const removeRow = (id) => {
-    setSelected((prev) => prev.filter((c) => c.id !== id));
-    if (selected.length <= 1) {
-      setShowInput(true);
-    }
-  };
-
-  const allDatesFilled = selected.every((c) => c.arrival && c.leaving);
-  const noOverlap = validateNoOverlap(selected);
-  const canContinue = selected.length > 0 && allDatesFilled && onset && noOverlap;
+    let requiredGlobalQs = 2, answeredGlobalQs = 0;
+    if (["yes", "no"].includes(exposuresGlobal.q1_outbreak)) answeredGlobalQs++;
+    if (["yes", "no"].includes(exposuresGlobal.q2_bleeding)) answeredGlobalQs++;
+    return { countryBlocks: blocks, allAnswered: answeredGlobalQs + answeredCountryQs === requiredGlobalQs + requiredCountryQs };
+  }, [selected, normalizedMap, exposuresByCountry, exposuresGlobal, setCountryExposure]);
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-        Country / countries of travel
-      </h2>
-
-      {!showInput && (
-        <button
-          type="button"
-          onClick={addAnother}
-          className={btnSecondary}
-        >
-          + Add another country
-        </button>
-      )}
-
-      {showInput && (
-        <div className="relative max-w-xl">
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setOpen(true);
-            }}
-            onFocus={() => setOpen(true)}
-            onBlur={() => setTimeout(() => setOpen(false), 150)}
-            placeholder="Start typing a country name…"
-            className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm"
-          />
-          {open && query && (
-            <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 shadow">
-              <ul className="max-h-64 overflow-auto">
-                {filtered.length > 0 ? (
-                  filtered.map((name) => (
-                    <li key={name}>
-                      <button
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => addCountry(name)}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
-                      >
-                        {name}
-                      </button>
-                    </li>
-                  ))
-                ) : (
-                  <li className="px-3 py-2 text-sm text-slate-500">No matches</li>
-                )}
-              </ul>
-            </div>
-          )}
+    <div className="space-y-8">
+      <h2 className="text-xl font-bold text-white">Exposure Questions</h2>
+      <div className="space-y-6">
+        {countryBlocks}
+        
+        {/* Global Qs */}
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900/30 p-5">
+          <div className="text-sm text-neutral-200 mb-2">{Q.GLOBAL_OUTBREAK.text}</div>
+          <div className="flex gap-2">
+            <button type="button" className={yesNoBtn(exposuresGlobal.q1_outbreak === "yes")} onClick={() => setExposuresGlobal({ ...exposuresGlobal, q1_outbreak: "yes" })}>Yes</button>
+            <button type="button" className={yesNoBtn(exposuresGlobal.q1_outbreak === "no")} onClick={() => setExposuresGlobal({ ...exposuresGlobal, q1_outbreak: "no" })}>No</button>
+          </div>
         </div>
-      )}
-
-      <div className="space-y-4">
-        {selected.length === 0 ? (
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            No countries added yet. Use the search box above to add your first country.
-          </p>
-        ) : (
-          selected.map((c) => (
-            <div
-              key={c.id}
-              className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="font-medium">{c.name}</div>
-                <button
-                  type="button"
-                  onClick={() => removeRow(c.id)}
-                  className="rounded-md border-2 border-slate-300 dark:border-slate-700 px-2 py-1 text-xs hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400"
-                >
-                  Remove
-                </button>
-              </div>
-
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                <label className="text-sm">
-                  Arrival
-                  <input
-                    type="date"
-                    value={c.arrival}
-                    max={c.leaving || todayISO()}
-                    onChange={(e) => updateDates(c.id, "arrival", e.target.value)}
-                    className="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-700 px-2 py-1 text-sm dark:bg-slate-950"
-                  />
-                </label>
-
-                <label className="text-sm">
-                  Leaving
-                  <input
-                    type="date"
-                    value={c.leaving}
-                    min={c.arrival || undefined}
-                    max={todayISO()}
-                    onChange={(e) => updateDates(c.id, "leaving", e.target.value)}
-                    className="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-700 px-2 py-1 text-sm dark:bg-slate-950"
-                  />
-                </label>
-              </div>
-            </div>
-          ))
-        )}
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900/30 p-5">
+          <div className="text-sm text-neutral-200 mb-2">{Q.GLOBAL_BLEEDING.text}</div>
+          <div className="flex gap-2">
+            <button type="button" className={yesNoBtn(exposuresGlobal.q2_bleeding === "yes")} onClick={() => setExposuresGlobal({ ...exposuresGlobal, q2_bleeding: "yes" })}>Yes</button>
+            <button type="button" className={yesNoBtn(exposuresGlobal.q2_bleeding === "no")} onClick={() => setExposuresGlobal({ ...exposuresGlobal, q2_bleeding: "no" })}>No</button>
+          </div>
+        </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-1">Date of symptom onset</label>
-        <input
-          type="date"
-          value={onset}
-          max={todayISO()}
-          onChange={(e) => setOnset(e.target.value)}
-          className="rounded-md border-2 border-slate-300 dark:border-slate-700 px-3 py-2 text-sm dark:bg-slate-950"
-        />
-      </div>
-
-      {!noOverlap && (
-        <DecisionCard tone="red" title="Invalid dates">
-          <p>
-            Overlapping dates detected. Adjust arrival/leaving dates. Same-day transfer is allowed.
-          </p>
-        </DecisionCard>
-      )}
-      {selected.length > 0 && !allDatesFilled && (
-        <DecisionCard tone="red" title="Missing dates">
-          <p>Please enter arrival and leaving dates for each country.</p>
-        </DecisionCard>
-      )}
-
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={onBackToScreen}
-          className={btnSecondary}
-        >
-          Back
-        </button>
-        <button
-          type="button"
-          onClick={onReset}
-          className={btnSecondary}
-        >
-          Reset
-        </button>
-        <button
-          type="button"
-          disabled={!canContinue}
-          onClick={onContinue}
-          className={btnPrimary}
-          title={
-            canContinue
-              ? "Continue"
-              : "Add at least one country, fill arrival & leaving dates for each, and set symptom onset"
-          }
-        >
-          Continue
-        </button>
+      <div className="flex flex-wrap gap-3 pt-6 border-t border-neutral-800">
+        <button type="button" onClick={onBackToReview} className={btnSecondary}>Back</button>
+        <button type="button" disabled={!allAnswered} onClick={onContinueToSummary} className={btnPrimary}>Continue to Summary</button>
+        <button type="button" onClick={onReset} className={btnSecondary}>Reset</button>
       </div>
     </div>
   );
