@@ -60,8 +60,12 @@ export default function Home() {
 
           {/* 1. WELCOME SECTION */}
           <motion.div variants={fadeInUp} className="max-w-4xl">
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6">
-              Welcome to <span className="text-neutral-600">Infectious Diseases Portal</span>
+            {/* Color Logic: 
+                Base text is neutral-600 (Grey).
+                "Infectious Diseases" is text-white (High Contrast).
+            */}
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-neutral-600 mb-6">
+              Welcome to <span className="text-white">Infectious Diseases</span> Portal
             </h1>
             <p className="text-xl text-neutral-400 max-w-2xl leading-relaxed font-light">
               High-precision algorithms and local guidelines for Infectious Diseases. 
@@ -96,7 +100,7 @@ export default function Home() {
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-8">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest">
-                Departmental Resources
+                Resources
               </span>
               <div className="h-px flex-1 bg-neutral-900" />
             </div>
