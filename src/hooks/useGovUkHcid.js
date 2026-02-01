@@ -1,15 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { HCID_FALLBACK_MAP } from '@/data/hcidFallbackSnapshot';
-
-// Strict normalization to match the form input
-function normalize(s = "") {
-  return String(s)
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remove accents
-    .replace(/\s+/g, " ")             // Collapse spaces
-    .trim();
-}
+// Import the shared logic from your uploaded file
+import { buildNormalizedMap } from '@/utils/names';
 
 export default function useGovUkHcid() {
   const [data, setData] = useState(HCID_FALLBACK_MAP);
@@ -18,13 +10,11 @@ export default function useGovUkHcid() {
   useEffect(() => {
     async function loadData() {
       try {
-        // Attempt to fetch from our Daily Scraper API
         const res = await fetch('/api/hcid'); 
         if (!res.ok) throw new Error("API failed");
         
         const json = await res.json();
         
-        // Only update if we actually got data back
         if (json.data && Object.keys(json.data).length > 0) {
           setData(json.data);
           setMeta({ 
@@ -33,24 +23,17 @@ export default function useGovUkHcid() {
           });
         }
       } catch (err) {
-        // Silently fail to fallback (already loaded)
-        console.warn("Using local HCID snapshot");
+        console.warn("Using local HCID snapshot (Network/API error)");
       }
     }
 
     loadData();
   }, []);
 
-  // Generate the lookup map (Memoized for performance)
+  // Use the shared helper to build the map. 
+  // This handles aliases (e.g. Türkiye -> Turkey) and cleaning (removing 'The', brackets, etc.) automatically.
   const normalizedMap = useMemo(() => {
-    const map = new Map();
-    // Ensure data is valid before iterating
-    const sourceData = data || HCID_FALLBACK_MAP; 
-    
-    Object.entries(sourceData).forEach(([country, entries]) => {
-      map.set(normalize(country), entries);
-    });
-    return map;
+    return buildNormalizedMap(data);
   }, [data]);
 
   return { normalizedMap, meta, refresh: () => {} };
