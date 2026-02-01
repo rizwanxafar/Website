@@ -1,255 +1,178 @@
-// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/ExposuresStep.jsx
+// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/ReviewStep.jsx
 "use client";
 
-import { useMemo } from "react";
-import { EXPOSURE_QUESTIONS as Q } from "@/data/diseaseQuestions";
+import DecisionCard from "@/components/DecisionCard";
 import { normalizeName } from "@/utils/names";
+import { format } from "date-fns";
 
-const yesNoBtn = (active) =>
-  `px-3 py-1.5 text-sm font-medium rounded-md border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70 ${
-    active
-      ? "text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] border-transparent hover:brightness-95"
-      : "bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700"
-  }`;
+// --- THEME CONSTANTS ---
+const btnPrimary =
+  "inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 " +
+  "text-sm font-bold font-mono tracking-wide text-white uppercase " +
+  "bg-red-600 hover:bg-red-500 shadow-[0_0_15px_rgba(220,38,38,0.4)] " +
+  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500/70 " +
+  "disabled:opacity-50 disabled:cursor-not-allowed transition-all";
+
+const btnSecondary =
+  "rounded-lg px-4 py-2 border border-neutral-800 bg-neutral-900 text-neutral-400 " +
+  "hover:text-white hover:border-neutral-600 text-xs font-bold font-mono uppercase tracking-wide transition-all";
+
+// -----------------------
+
+function daysBetween(d1, d2) {
+  try {
+    const ms = new Date(d2).getTime() - new Date(d1).getTime();
+    return Math.floor(ms / (1000 * 60 * 60 * 24));
+  } catch {
+    return null;
+  }
+}
+
+function formatDDMMYYYY(iso) {
+  if (!iso) return "";
+  const [y, m, d] = String(iso).split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+}
 
 const txt = (s = "") => String(s).toLowerCase();
 const isNoKnownHcid = (disease = "") => txt(disease).includes("no known hcid");
 const isTravelAssociated = (disease = "") => txt(disease).includes("travel associated");
+const isImportedOnly = (evidence = "") => txt(evidence).includes("imported cases only");
 
-// Treat “import-linked” evidence as non-triggering for exposures
-const isImportedLike = (evidence = "") =>
-  /(imported cases only|associated with a case import|import[-\s]?related)/i.test(String(evidence || ""));
+const MERS_COUNTRIES = new Set(
+  ["bahrain", "jordan", "iraq", "iran", "kingdom of saudi arabia", "saudi arabia", "kuwait", "oman", "qatar", "united arab emirates", "yemen", "kenya"].map(normalizeName)
+);
 
-// Robust disease matching to catch wording variants
-const RX = {
-  lassa: /lassa/i,
-  ebmarb: /(ebola|ebolavirus|ebola\s*virus|e\.?v\.?d|marburg)/i,
-  cchf: /(cchf|crimean[-\s]?congo|crimea[-\s]?congo)/i,
-};
-const hasDisease = (entries = [], rx) =>
-  entries.some((e) => rx.test(String(e?.disease || "")));
-
-export default function ExposuresStep({
-  selected,
-  normalizedMap,
-  exposuresGlobal = {},
-  setExposuresGlobal = () => {},
-  exposuresByCountry = {},
-  setCountryExposure = () => {},
-  onBackToReview,
-  onReset,
-  onContinueToSummary,
+export default function ReviewStep({
+  selected, onset, meta, normalizedMap, onBackToSelect, onReset, onContinueToExposures,
 }) {
-  const { countryBlocks, allAnswered } = useMemo(() => {
-    let requiredCountryQs = 0;
-    let answeredCountryQs = 0;
+  const onsetDate = onset ? new Date(onset) : null;
+  let anyRed = false;
 
-    const blocks = selected.map((c, idx) => {
-      const key = normalizeName(c.name || "");
-      const entries = normalizedMap.get(key) || [];
+  const cards = selected.map((c, idx) => {
+    const leavingDate = c.leaving ? new Date(c.leaving) : null;
+    const diffFromLeaving = leavingDate && onsetDate ? daysBetween(leavingDate, onsetDate) : null;
+    const outside21 = diffFromLeaving !== null && diffFromLeaving > 21;
+    const key = normalizeName(c.name || "");
+    const entries = normalizedMap.get(key) || [];
 
-      // Keep only HCIDs that are NOT travel-associated and NOT import-linked
-      const entriesFiltered = (entries || []).filter(
-        (e) =>
-          !isNoKnownHcid(e.disease) &&
-          !isTravelAssociated(e.disease) &&
-          !isImportedLike(e.evidence)
+    const Separator = () => idx > 0 ? <div className="border-t border-neutral-800 pt-6 -mt-2" /> : null;
+
+    const renderMersNotice = () => {
+      const countryInMers = MERS_COUNTRIES.has(normalizeName(c.name || ""));
+      const within14 = diffFromLeaving !== null && typeof diffFromLeaving === "number" && diffFromLeaving <= 14;
+      if (!countryInMers || !within14) return null;
+      return (
+        <div className="mt-3 rounded-lg border border-neutral-700 bg-neutral-900 p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="text-sm text-neutral-300">
+            <span className="font-bold text-amber-500">Note:</span> Risk of MERS in this country (onset &le; 14 days).
+          </div>
+          <a
+            href="/algorithms/travel/mers-risk-assessment"
+            className="text-xs font-bold text-amber-500 hover:text-amber-400 uppercase tracking-wide border border-amber-500/30 rounded px-3 py-1.5 hover:bg-amber-950/30 transition"
+          >
+            Check MERS Risk
+          </a>
+        </div>
       );
+    };
 
-      const showLassa = hasDisease(entriesFiltered, RX.lassa);
-      const showEbMarb = hasDisease(entriesFiltered, RX.ebmarb);
-      const showCchf = hasDisease(entriesFiltered, RX.cchf);
-
-      const row = exposuresByCountry[c.id] || {};
-      const ansLassa = showLassa ? row.lassa || "" : null;
-      const ansEbMarb = showEbMarb ? row.ebola_marburg || "" : null;
-      const ansCchf = showCchf ? row.cchf || "" : null;
-
-      [ansLassa, ansEbMarb, ansCchf].forEach((a) => {
-        if (a !== null) {
-          requiredCountryQs += 1;
-          if (a === "yes" || a === "no") answeredCountryQs += 1;
-        }
-      });
-
+    if (outside21) {
       return (
         <div key={c.id}>
-          {idx > 0 && <div className="border-t border-slate-200 dark:border-slate-700 pt-6 -mt-2" />}
-          <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
-            <div className="font-medium">{c.name}</div>
-
-            {!showLassa && !showEbMarb && !showCchf && (
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                No disease-specific exposure questions apply to this country.
-              </p>
-            )}
-
-            {showLassa && (
-              <div className="mt-3">
-                <div className="text-sm mb-1">
-                  In this country, has the patient lived or worked in basic rural conditions?
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className={yesNoBtn((exposuresByCountry[c.id]?.lassa || "") === "yes")}
-                    onClick={() => setCountryExposure(c.id, "lassa", "yes")}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    className={yesNoBtn((exposuresByCountry[c.id]?.lassa || "") === "no")}
-                    onClick={() => setCountryExposure(c.id, "lassa", "no")}
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {showEbMarb && (
-              <div className="mt-3">
-                <div className="text-sm mb-1">
-                  In this country, did the patient visit caves/mines, or have contact
-                  with primates, antelopes or bats (or eat their raw/undercooked meat)?
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className={yesNoBtn((exposuresByCountry[c.id]?.ebola_marburg || "") === "yes")}
-                    onClick={() => setCountryExposure(c.id, "ebola_marburg", "yes")}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    className={yesNoBtn((exposuresByCountry[c.id]?.ebola_marburg || "") === "no")}
-                    onClick={() => setCountryExposure(c.id, "ebola_marburg", "no")}
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {showCchf && (
-              <div className="mt-3">
-                <div className="text-sm mb-1">
-                  In this country, did the patient sustain a tick bite or crush a tick
-                  with bare hands, OR have close involvement with animal slaughter?
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className={yesNoBtn((exposuresByCountry[c.id]?.cchf || "") === "yes")}
-                    onClick={() => setCountryExposure(c.id, "cchf", "yes")}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    className={yesNoBtn((exposuresByCountry[c.id]?.cchf || "") === "no")}
-                    onClick={() => setCountryExposure(c.id, "cchf", "no")}
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <Separator />
+          <DecisionCard tone="green" title={`${c.name} — Outside 21-day incubation`}>
+            <p className="text-neutral-300">Symptom onset is {diffFromLeaving} days after leaving, beyond the 21-day VHF incubation.</p>
+          </DecisionCard>
+          {renderMersNotice()}
         </div>
       );
-    });
+    }
 
-    // Global questions
-    let requiredGlobalQs = 2;
-    let answeredGlobalQs = 0;
-    if (exposuresGlobal.q1_outbreak === "yes" || exposuresGlobal.q1_outbreak === "no") answeredGlobalQs += 1;
-    if (exposuresGlobal.q2_bleeding === "yes" || exposuresGlobal.q2_bleeding === "no") answeredGlobalQs += 1;
+    const hasNoKnown = entries.some((e) => isNoKnownHcid(e.disease)) || entries.length === 0;
+    if (hasNoKnown) {
+      return (
+        <div key={c.id}>
+          <Separator />
+          <DecisionCard tone="green" title={`${c.name} — No HCIDs listed`}>
+            <p className="text-neutral-300">No HCIDs listed for this country on UKHSA.</p>
+          </DecisionCard>
+          {renderMersNotice()}
+        </div>
+      );
+    }
 
-    const allAnswered = answeredGlobalQs + answeredCountryQs === requiredGlobalQs + requiredCountryQs;
+    const everyIsTravelish = entries.every(e => isTravelAssociated(e.disease) || isImportedOnly(e.evidence) || isNoKnownHcid(e.disease));
+    if (everyIsTravelish) {
+      return (
+        <div key={c.id}>
+          <Separator />
+          <DecisionCard tone="green" title={`${c.name} — Travel-associated cases only`}>
+            <p className="text-neutral-300">
+              Travel-associated cases reported. Check <a href="https://www.gov.uk/guidance/high-consequence-infectious-disease-country-specific-risk" target="_blank" className="underline hover:text-white">GOV.UK</a>.
+            </p>
+          </DecisionCard>
+          {renderMersNotice()}
+        </div>
+      );
+    }
 
-    return { countryBlocks: blocks, allAnswered };
-  }, [selected, normalizedMap, exposuresByCountry, exposuresGlobal, setCountryExposure]);
+    anyRed = true;
+    const listed = entries.filter(e => !isNoKnownHcid(e.disease) && !isTravelAssociated(e.disease));
+    return (
+      <div key={c.id}>
+        <Separator />
+        <DecisionCard tone="red" title={`${c.name} — Consider the following:`}>
+          <ul className="mt-1 list-disc pl-5 text-neutral-300">
+            {listed.map((e, i) => (
+              <li key={i}>
+                <span className="font-bold text-white">{e.disease}</span>
+                {e.evidence ? ` — ${e.evidence}` : ""}
+                {e.year ? ` (${e.year})` : ""}
+              </li>
+            ))}
+          </ul>
+        </DecisionCard>
+        {renderMersNotice()}
+      </div>
+    );
+  });
+
+  const allGreen = selected.length > 0 && !anyRed;
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-        Exposure questions
-      </h2>
+    <div className="space-y-8">
+      <h2 className="text-xl font-bold text-white">Review Countries & Risks</h2>
 
-      <div className="space-y-6">
-        {countryBlocks}
-
-        {/* Global questions */}
-        <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
-          <div className="text-sm mb-1">{Q.GLOBAL_OUTBREAK.text}</div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className={yesNoBtn(exposuresGlobal.q1_outbreak === "yes")}
-              onClick={() => setExposuresGlobal({ ...exposuresGlobal, q1_outbreak: "yes" })}
-            >
-              Yes
-            </button>
-            <button
-              type="button"
-              className={yesNoBtn(exposuresGlobal.q1_outbreak === "no")}
-              onClick={() => setExposuresGlobal({ ...exposuresGlobal, q1_outbreak: "no" })}
-            >
-              No
-            </button>
-          </div>
+      {meta?.source === "fallback" && (
+        <div className="rounded border border-amber-900/50 bg-amber-950/10 p-3 text-xs font-mono text-amber-500">
+          ⚠ Using local snapshot ({formatDDMMYYYY(meta.snapshotDate)}). Check GOV.UK for latest.
         </div>
+      )}
 
-        <div className="rounded-lg border-2 border-slate-300 dark:border-slate-700 p-4">
-          <div className="text-sm mb-1">{Q.GLOBAL_BLEEDING.text}</div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className={yesNoBtn(exposuresGlobal.q2_bleeding === "yes")}
-              onClick={() => setExposuresGlobal({ ...exposuresGlobal, q2_bleeding: "yes" })}
-            >
-              Yes
-            </button>
-            <button
-              type="button"
-              className={yesNoBtn(exposuresGlobal.q2_bleeding === "no")}
-              onClick={() => setExposuresGlobal({ ...exposuresGlobal, q2_bleeding: "no" })}
-            >
-              No
-            </button>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">{cards}</div>
+        <div className="lg:col-span-1 lg:sticky lg:top-4 h-fit space-y-4">
+          <div className="text-sm font-bold text-neutral-400 uppercase tracking-widest">Assessment Outcome</div>
+          {allGreen ? (
+            <DecisionCard tone="green" title="VHF Unlikely">
+              <p className="text-neutral-300">Manage locally.</p>
+            </DecisionCard>
+          ) : (
+            <div className="text-sm text-neutral-500 italic">Continue to exposure questions below.</div>
+          )}
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={onBackToReview}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
-        >
-          Back to country review
-        </button>
-
-        <button
-          type="button"
-          disabled={!allAnswered}
-          onClick={onContinueToSummary}
-          className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--brand))]/70 disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          Continue to summary
-        </button>
-
-        <button
-          type="button"
-          onClick={onReset}
-          className="rounded-lg px-4 py-2 border-2 border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))]"
-        >
-          New assessment
-        </button>
+      <div className="flex flex-wrap gap-3 pt-4 border-t border-neutral-800">
+        <button type="button" onClick={onBackToSelect} className={btnSecondary}>Back</button>
+        {!allGreen && (
+          <button type="button" onClick={onContinueToExposures} className={btnPrimary}>
+            Continue to Exposure Questions
+          </button>
+        )}
+        <button type="button" onClick={onReset} className={btnSecondary}>Reset</button>
       </div>
     </div>
   );
