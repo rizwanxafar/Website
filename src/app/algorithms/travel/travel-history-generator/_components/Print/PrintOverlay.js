@@ -65,51 +65,43 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
               leaveTo="opacity-0 scale-95"
             >
               {/* MODAL PANEL */}
-              <DialogPanel className="relative transform overflow-hidden rounded-xl bg-neutral-950 border border-neutral-800 text-left shadow-2xl transition-all w-full max-w-5xl h-[85vh] flex flex-col print:h-auto print:shadow-none print:w-full print:max-w-none print:rounded-none print:border-none print:bg-white">
+              <DialogPanel className="relative transform overflow-hidden rounded-xl bg-neutral-950 border border-neutral-800 text-left shadow-2xl transition-all w-full max-w-5xl h-[85vh] flex flex-col print:h-auto print:shadow-none print:w-full print:max-w-none print:rounded-none print:border-none print:bg-white print:overflow-visible print:block">
                 
                 {/* --- CSS RESET FOR PRINTING --- */}
                 <style jsx global>{`
                   @media print {
-                    /* 1. Force White Background on Root Elements */
-                    html, body {
-                      background-color: #ffffff !important;
-                      color: #000000 !important;
-                      height: auto !important;
-                      overflow: visible !important;
-                      -webkit-print-color-adjust: exact !important;
-                      print-color-adjust: exact !important;
+                    /* 1. HIDE EVERYTHING by default */
+                    body * {
+                      visibility: hidden;
                     }
 
-                    /* 2. Hide User Interface */
-                    header, footer, nav, aside, .fixed, .no-print, [role="dialog"] > div > div {
-                      display: none !important;
+                    /* 2. Un-hide the Print Root and its children */
+                    #print-root, #print-root * {
+                      visibility: visible;
                     }
 
-                    /* 3. Ensure the Print Root is Visible and Reset */
+                    /* 3. Position Print Root at absolute top-left */
                     #print-root {
-                      display: block !important;
-                      visibility: visible !important;
-                      position: relative !important;
-                      inset: 0 !important;
-                      width: 100% !important;
-                      height: auto !important;
-                      margin: 0 !important;
-                      padding: 20px !important;
-                      background-color: #ffffff !important;
-                      color: #000000 !important;
-                      box-shadow: none !important;
-                      overflow: visible !important;
+                      position: absolute;
+                      left: 0;
+                      top: 0;
+                      width: 100%;
+                      margin: 0;
+                      padding: 20px !important; /* Give it some breathing room */
+                      background: white;
+                      color: black;
                     }
 
-                    /* 4. Text Contrast Fixes */
-                    h1, h2, h3, p, span, div {
-                      color: #000000 !important;
-                      text-shadow: none !important;
+                    /* 4. Kill layout constraints */
+                    html, body, .fixed, .absolute, .relative {
+                      overflow: visible !important;
+                      height: auto !important;
+                      position: static !important; /* Stops the modal scroll trap */
                     }
                     
-                    /* 5. Map Fixes */
-                    .leaflet-container {
-                      z-index: 0 !important;
+                    /* 5. Hide User Interface elements specifically */
+                    header, footer, nav, button, .print\\:hidden {
+                      display: none !important;
                     }
                   }
                 `}</style>
@@ -134,7 +126,7 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
                 <div className="flex-1 overflow-y-auto bg-neutral-900/50 p-8 print:p-0 print:bg-white print:overflow-visible custom-scrollbar">
                   
                   {/* THE PAPER (White Sheet) */}
-                  <div id="print-root" className="bg-white text-slate-900 max-w-3xl mx-auto shadow-2xl p-10 min-h-[800px] print:shadow-none print:p-0 print:min-h-0">
+                  <div id="print-root" className="bg-white text-slate-900 max-w-3xl mx-auto shadow-2xl p-10 min-h-[800px] print:shadow-none print:p-0 print:min-h-0 print:static">
                     
                     {/* Report Header */}
                     <div className="border-b-2 border-slate-900 pb-6 mb-8 flex justify-between items-end">
