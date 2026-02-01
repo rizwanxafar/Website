@@ -87,7 +87,7 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
                       top: 0;
                       width: 100%;
                       margin: 0;
-                      padding: 20px !important; /* Give it some breathing room */
+                      padding: 20px !important;
                       background: white;
                       color: black;
                     }
@@ -96,7 +96,7 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
                     html, body, .fixed, .absolute, .relative {
                       overflow: visible !important;
                       height: auto !important;
-                      position: static !important; /* Stops the modal scroll trap */
+                      position: static !important;
                     }
                     
                     /* 5. Hide User Interface elements specifically */
@@ -148,7 +148,8 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
                     {/* TEXT SUMMARY */}
                     <div>
                        <div className="flex items-center justify-between mb-4 border-b border-slate-200 pb-2 print:border-none">
-                         <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900">Clinical Narrative</h2>
+                         {/* CHANGED LABEL HERE */}
+                         <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900">Travel History</h2>
                          <button 
                            type="button" 
                            onClick={handleCopy}
