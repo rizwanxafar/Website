@@ -13,7 +13,8 @@ import {
   ShieldAlert,
   Globe,
   Siren,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Library // Added for the Resources header
 } from "lucide-react";
 
 // --- ANIMATION CONFIG ---
@@ -88,7 +89,7 @@ export default function Home() {
 
           </motion.div>
 
-          {/* 3. IMPORTANT LINKS (Formerly Global Intelligence) */}
+          {/* 3. IMPORTANT LINKS */}
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-6">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
@@ -134,7 +135,8 @@ export default function Home() {
           {/* 4. RESOURCES */}
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-8">
-              <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest">
+              <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                <Library className="w-3 h-3" />
                 Resources
               </span>
               <div className="h-px flex-1 bg-gradient-to-r from-neutral-900 to-transparent" />
@@ -182,7 +184,7 @@ function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
   const styles = {
     critical: {
       border: "border-red-900/30",
-      bg: "bg-red-950/5", // Very subtle tint
+      bg: "bg-red-950/5",
       hoverBg: "hover:bg-red-950/20",
       hoverBorder: "hover:border-red-500/50",
       iconBg: "bg-red-500/10",
