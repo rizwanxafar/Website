@@ -1,44 +1,74 @@
-// src/components/DecisionCard.jsx
-"use client";
+import { clsx } from "clsx";
+import { AlertTriangle, CheckCircle, AlertOctagon, Info } from "lucide-react";
 
-export default function DecisionCard({
-  tone = "green", // "green" | "amber" | "red"
-  title,
-  children,
-  className = "",
-}) {
+export default function DecisionCard({ tone = "green", title, children, className = "" }) {
+  
+  // --- THEME CONFIGURATION ---
   const styles = {
-    green: {
-      border: "border-emerald-300 dark:border-emerald-700",
-      bg: "bg-emerald-50 dark:bg-emerald-950/30",
-      title: "text-emerald-800 dark:text-emerald-300",
-    },
-    amber: {
-      border: "border-amber-300 dark:border-amber-700",
-      bg: "bg-amber-50 dark:bg-amber-950/30",
-      title: "text-amber-800 dark:text-amber-300",
-    },
+    // Critical / Danger (VHF High Risk)
     red: {
-      border: "border-rose-300 dark:border-rose-700",
-      bg: "bg-rose-50 dark:bg-rose-950/30",
-      title: "text-rose-800 dark:text-rose-300",
+      container: "border-red-900/50 bg-red-950/10 shadow-[0_0_20px_rgba(220,38,38,0.1)]",
+      icon: "text-red-500",
+      title: "text-red-500",
+      text: "text-red-400/80", 
+      Icon: AlertOctagon
     },
+    // Safe / Utility (Travel History / Low Risk)
+    green: {
+      container: "border-emerald-900/50 bg-emerald-950/10 shadow-[0_0_20px_rgba(16,185,129,0.1)]",
+      icon: "text-emerald-500",
+      title: "text-emerald-500",
+      text: "text-emerald-400/80",
+      Icon: CheckCircle
+    },
+    // Warning / Privacy (Protocol Alerts)
+    amber: {
+      container: "border-amber-900/50 bg-amber-950/10",
+      icon: "text-amber-500",
+      title: "text-amber-500",
+      text: "text-amber-400/80",
+      Icon: AlertTriangle
+    },
+    // Fallback / Info
+    gray: {
+      container: "border-neutral-800 bg-neutral-900/50",
+      icon: "text-neutral-400",
+      title: "text-neutral-200",
+      text: "text-neutral-400",
+      Icon: Info
+    }
   };
 
-  const t = styles[tone] ?? styles.green;
+  const current = styles[tone] || styles.gray;
+  const IconComponent = current.Icon;
 
   return (
-    <div
-      className={`rounded-xl border-2 ${t.border} ${t.bg} p-4 ${className}`}
+    <div 
+      className={clsx(
+        "rounded-xl border p-5 transition-all duration-300", 
+        current.container,
+        className
+      )}
       role="region"
       aria-label={title || "Decision"}
     >
-      {title && (
-        <div className={`font-semibold mb-2 ${t.title}`}>
-          {title}
+      <div className="flex gap-4">
+        <div className={clsx("shrink-0 mt-0.5", current.icon)}>
+          <IconComponent className="w-6 h-6" />
         </div>
-      )}
-      {children ? <div className="text-sm text-slate-800 dark:text-slate-200">{children}</div> : null}
+        <div className="space-y-1">
+          {title && (
+            <h3 className={clsx("text-sm font-bold font-mono uppercase tracking-widest", current.title)}>
+              {title}
+            </h3>
+          )}
+          {children && (
+            <div className={clsx("text-sm leading-relaxed font-sans", current.text)}>
+              {children}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
