@@ -4,27 +4,31 @@ import Link from "next/link";
 import { ShieldAlert, ArrowLeft } from "lucide-react";
 import CountrySelect from "./CountrySelect";
 import WarningBox from "@/components/WarningBox";
-import { useEffect } from "react"; // 1. Import useEffect
 
 export default function Page() {
   
-  // 2. ADD THIS EFFECT: Clear the specific storage key when visiting the homepage.
-  useEffect(() => {
+  // 1. ACTION: Wipe data when the user explicitly leaves via the Back button
+  const handleExit = () => {
     try {
-      sessionStorage.removeItem("riskFormV1"); // Matches the key in useSessionForm.js
-      console.log("Storage cleared for fresh assessment.");
+      sessionStorage.removeItem("riskFormV1");
     } catch (e) {
-      // Ignore errors
+      // Ignore errors if storage is blocked
     }
-  }, []);
+  };
+
   return (
     <div className="min-h-screen bg-black text-neutral-300 font-sans selection:bg-red-900/30 selection:text-red-200">
 
-      {/* SYSTEM HEADER (Matches Travel History Layout) */}
+      {/* SYSTEM HEADER */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-black/90 backdrop-blur-md border-b border-red-900/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-neutral-500 hover:text-red-500 transition-colors">
+            {/* 2. ATTACH HANDLER: Clicking back now wipes the form */}
+            <Link 
+              href="/" 
+              onClick={handleExit}
+              className="text-neutral-500 hover:text-red-500 transition-colors"
+            >
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div className="h-6 w-px bg-neutral-800" />
@@ -36,7 +40,6 @@ export default function Page() {
             </div>
           </div>
           
-          {/* Right side clean (No blinking indicators) */}
           <div></div>
         </div>
       </header>
@@ -47,8 +50,9 @@ export default function Page() {
             
             {/* Title Section */}
             <div className="space-y-4">
+               {/* 3. DESIGN FIX: Removed the red dot span */}
                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-                VHF Risk Assessment<span className="text-red-600">.</span>
+                VHF Risk Assessment
                </h1>
                <p className="text-lg text-neutral-500 leading-relaxed max-w-2xl">
                 Rapid screening and risk stratification for <span className="text-neutral-300">Viral Haemorrhagic Fevers</span> in returning travellers.
