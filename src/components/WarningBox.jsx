@@ -1,19 +1,17 @@
-// src/components/WarningBox.jsx
-"use client";
+import { AlertTriangle } from "lucide-react";
 
 export default function WarningBox() {
   return (
-    <div className="mb-6 flex items-start gap-3 rounded-xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-4 text-sm text-amber-900 dark:text-amber-200">
-      <div className="text-lg leading-none mt-0.5">⚠️</div>
-      <div>
-        <p className="font-semibold mb-1">Clinical guidance</p>
-        <p>
-          This tool is for <strong>UK healthcare professionals</strong> to support infectious diseases risk assessment.
-          It complements, but does not replace, clinical judgment or local/national guidance.
-        </p>
-        <p className="mt-2">
-          <strong>Do not enter any private or patient-identifiable information. </strong>
-          Always verify recommendations with your local infection team.
+    <div className="rounded-lg border border-red-900/50 bg-red-950/10 p-4 flex items-start gap-4">
+      <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+      <div className="space-y-1">
+        <h3 className="text-sm font-bold text-red-500 uppercase tracking-wide font-mono">
+          Clinical Warning
+        </h3>
+        <p className="text-sm text-red-400/80 leading-relaxed">
+          This tool is a decision aid only. If you suspect a Viral Haemorrhagic Fever (VHF), 
+          immediately isolate the patient and contact the local Infectious Diseases team or 
+          Virology consultant on call. Do not delay urgent care while using this tool.
         </p>
       </div>
     </div>
