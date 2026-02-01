@@ -1,4 +1,3 @@
-// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/ReviewStep.jsx
 "use client";
 
 import DecisionCard from "@/components/DecisionCard";
@@ -40,6 +39,7 @@ const isNoKnownHcid = (disease = "") => txt(disease).includes("no known hcid");
 const isTravelAssociated = (disease = "") => txt(disease).includes("travel associated");
 const isImportedOnly = (evidence = "") => txt(evidence).includes("imported cases only");
 
+// FIX: Ensure this list matches the normalized logic
 const MERS_COUNTRIES = new Set(
   ["bahrain", "jordan", "iraq", "iran", "kingdom of saudi arabia", "saudi arabia", "kuwait", "oman", "qatar", "united arab emirates", "yemen", "kenya"].map(normalizeName)
 );
@@ -54,12 +54,15 @@ export default function ReviewStep({
     const leavingDate = c.leaving ? new Date(c.leaving) : null;
     const diffFromLeaving = leavingDate && onsetDate ? daysBetween(leavingDate, onsetDate) : null;
     const outside21 = diffFromLeaving !== null && diffFromLeaving > 21;
+    
+    // FIX: Single Source of Truth for Key Lookup
     const key = normalizeName(c.name || "");
     const entries = normalizedMap.get(key) || [];
 
     const Separator = () => idx > 0 ? <div className="border-t border-neutral-800 pt-6 -mt-2" /> : null;
 
     const renderMersNotice = () => {
+      // FIX: Single Source of Truth for MERS lookup
       const countryInMers = MERS_COUNTRIES.has(normalizeName(c.name || ""));
       const within14 = diffFromLeaving !== null && typeof diffFromLeaving === "number" && diffFromLeaving <= 14;
       if (!countryInMers || !within14) return null;
