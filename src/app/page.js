@@ -4,8 +4,7 @@ import ClinicalDashboard from "@/components/ClinicalDashboard";
 
 async function getWhoIntel() {
   
-  // 1. FALLBACK DATA (Corrected Links)
-  // I have updated these to use the full path you requested so 'Backup Mode' works perfectly.
+  // 1. FALLBACK DATA (Filtered for Pure Outbreaks - Feb 2026)
   const FALLBACK_INTEL = [
     { 
       title: "Nipah virus infection - West Bengal, India", 
@@ -13,14 +12,9 @@ async function getWhoIntel() {
       link: "https://www.who.int/emergencies/disease-outbreak-news/item/2026-DON593" 
     },
     { 
-      title: "Marburg virus disease - Ethiopia (Outbreak End)", 
+      title: "Marburg virus disease - Ethiopia", 
       date: "26 Jan", 
       link: "https://www.who.int/emergencies/disease-outbreak-news/item/2026-DON592" 
-    },
-    { 
-      title: "Mpox - Region of the Americas (Situation Report)", 
-      date: "24 Jan", 
-      link: "https://www.who.int/emergencies/disease-outbreak-news" 
     },
     { 
       title: "Yellow Fever - Colombia", 
@@ -31,12 +25,18 @@ async function getWhoIntel() {
       title: "Chikungunya - French Guiana", 
       date: "20 Jan", 
       link: "https://www.who.int/emergencies/disease-outbreak-news" 
+    },
+    { 
+      title: "Western Equine Encephalitis - Uruguay", 
+      date: "15 Jan", 
+      link: "https://www.who.int/emergencies/disease-outbreak-news" 
     }
   ];
 
   try {
-    // 2. FETCH LIVE DATA
-    const res = await fetch("https://www.who.int/api/emergencies/diseaseoutbreaknews?$orderby=PublicationDate%20desc&$top=10", {
+    // 2. FETCH (Expanded Window)
+    // We request top 20 items because we are about to filter many out (Sitreps/Updates)
+    const res = await fetch("https://www.who.int/api/emergencies/diseaseoutbreaknews?$orderby=PublicationDate%20desc&$top=20", {
       next: { revalidate: 3600 },
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -50,30 +50,16 @@ async function getWhoIntel() {
     const rawItems = data.value || data || [];
 
     // 3. TRANSFORM & REPAIR URLS
-    const liveItems = rawItems
-      .map(item => {
+    const processedItems = rawItems.map(item => {
         const title = item.Title || item.title || "Unknown Alert";
         const rawUrl = item.ItemDefaultUrl || "";
         
-        // --- URL REPAIR LOGIC ---
+        // Link Repair Logic
         let finalLink = "https://www.who.int/emergencies/disease-outbreak-news";
-        
         if (rawUrl) {
-           if (rawUrl.startsWith('http')) {
-             // Case A: Full URL provided -> Use it
-             finalLink = rawUrl;
-           } 
-           else if (rawUrl.includes('/emergencies/')) {
-             // Case B: Correct relative path -> Just add domain
-             // e.g. "/emergencies/disease-outbreak-news/item/2026-DON593"
-             finalLink = `https://www.who.int${rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl}`;
-           } 
-           else {
-             // Case C: The Broken Slug -> Inject the missing path
-             // e.g. "/2026-DON593" -> "/emergencies/disease-outbreak-news/item/2026-DON593"
-             const cleanSlug = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
-             finalLink = `https://www.who.int/emergencies/disease-outbreak-news/item${cleanSlug}`;
-           }
+           if (rawUrl.startsWith('http')) finalLink = rawUrl;
+           else if (rawUrl.includes('/emergencies/')) finalLink = `https://www.who.int${rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl}`;
+           else finalLink = `https://www.who.int/emergencies/disease-outbreak-news/item${rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl}`;
         }
 
         return {
@@ -85,19 +71,30 @@ async function getWhoIntel() {
           link: finalLink,
           rawDate: new Date(item.PublicationDate || item.Date)
         };
-      });
+    });
 
-    // 4. STALE DATA GUARD (90 Days)
+    // 4. STRICT FILTERING (The "Pure Outbreak" Logic)
+    // Exclude anything that sounds like a general update or report
+    const outbreakOnlyItems = processedItems.filter(item => {
+      const t = item.title.toLowerCase();
+      return !t.includes("situation report") && 
+             !t.includes("update") && 
+             !t.includes("surveillance");
+    });
+
+    // 5. STALE DATA GUARD (90 Days)
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    if (liveItems.length > 0 && liveItems[0].rawDate < ninetyDaysAgo) {
+    // Check freshness on the filtered list
+    if (outbreakOnlyItems.length > 0 && outbreakOnlyItems[0].rawDate < ninetyDaysAgo) {
       console.warn("WHO API Stale. Serving Backup.");
       return { items: FALLBACK_INTEL, source: "BACKUP" };
     }
 
-    if (liveItems.length > 0) {
-      return { items: liveItems.slice(0, 5), source: "LIVE" };
+    if (outbreakOnlyItems.length > 0) {
+      // Return top 5 of the FILTERED list
+      return { items: outbreakOnlyItems.slice(0, 5), source: "LIVE" };
     }
 
     return { items: FALLBACK_INTEL, source: "BACKUP" };
