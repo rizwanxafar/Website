@@ -1,8 +1,8 @@
-// src/app/page.js
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
   Plane,
@@ -14,7 +14,8 @@ import {
   Globe,
   Siren,
   Link as LinkIcon,
-  Library // Added for the Resources header
+  Library,
+  Radio
 } from "lucide-react";
 
 // --- ANIMATION CONFIG ---
@@ -32,6 +33,46 @@ const staggerContainer = {
 };
 
 export default function Home() {
+  // --- INTELLIGENCE STATE ---
+  // We start with NO live data. The page looks perfect immediately.
+  const [liveIntel, setLiveIntel] = useState([]);
+  const [intelReady, setIntelReady] = useState(false);
+
+  useEffect(() => {
+    async function connectToIntel() {
+      try {
+        // 1. We use the robust RSS feed because it's the most stable public endpoint
+        const FEED_URL = "https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml";
+        // 2. We use a high-performance proxy to bypass CORS (Client-Side Only)
+        const PROXY_URL = `https://corsproxy.io/?${encodeURIComponent(FEED_URL)}`;
+
+        const res = await fetch(PROXY_URL);
+        if (!res.ok) throw new Error("Connection Refused");
+
+        const text = await res.text();
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(text, "text/xml");
+        
+        // 3. Extract top 3 items safely
+        const items = Array.from(xml.querySelectorAll("item")).slice(0, 3).map(item => ({
+          title: item.querySelector("title")?.textContent?.replace("<![CDATA[", "").replace("]]>", "").trim() || "Unknown Alert",
+          date: new Date(item.querySelector("pubDate")?.textContent).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+          link: item.querySelector("link")?.textContent || "https://www.who.int"
+        }));
+
+        if (items.length > 0) {
+          setLiveIntel(items);
+          setIntelReady(true); // Trigger the UI upgrade
+        }
+      } catch (e) {
+        // Silent Fail: We just don't setIntelReady(true). 
+        // The user stays on the nice static links.
+        console.log("Intel Uplink Silent Fail:", e);
+      }
+    }
+    connectToIntel();
+  }, []);
+
   return (
     <main className="min-h-screen bg-black text-neutral-200 selection:bg-white selection:text-black overflow-x-hidden font-sans">
       
@@ -70,7 +111,6 @@ export default function Home() {
 
           {/* 2. ACTIVE TOOLS */}
           <motion.div variants={fadeInUp} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
             <ToolCard 
               href="/algorithms/travel/risk-assessment-returning-traveller"
               variant="critical"
@@ -78,7 +118,6 @@ export default function Home() {
               title="VHF Risk Assessment"
               subtitle="VHF risk assessment for returned traveller"
             />
-            
             <ToolCard 
               href="/algorithms/travel/travel-history-generator"
               variant="standard"
@@ -86,10 +125,9 @@ export default function Home() {
               title="Travel History Generator"
               subtitle="Create accurate travel history"
             />
-
           </motion.div>
 
-          {/* 3. IMPORTANT LINKS */}
+          {/* 3. IMPORTANT LINKS & INTEL */}
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-6">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
@@ -101,13 +139,36 @@ export default function Home() {
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               
-              <UplinkCard 
-                title="WHO DONs"
-                subtitle="Disease Outbreak News"
-                icon={Globe}
-                href="https://www.who.int/emergencies/disease-outbreak-news"
-              />
+              {/* SLOT 1: DYNAMIC WHO MODULE */}
+              {/* If we have data, we show the 'Live Feed' Card. If not, we show the 'Static Link' Card. */}
+              <AnimatePresence mode="wait">
+                {intelReady ? (
+                  <motion.div
+                    key="live"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="md:col-span-1 row-span-1 md:row-span-2"
+                  >
+                    <LiveIntelCard items={liveIntel} />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="static"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                     <UplinkCard 
+                      title="WHO DONs"
+                      subtitle="Disease Outbreak News"
+                      icon={Globe}
+                      href="https://www.who.int/emergencies/disease-outbreak-news"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
               
+              {/* SLOT 2-4: STATIC LINKS (Always Visible) */}
               <UplinkCard 
                 title="NaTHNaC"
                 subtitle="Travel Health Pro"
@@ -178,7 +239,48 @@ export default function Home() {
   );
 }
 
-// --- REUSABLE COMPONENTS WITH LIQUID GLASS EFFECT ---
+// --- NEW COMPONENT: LIVE INTEL CARD (The "Smart" Replacement) ---
+function LiveIntelCard({ items }) {
+  return (
+    <div className="h-full rounded-xl border border-emerald-900/30 bg-emerald-950/5 backdrop-blur-md overflow-hidden flex flex-col">
+       {/* Header */}
+       <div className="p-3 border-b border-emerald-900/20 bg-emerald-950/20 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Radio className="w-4 h-4 text-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-bold text-emerald-500 tracking-wider uppercase">
+              LIVE INTEL
+            </span>
+          </div>
+          <span className="text-[10px] text-emerald-700 font-mono">WHO_FEED</span>
+       </div>
+       
+       {/* List */}
+       <div className="flex-1 flex flex-col divide-y divide-emerald-900/20">
+         {items.map((item, i) => (
+           <a 
+             key={i} 
+             href={item.link}
+             target="_blank"
+             rel="noopener noreferrer" 
+             className="flex-1 p-3 hover:bg-emerald-900/10 transition-colors flex flex-col justify-center gap-1 group"
+           >
+             <div className="flex justify-between items-start">
+               <span className="text-[10px] font-mono text-emerald-600 group-hover:text-emerald-400">
+                 {item.date}
+               </span>
+               <ArrowUpRight className="w-3 h-3 text-emerald-800 group-hover:text-emerald-500" />
+             </div>
+             <p className="text-xs font-medium text-emerald-100/80 group-hover:text-white line-clamp-2 leading-snug">
+               {item.title}
+             </p>
+           </a>
+         ))}
+       </div>
+    </div>
+  );
+}
+
+// --- EXISTING COMPONENTS (Unchanged Aesthetics) ---
 
 function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
   const styles = {
@@ -218,10 +320,7 @@ function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
       className={`group relative h-48 md:h-64 rounded-2xl border ${s.border} ${s.bg} backdrop-blur-md
                  ${s.hoverBg} ${s.hoverBorder} transition-all duration-500 overflow-hidden`}
     >
-      {/* Top Glass Highlight */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50" />
-      
-      {/* Content */}
       <div className="absolute inset-0 p-8 flex flex-col justify-between z-20">
         <div className="flex justify-between items-start">
           <span className={`p-3 rounded-lg ${s.iconBg} ${s.iconColor} border ${s.iconBorder} backdrop-blur-sm`}>
@@ -238,11 +337,7 @@ function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
           </p>
         </div>
       </div>
-
-      {/* The "Liquid Sheen" Animation */}
       <div className="absolute inset-0 z-10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12" />
-      
-      {/* Bottom Glow */}
       <div className={`absolute inset-0 bg-gradient-to-t ${s.glow} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
     </Link>
   );
@@ -257,13 +352,10 @@ function UplinkCard({ title, subtitle, icon: Icon, href }) {
       className="group relative p-4 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md
                  hover:bg-white/10 hover:border-white/20 transition-all duration-300 flex items-center gap-4 overflow-hidden"
     >
-      {/* Top Edge Highlight */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-30" />
-      
       <div className="relative z-10 p-2 rounded-lg bg-black/40 border border-white/5 text-neutral-400 group-hover:text-white group-hover:border-white/20 transition-all">
         <Icon className="w-5 h-5" />
       </div>
-      
       <div className="relative z-10 flex-1 min-w-0">
         <h4 className="text-sm font-medium text-neutral-300 group-hover:text-white truncate transition-colors">
           {title}
@@ -272,10 +364,7 @@ function UplinkCard({ title, subtitle, icon: Icon, href }) {
           {subtitle}
         </p>
       </div>
-
-      <ExternalLink className="relative z-10 w-3 h-3 text-neutral-600 group-hover:text-white transition-colors" />
-      
-      {/* Subtle Sheen */}
+      <ArrowUpRight className="relative z-10 w-3 h-3 text-neutral-600 group-hover:text-white transition-colors" />
       <div className="absolute inset-0 z-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12" />
     </a>
   );
@@ -288,9 +377,7 @@ function ResourceCard({ href, icon: Icon, title, description }) {
       className="group relative p-6 rounded-xl border border-white/10 bg-black/40 backdrop-blur-md 
                  hover:bg-white/5 hover:border-white/20 transition-all duration-300 overflow-hidden"
     >
-       {/* Top Edge Highlight */}
        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50" />
-
       <div className="relative z-10 mb-8 opacity-50 group-hover:opacity-100 transition-opacity">
         <Icon className="w-6 h-6 text-white" />
       </div>
@@ -298,29 +385,7 @@ function ResourceCard({ href, icon: Icon, title, description }) {
       <p className="relative z-10 text-sm text-neutral-500 leading-relaxed group-hover:text-neutral-400 transition-colors">
         {description}
       </p>
-
-      {/* Sheen Effect */}
       <div className="absolute inset-0 z-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12" />
     </Link>
-  );
-}
-
-// Helper Icon
-function ExternalLink({ className }) {
-  return (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
-      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-      <polyline points="15 3 21 3 21 9" />
-      <line x1="10" y1="14" x2="21" y2="3" />
-    </svg>
   );
 }
