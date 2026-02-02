@@ -4,19 +4,18 @@ import ClinicalDashboard from "@/components/ClinicalDashboard";
 
 async function getWhoIntel() {
   
-  // 1. FALLBACK DATA (Safe Links)
-  // We point these to the main DONs page to guarantee NO 404s.
-  // The user will see these items listed at the top of that page.
+  // 1. FALLBACK DATA (Corrected Links)
+  // I have updated these to use the full path you requested so 'Backup Mode' works perfectly.
   const FALLBACK_INTEL = [
     { 
       title: "Nipah virus infection - West Bengal, India", 
       date: "30 Jan", 
-      link: "https://www.who.int/emergencies/disease-outbreak-news" 
+      link: "https://www.who.int/emergencies/disease-outbreak-news/item/2026-DON593" 
     },
     { 
       title: "Marburg virus disease - Ethiopia (Outbreak End)", 
       date: "26 Jan", 
-      link: "https://www.who.int/emergencies/disease-outbreak-news" 
+      link: "https://www.who.int/emergencies/disease-outbreak-news/item/2026-DON592" 
     },
     { 
       title: "Mpox - Region of the Americas (Situation Report)", 
@@ -50,29 +49,31 @@ async function getWhoIntel() {
     const data = await res.json();
     const rawItems = data.value || data || [];
 
-    // 3. TRANSFORM & SAFE-LINK GENERATION
+    // 3. TRANSFORM & REPAIR URLS
     const liveItems = rawItems
       .map(item => {
         const title = item.Title || item.title || "Unknown Alert";
+        const rawUrl = item.ItemDefaultUrl || "";
         
-        // --- SAFE LINK LOGIC ---
-        // 1. Try to get the default URL
+        // --- URL REPAIR LOGIC ---
         let finalLink = "https://www.who.int/emergencies/disease-outbreak-news";
         
-        if (item.ItemDefaultUrl) {
-           // If it's a full URL, trust it (mostly)
-           if (item.ItemDefaultUrl.startsWith('http')) {
-             finalLink = item.ItemDefaultUrl;
+        if (rawUrl) {
+           if (rawUrl.startsWith('http')) {
+             // Case A: Full URL provided -> Use it
+             finalLink = rawUrl;
            } 
-           // If it's a relative path, prepend WHO domain
-           else if (item.ItemDefaultUrl.startsWith('/')) {
-             finalLink = `https://www.who.int${item.ItemDefaultUrl}`;
+           else if (rawUrl.includes('/emergencies/')) {
+             // Case B: Correct relative path -> Just add domain
+             // e.g. "/emergencies/disease-outbreak-news/item/2026-DON593"
+             finalLink = `https://www.who.int${rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl}`;
+           } 
+           else {
+             // Case C: The Broken Slug -> Inject the missing path
+             // e.g. "/2026-DON593" -> "/emergencies/disease-outbreak-news/item/2026-DON593"
+             const cleanSlug = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
+             finalLink = `https://www.who.int/emergencies/disease-outbreak-news/item${cleanSlug}`;
            }
-        } else {
-           // FAIL-SAFE: If no URL provided, create a Google Search for this specific title on WHO site
-           // This guarantees the user finds the article even if the link map is broken.
-           const searchSlug = encodeURIComponent(`site:who.int "${title}"`);
-           finalLink = `https://www.google.com/search?q=${searchSlug}`;
         }
 
         return {
