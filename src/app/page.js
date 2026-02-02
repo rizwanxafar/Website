@@ -4,9 +4,7 @@ import ClinicalDashboard from "@/components/ClinicalDashboard";
 
 async function getWhoIntel() {
   
-  // 1. FALLBACK DATA (Manual Override - Pure Outbreaks Only)
-  // I have manually stripped any "Global" or "SitRep" items from this list
-  // so if the API fails, you still get a clean list.
+  // 1. FALLBACK DATA (Pure Outbreaks Only)
   const FALLBACK_INTEL = [
     { 
       title: "Nipah virus infection - West Bengal, India", 
@@ -32,21 +30,29 @@ async function getWhoIntel() {
       title: "Western Equine Encephalitis - Uruguay", 
       date: "15 Jan", 
       link: "https://www.who.int/emergencies/disease-outbreak-news" 
+    },
+     { 
+      title: "Cholera - Zimbabwe", 
+      date: "12 Jan", 
+      link: "https://www.who.int/emergencies/disease-outbreak-news" 
+    },
+    { 
+      title: "Dengue - Global Overview", 
+      date: "10 Jan", 
+      link: "https://www.who.int/emergencies/disease-outbreak-news" 
     }
   ];
 
   // --- THE NUCLEAR FILTER ---
-  // We define the filter logic here so we can apply it to BOTH Live and Backup data
   const filterOutbreaks = (items) => {
     return items.filter(item => {
       const t = (item.title || "").toLowerCase();
       
-      // BAN LIST: If the title contains ANY of these, it dies.
       const isBanned = 
         t.includes("situation report") || 
         t.includes("surveillance") || 
         t.includes("update") || 
-        t.includes("global") || // Banning "Global" gets rid of general stats
+        t.includes("global") || 
         t.includes("review") ||
         t.includes("questions");
 
@@ -55,8 +61,8 @@ async function getWhoIntel() {
   };
 
   try {
-    // 2. FETCH (Request 25 items to ensure we have enough after filtering)
-    const res = await fetch("https://www.who.int/api/emergencies/diseaseoutbreaknews?$orderby=PublicationDate%20desc&$top=25", {
+    // 2. FETCH (Request 30 items to allow for deep filtering)
+    const res = await fetch("https://www.who.int/api/emergencies/diseaseoutbreaknews?$orderby=PublicationDate%20desc&$top=30", {
       next: { revalidate: 3600 },
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -69,12 +75,12 @@ async function getWhoIntel() {
     const data = await res.json();
     const rawItems = data.value || data || [];
 
-    // 3. TRANSFORM & REPAIR URLS
+    // 3. TRANSFORM
     const processedItems = rawItems.map(item => {
         const title = item.Title || item.title || "Unknown Alert";
         const rawUrl = item.ItemDefaultUrl || "";
         
-        // Link Repair Logic (The "Safe Link" fix)
+        // Link Repair Logic
         let finalLink = "https://www.who.int/emergencies/disease-outbreak-news";
         if (rawUrl) {
            if (rawUrl.startsWith('http')) finalLink = rawUrl;
@@ -102,14 +108,14 @@ async function getWhoIntel() {
 
     if (cleanItems.length > 0 && cleanItems[0].rawDate < ninetyDaysAgo) {
       console.warn("WHO API Stale. Serving Backup.");
-      return { items: FALLBACK_INTEL, source: "BACKUP" }; // Backup is already pure
+      return { items: FALLBACK_INTEL, source: "BACKUP" }; 
     }
 
     if (cleanItems.length > 0) {
-      return { items: cleanItems.slice(0, 5), source: "LIVE" };
+      // INCREASED LIMIT: We now return 10 items
+      return { items: cleanItems.slice(0, 10), source: "LIVE" };
     }
 
-    // If filter removed everything, return backup
     return { items: FALLBACK_INTEL, source: "BACKUP" };
 
   } catch (error) {
