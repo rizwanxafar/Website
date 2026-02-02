@@ -86,7 +86,7 @@ export default function ClinicalDashboard({ intelData, source, lastSync }) {
              <div className="flex items-center gap-4 mb-6">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
                 <Radar className="w-3 h-3" />
-                GLOBAL SURVEILLANCE // OUTBREAK NEWS
+                GLOBAL SURVEILLANCE
               </span>
               <div className="h-px flex-1 bg-gradient-to-r from-neutral-900 to-transparent" />
             </div>
@@ -153,7 +153,7 @@ export default function ClinicalDashboard({ intelData, source, lastSync }) {
   );
 }
 
-// --- INTELLIGENCE CARD (Visualizes LIVE vs BACKUP) ---
+// --- INTELLIGENCE CARD (Updated Labels) ---
 
 function LiveIntelCard({ items, source, lastSync }) {
   const hasData = items && items.length > 0;
@@ -196,7 +196,8 @@ function LiveIntelCard({ items, source, lastSync }) {
               <Database className={`w-4 h-4 ${theme.text}`} />
             )}
             <span className={`text-[10px] font-bold tracking-wider uppercase ${theme.text}`}>
-              {isLive ? 'LIVE INTEL FEED' : 'ARCHIVE DATA (BACKUP)'}
+              {/* UPDATED LABEL HERE */}
+              {isLive ? 'WHO DISEASE OUTBREAK NEWS' : 'ARCHIVE DATA (BACKUP)'}
             </span>
           </div>
           <span className="text-[10px] font-mono text-neutral-500">
@@ -234,7 +235,7 @@ function LiveIntelCard({ items, source, lastSync }) {
   );
 }
 
-// --- STANDARD COMPONENTS (Unchanged) ---
+// --- STANDARD COMPONENTS ---
 function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
   const styles = {
     critical: {
