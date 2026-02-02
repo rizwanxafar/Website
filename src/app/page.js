@@ -4,8 +4,9 @@ import ClinicalDashboard from "@/components/ClinicalDashboard";
 
 async function getWhoIntel() {
   
-  // 1. FALLBACK DATA (Safe Mode)
-  // We use the generic main index link for these to prevent 404 errors on guessed IDs.
+  // 1. FALLBACK DATA (Safe Links)
+  // We point these to the main DONs page to guarantee NO 404s.
+  // The user will see these items listed at the top of that page.
   const FALLBACK_INTEL = [
     { 
       title: "Nipah virus infection - West Bengal, India", 
@@ -13,12 +14,12 @@ async function getWhoIntel() {
       link: "https://www.who.int/emergencies/disease-outbreak-news" 
     },
     { 
-      title: "Marburg virus disease - Ethiopia", 
+      title: "Marburg virus disease - Ethiopia (Outbreak End)", 
       date: "26 Jan", 
       link: "https://www.who.int/emergencies/disease-outbreak-news" 
     },
     { 
-      title: "Mpox - Region of the Americas", 
+      title: "Mpox - Region of the Americas (Situation Report)", 
       date: "24 Jan", 
       link: "https://www.who.int/emergencies/disease-outbreak-news" 
     },
@@ -35,7 +36,7 @@ async function getWhoIntel() {
   ];
 
   try {
-    // 2. FETCH
+    // 2. FETCH LIVE DATA
     const res = await fetch("https://www.who.int/api/emergencies/diseaseoutbreaknews?$orderby=PublicationDate%20desc&$top=10", {
       next: { revalidate: 3600 },
       headers: {
@@ -49,32 +50,43 @@ async function getWhoIntel() {
     const data = await res.json();
     const rawItems = data.value || data || [];
 
-    // 3. TRANSFORM & SANITIZE
+    // 3. TRANSFORM & SAFE-LINK GENERATION
     const liveItems = rawItems
       .map(item => {
-        // Robust Link Construction
-        let link = "https://www.who.int/emergencies/disease-outbreak-news";
+        const title = item.Title || item.title || "Unknown Alert";
+        
+        // --- SAFE LINK LOGIC ---
+        // 1. Try to get the default URL
+        let finalLink = "https://www.who.int/emergencies/disease-outbreak-news";
+        
         if (item.ItemDefaultUrl) {
-          // If it starts with http, use it. If it starts with /, prepend domain.
-          if (item.ItemDefaultUrl.startsWith('http')) {
-            link = item.ItemDefaultUrl;
-          } else if (item.ItemDefaultUrl.startsWith('/')) {
-            link = `https://www.who.int${item.ItemDefaultUrl}`;
-          }
+           // If it's a full URL, trust it (mostly)
+           if (item.ItemDefaultUrl.startsWith('http')) {
+             finalLink = item.ItemDefaultUrl;
+           } 
+           // If it's a relative path, prepend WHO domain
+           else if (item.ItemDefaultUrl.startsWith('/')) {
+             finalLink = `https://www.who.int${item.ItemDefaultUrl}`;
+           }
+        } else {
+           // FAIL-SAFE: If no URL provided, create a Google Search for this specific title on WHO site
+           // This guarantees the user finds the article even if the link map is broken.
+           const searchSlug = encodeURIComponent(`site:who.int "${title}"`);
+           finalLink = `https://www.google.com/search?q=${searchSlug}`;
         }
 
         return {
-          title: item.Title || item.title || "Unknown Alert",
+          title: title,
           date: new Date(item.PublicationDate || item.Date).toLocaleDateString('en-GB', { 
             day: 'numeric', 
             month: 'short' 
           }),
-          link: link,
+          link: finalLink,
           rawDate: new Date(item.PublicationDate || item.Date)
         };
       });
 
-    // 4. STALE DATA GUARD
+    // 4. STALE DATA GUARD (90 Days)
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
