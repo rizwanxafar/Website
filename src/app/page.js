@@ -18,7 +18,8 @@ import {
   Library,
   Radio,
   Wifi,
-  Database // Added for Cached Mode icon
+  Database,
+  Radar
 } from "lucide-react";
 
 // --- ANIMATION CONFIG ---
@@ -37,7 +38,6 @@ const staggerContainer = {
 
 export default function Home() {
   // --- INTELLIGENCE STATE ---
-  // UPDATED BACKUP DATA: More realistic 2025/2026 placeholders so it looks fresh even offline.
   const [liveIntel, setLiveIntel] = useState([
     {
       title: "Mpox - Region of the Americas (Situation Report)",
@@ -59,26 +59,24 @@ export default function Home() {
   const [connectionStatus, setConnectionStatus] = useState("connecting"); // 'connecting', 'live', 'cached'
 
   useEffect(() => {
-    // CIRCUIT BREAKER LOGIC
     let isMounted = true;
+    // Circuit Breaker: 4s timeout
     const timeoutId = setTimeout(() => {
       if (isMounted && connectionStatus === "connecting") {
-        console.log("Connection timed out. Switching to Cache.");
         setConnectionStatus("cached");
       }
-    }, 4000); // 4 Second Timeout
+    }, 4000);
 
     async function connectToIntel() {
       try {
         const FEED_URL = "https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml";
-        // Trying the most robust proxy combination
         const PROXY_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(FEED_URL)}`;
 
         const res = await fetch(PROXY_URL);
         if (!res.ok) throw new Error("Connection Refused");
 
         const data = await res.json();
-        const text = data.contents; 
+        const text = data.contents;
         
         if (!text || text.length < 100) throw new Error("Empty Response");
 
@@ -94,22 +92,15 @@ export default function Home() {
         if (isMounted && items.length > 0) {
           setLiveIntel(items);
           setConnectionStatus("live");
-          clearTimeout(timeoutId); // Cancel the timeout since we succeeded
+          clearTimeout(timeoutId);
         }
       } catch (e) {
-        if (isMounted) {
-          console.log("Uplink failed/blocked, using backup cache.", e);
-          setConnectionStatus("cached");
-        }
+        if (isMounted) setConnectionStatus("cached");
       }
     }
     
     connectToIntel();
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timeoutId);
-    };
+    return () => { isMounted = false; clearTimeout(timeoutId); };
   }, []);
 
   return (
@@ -166,7 +157,31 @@ export default function Home() {
             />
           </motion.div>
 
-          {/* 3. IMPORTANT LINKS & INTEL */}
+          {/* 3. NEW SECTION: OUTBREAK DASHBOARD */}
+          <motion.div variants={fadeInUp}>
+             <div className="flex items-center gap-4 mb-6">
+              <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                <Radar className="w-3 h-3" />
+                GLOBAL SURVEILLANCE // OUTBREAK NEWS
+              </span>
+              <div className="h-px flex-1 bg-gradient-to-r from-neutral-900 to-transparent" />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               {/* Live Feed Card - Takes up prominent space */}
+               <LiveIntelCard items={liveIntel} status={connectionStatus} />
+               
+               {/* Optional: We can add a secondary dashboard card here later, 
+                   for now we can leave it as a single wide column or keep the grid structure ready */}
+               <div className="hidden md:block border border-white/5 bg-white/5 rounded-xl backdrop-blur-md p-6 flex flex-col justify-center items-center text-center">
+                  <Globe className="w-8 h-8 text-neutral-600 mb-3 opacity-50" />
+                  <h4 className="text-sm font-medium text-neutral-400">Global Map</h4>
+                  <p className="text-xs text-neutral-600 font-mono mt-1">MODULE_OFFLINE</p>
+               </div>
+            </div>
+          </motion.div>
+
+          {/* 4. IMPORTANT LINKS (Restored to Original 4-Card Grid) */}
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-6">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
@@ -178,12 +193,13 @@ export default function Home() {
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               
-              {/* SLOT 1: LIVE INTEL CARD */}
-              <motion.div className="md:col-span-1 row-span-1 md:row-span-2">
-                 <LiveIntelCard items={liveIntel} status={connectionStatus} />
-              </motion.div>
+              <UplinkCard 
+                title="WHO DONs"
+                subtitle="Disease Outbreak News"
+                icon={Globe}
+                href="https://www.who.int/emergencies/disease-outbreak-news"
+              />
               
-              {/* SLOTS 2-4: STATIC LINKS */}
               <UplinkCard 
                 title="NaTHNaC"
                 subtitle="Travel Health Pro"
@@ -208,7 +224,7 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* 4. RESOURCES */}
+          {/* 5. RESOURCES */}
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-8">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
@@ -240,7 +256,7 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* 5. FOOTER */}
+          {/* 6. FOOTER */}
           <motion.div variants={fadeInUp} className="pt-12 border-t border-neutral-900 flex justify-between items-center text-xs text-neutral-600 font-mono">
             <span>ID-NW © 2024</span>
             <a href="mailto:infectionnw@gmail.com" className="hover:text-white transition-colors">
@@ -254,9 +270,8 @@ export default function Home() {
   );
 }
 
-// --- LIVE INTEL CARD (Updated with Cached State) ---
+// --- DASHBOARD COMPONENT (Updated Style) ---
 function LiveIntelCard({ items, status }) {
-  // Status Logic
   const statusColors = {
     connecting: "text-amber-500",
     live: "text-emerald-500",
@@ -269,19 +284,17 @@ function LiveIntelCard({ items, status }) {
     cached: "OFFLINE CACHE"
   };
 
-  // Icon Logic
   const StatusIcon = () => {
     if (status === 'live') return <Radio className="w-4 h-4 text-emerald-500 animate-pulse" />;
     if (status === 'connecting') return <Wifi className="w-4 h-4 text-amber-500 animate-pulse" />;
-    return <Database className="w-4 h-4 text-neutral-500" />; // Database icon for Cache
+    return <Database className="w-4 h-4 text-neutral-500" />;
   };
 
   return (
-    <div className={`h-full rounded-xl border backdrop-blur-md overflow-hidden flex flex-col transition-colors duration-500
+    <div className={`rounded-xl border backdrop-blur-md overflow-hidden flex flex-col transition-colors duration-500 min-h-[220px]
       ${status === 'live' ? 'border-emerald-900/30 bg-emerald-950/5' : 'border-neutral-800 bg-neutral-900/10'}
     `}>
-       {/* Header */}
-       <div className={`p-3 border-b flex items-center justify-between
+       <div className={`p-4 border-b flex items-center justify-between
          ${status === 'live' ? 'border-emerald-900/20 bg-emerald-950/20' : 'border-neutral-800 bg-neutral-900/30'}
        `}>
           <div className="flex items-center gap-2">
@@ -295,7 +308,6 @@ function LiveIntelCard({ items, status }) {
           </span>
        </div>
        
-       {/* List */}
        <div className={`flex-1 flex flex-col divide-y ${status === 'live' ? 'divide-emerald-900/20' : 'divide-neutral-800'}`}>
          {items.map((item, i) => (
            <a 
@@ -303,21 +315,21 @@ function LiveIntelCard({ items, status }) {
              href={item.link}
              target="_blank"
              rel="noopener noreferrer" 
-             className={`flex-1 p-3 transition-colors flex flex-col justify-center gap-1 group
+             className={`flex-1 p-4 transition-colors flex flex-col justify-center gap-1 group
                ${status === 'live' ? 'hover:bg-emerald-900/10' : 'hover:bg-neutral-800/30'}
              `}
            >
-             <div className="flex justify-between items-start">
-               <span className={`text-[10px] font-mono group-hover:text-emerald-400
-                 ${status === 'live' ? 'text-emerald-600' : 'text-neutral-500'}
+             <div className="flex justify-between items-start mb-1">
+               <span className={`text-[10px] font-mono uppercase tracking-widest
+                 ${status === 'live' ? 'text-emerald-600 group-hover:text-emerald-400' : 'text-neutral-500'}
                `}>
                  {item.date}
                </span>
-               <ArrowUpRight className={`w-3 h-3 group-hover:text-emerald-500
-                 ${status === 'live' ? 'text-emerald-800' : 'text-neutral-600'}
+               <ArrowUpRight className={`w-3 h-3 
+                 ${status === 'live' ? 'text-emerald-800 group-hover:text-emerald-500' : 'text-neutral-600'}
                `} />
              </div>
-             <p className="text-xs font-medium text-neutral-300 group-hover:text-white line-clamp-2 leading-snug">
+             <p className="text-sm font-medium text-neutral-200 group-hover:text-white line-clamp-1 leading-snug">
                {item.title}
              </p>
            </a>
@@ -327,7 +339,7 @@ function LiveIntelCard({ items, status }) {
   );
 }
 
-// --- EXISTING COMPONENTS (Unchanged) ---
+// --- STANDARD COMPONENTS (Unchanged) ---
 
 function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
   const styles = {
