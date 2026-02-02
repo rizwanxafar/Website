@@ -5,7 +5,7 @@ import ClinicalDashboard from "@/components/ClinicalDashboard";
 async function getWhoIntel() {
   
   // 1. FALLBACK DATA (Safe Mode)
-  // Used if WHO API is down or blocked.
+  // Used if BOTH JSON and RSS fail.
   const FALLBACK_INTEL = [
     { 
       title: "Nipah virus infection - West Bengal, India", 
@@ -18,7 +18,7 @@ async function getWhoIntel() {
       link: "https://www.who.int/emergencies/disease-outbreak-news/item/2026-DON592" 
     },
     { 
-      title: "Mpox - Region of the Americas (Situation Report)", 
+      title: "Mpox - Region of the Americas", 
       date: "24 Jan", 
       link: "https://www.who.int/emergencies/disease-outbreak-news" 
     },
@@ -31,77 +31,112 @@ async function getWhoIntel() {
       title: "Chikungunya - French Guiana", 
       date: "20 Jan", 
       link: "https://www.who.int/emergencies/disease-outbreak-news" 
-    },
-     { 
-      title: "Cholera - Zimbabwe (Update)", 
-      date: "12 Jan", 
-      link: "https://www.who.int/emergencies/disease-outbreak-news" 
-    },
-    { 
-      title: "Dengue - Global Overview", 
-      date: "10 Jan", 
-      link: "https://www.who.int/emergencies/disease-outbreak-news" 
     }
   ];
 
+  // --- HELPER: DATA CLEANER ---
+  const cleanAndSort = (items) => {
+    return items
+      .map(item => {
+         // Normalized Link Logic
+         let finalLink = "https://www.who.int/emergencies/disease-outbreak-news";
+         if (item.link) {
+            if (item.link.startsWith('http')) finalLink = item.link;
+            else if (item.link.includes('/emergencies/')) finalLink = `https://www.who.int${item.link.startsWith('/') ? item.link : '/' + item.link}`;
+            else finalLink = `https://www.who.int/emergencies/disease-outbreak-news/item${item.link.startsWith('/') ? item.link : '/' + item.link}`;
+         }
+         return {
+           title: item.title || "Unknown Alert",
+           date: new Date(item.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+           link: finalLink,
+           rawDate: new Date(item.date)
+         };
+      })
+      .sort((a, b) => b.rawDate - a.rawDate); // FORCE SORT (Newest First)
+  };
+
   try {
-    // 2. FETCH (Top 30 items for the scrollable list)
-    // Removed the filter, so we just take the raw feed.
-    const res = await fetch("https://www.who.int/api/emergencies/diseaseoutbreaknews?$orderby=PublicationDate%20desc&$top=30", {
-      next: { revalidate: 3600 },
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json"
-      }
-    });
-
-    if (!res.ok) throw new Error(`Status: ${res.status}`);
-
-    const data = await res.json();
-    const rawItems = data.value || data || [];
-
-    // 3. TRANSFORM & REPAIR URLS
-    const processedItems = rawItems.map(item => {
-        const title = item.Title || item.title || "Unknown Alert";
-        const rawUrl = item.ItemDefaultUrl || "";
-        
-        // Link Repair Logic
-        let finalLink = "https://www.who.int/emergencies/disease-outbreak-news";
-        if (rawUrl) {
-           if (rawUrl.startsWith('http')) finalLink = rawUrl;
-           else if (rawUrl.includes('/emergencies/')) finalLink = `https://www.who.int${rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl}`;
-           else finalLink = `https://www.who.int/emergencies/disease-outbreak-news/item${rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl}`;
+    // 2. ATTEMPT A: JSON API (Preferred)
+    try {
+      const res = await fetch("https://www.who.int/api/emergencies/diseaseoutbreaknews?$orderby=PublicationDate%20desc&$top=30", {
+        next: { revalidate: 3600 },
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+          "Accept": "application/json"
         }
+      });
 
-        return {
-          title: title,
-          date: new Date(item.PublicationDate || item.Date).toLocaleDateString('en-GB', { 
-            day: 'numeric', 
-            month: 'short' 
-          }),
-          link: finalLink,
-          rawDate: new Date(item.PublicationDate || item.Date)
-        };
+      if (res.ok) {
+        const data = await res.json();
+        const rawItems = data.value || data || [];
+        
+        const mappedItems = rawItems.map(item => ({
+          title: item.Title || item.title,
+          date: item.PublicationDate || item.Date,
+          link: item.ItemDefaultUrl
+        }));
+
+        const processed = cleanAndSort(mappedItems);
+
+        // STALE CHECK
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+        
+        if (processed.length > 0 && processed[0].rawDate > ninetyDaysAgo) {
+          return { items: processed, source: "LIVE" };
+        }
+        console.warn("JSON API returned stale data. Trying RSS...");
+      }
+    } catch (e) {
+      console.warn("JSON API Failed. Switching to RSS Protocol...", e.message);
+    }
+
+    // 3. ATTEMPT B: RSS FEED (Failover)
+    // If JSON fails/blocks, we hit the public RSS feed and Regex parse it (Server-Side)
+    const rssRes = await fetch("https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml", {
+       next: { revalidate: 3600 },
+       headers: { "User-Agent": "Mozilla/5.0 (Compatible; ClinicalOS/1.0)" }
     });
 
-    // 4. STALE DATA GUARD (90 Days)
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    if (rssRes.ok) {
+      const xmlText = await rssRes.text();
+      
+      // Simple Regex extraction to avoid XML libraries
+      const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+      const titleRegex = /<title><!\[CDATA\[(.*?)\]\]><\/title>|<title>(.*?)<\/title>/;
+      const dateRegex = /<pubDate>(.*?)<\/pubDate>/;
+      const linkRegex = /<link>(.*?)<\/link>/;
 
-    if (processedItems.length > 0 && processedItems[0].rawDate < ninetyDaysAgo) {
-      console.warn("WHO API Stale. Serving Backup.");
-      return { items: FALLBACK_INTEL, source: "BACKUP" }; 
+      const rssItems = [];
+      let match;
+      while ((match = itemRegex.exec(xmlText)) !== null) {
+        const itemContent = match[1];
+        const titleMatch = itemContent.match(titleRegex);
+        const dateMatch = itemContent.match(dateRegex);
+        const linkMatch = itemContent.match(linkRegex);
+
+        if (titleMatch && dateMatch) {
+          rssItems.push({
+            title: titleMatch[1] || titleMatch[2],
+            date: dateMatch[1],
+            link: linkMatch ? linkMatch[1] : null
+          });
+        }
+        if (rssItems.length >= 30) break;
+      }
+
+      if (rssItems.length > 0) {
+        const processedRSS = cleanAndSort(rssItems);
+        return { items: processedRSS, source: "LIVE" }; // RSS is considered Live
+      }
     }
 
-    if (processedItems.length > 0) {
-      return { items: processedItems, source: "LIVE" };
-    }
-
-    return { items: FALLBACK_INTEL, source: "BACKUP" };
+    // 4. TOTAL FAILURE -> BACKUP
+    return { items: cleanAndSort(FALLBACK_INTEL.map(i => ({...i, date: new Date().toISOString()}))), source: "BACKUP" };
 
   } catch (error) {
-    console.warn("WHO Feed Error:", error.message);
-    return { items: FALLBACK_INTEL, source: "BACKUP" };
+    console.warn("Critical Intelligence Failure:", error.message);
+    return { items: cleanAndSort(FALLBACK_INTEL.map(i => ({...i, date: new Date().toISOString()}))), source: "BACKUP" };
   }
 }
 
@@ -122,4 +157,3 @@ export default async function Page() {
     />
   );
 }
-
