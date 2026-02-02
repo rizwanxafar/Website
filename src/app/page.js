@@ -4,7 +4,8 @@ import ClinicalDashboard from "@/components/ClinicalDashboard";
 
 async function getWhoIntel() {
   
-  // 1. FALLBACK DATA (Pure Outbreaks Only)
+  // 1. FALLBACK DATA (Safe Mode)
+  // Used if WHO API is down or blocked.
   const FALLBACK_INTEL = [
     { 
       title: "Nipah virus infection - West Bengal, India", 
@@ -17,6 +18,11 @@ async function getWhoIntel() {
       link: "https://www.who.int/emergencies/disease-outbreak-news/item/2026-DON592" 
     },
     { 
+      title: "Mpox - Region of the Americas (Situation Report)", 
+      date: "24 Jan", 
+      link: "https://www.who.int/emergencies/disease-outbreak-news" 
+    },
+    { 
       title: "Yellow Fever - Colombia", 
       date: "22 Jan", 
       link: "https://www.who.int/emergencies/disease-outbreak-news" 
@@ -26,13 +32,8 @@ async function getWhoIntel() {
       date: "20 Jan", 
       link: "https://www.who.int/emergencies/disease-outbreak-news" 
     },
-    { 
-      title: "Western Equine Encephalitis - Uruguay", 
-      date: "15 Jan", 
-      link: "https://www.who.int/emergencies/disease-outbreak-news" 
-    },
      { 
-      title: "Cholera - Zimbabwe", 
+      title: "Cholera - Zimbabwe (Update)", 
       date: "12 Jan", 
       link: "https://www.who.int/emergencies/disease-outbreak-news" 
     },
@@ -43,25 +44,9 @@ async function getWhoIntel() {
     }
   ];
 
-  // --- THE NUCLEAR FILTER ---
-  const filterOutbreaks = (items) => {
-    return items.filter(item => {
-      const t = (item.title || "").toLowerCase();
-      
-      const isBanned = 
-        t.includes("situation report") || 
-        t.includes("surveillance") || 
-        t.includes("update") || 
-        t.includes("global") || 
-        t.includes("review") ||
-        t.includes("questions");
-
-      return !isBanned;
-    });
-  };
-
   try {
-    // 2. FETCH (Request 30 items to allow for deep filtering)
+    // 2. FETCH (Top 30 items for the scrollable list)
+    // Removed the filter, so we just take the raw feed.
     const res = await fetch("https://www.who.int/api/emergencies/diseaseoutbreaknews?$orderby=PublicationDate%20desc&$top=30", {
       next: { revalidate: 3600 },
       headers: {
@@ -75,7 +60,7 @@ async function getWhoIntel() {
     const data = await res.json();
     const rawItems = data.value || data || [];
 
-    // 3. TRANSFORM
+    // 3. TRANSFORM & REPAIR URLS
     const processedItems = rawItems.map(item => {
         const title = item.Title || item.title || "Unknown Alert";
         const rawUrl = item.ItemDefaultUrl || "";
@@ -99,21 +84,17 @@ async function getWhoIntel() {
         };
     });
 
-    // 4. APPLY NUCLEAR FILTER
-    const cleanItems = filterOutbreaks(processedItems);
-
-    // 5. STALE DATA GUARD
+    // 4. STALE DATA GUARD (90 Days)
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    if (cleanItems.length > 0 && cleanItems[0].rawDate < ninetyDaysAgo) {
+    if (processedItems.length > 0 && processedItems[0].rawDate < ninetyDaysAgo) {
       console.warn("WHO API Stale. Serving Backup.");
       return { items: FALLBACK_INTEL, source: "BACKUP" }; 
     }
 
-    if (cleanItems.length > 0) {
-      // INCREASED LIMIT: We now return 10 items
-      return { items: cleanItems.slice(0, 10), source: "LIVE" };
+    if (processedItems.length > 0) {
+      return { items: processedItems, source: "LIVE" };
     }
 
     return { items: FALLBACK_INTEL, source: "BACKUP" };
