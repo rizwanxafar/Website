@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import {
   Activity, Plane, FileText, GraduationCap, ArrowUpRight,
   Terminal, ShieldAlert, Globe, Siren, Link as LinkIcon,
-  Library, Radio, Database, Radar, CheckCircle2
+  Library, Radio, Database, Radar
 } from "lucide-react";
 
 // --- ANIMATION CONFIG ---
@@ -22,7 +22,7 @@ const staggerContainer = {
   visible: { transition: { staggerChildren: 0.1 } }
 };
 
-export default function ClinicalDashboard({ intelData, lastSync }) {
+export default function ClinicalDashboard({ intelData, source, lastSync }) {
   return (
     <main className="min-h-screen bg-black text-neutral-200 selection:bg-white selection:text-black overflow-x-hidden font-sans">
       
@@ -35,7 +35,6 @@ export default function ClinicalDashboard({ intelData, lastSync }) {
               ID-Northwest
             </span>
           </div>
-          {/* Status Indicator */}
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="font-mono text-[10px] text-emerald-500 tracking-wider">SYSTEM ONLINE</span>
@@ -82,7 +81,7 @@ export default function ClinicalDashboard({ intelData, lastSync }) {
             />
           </motion.div>
 
-          {/* 3. INTELLIGENCE DASHBOARD (Server Fed) */}
+          {/* 3. INTELLIGENCE DASHBOARD */}
           <motion.div variants={fadeInUp}>
              <div className="flex items-center gap-4 mb-6">
               <span className="font-mono text-xs text-neutral-500 uppercase tracking-widest flex items-center gap-2">
@@ -92,10 +91,12 @@ export default function ClinicalDashboard({ intelData, lastSync }) {
               <div className="h-px flex-1 bg-gradient-to-r from-neutral-900 to-transparent" />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <LiveIntelCard items={intelData} lastSync={lastSync} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <div className="md:col-span-2">
+                 <LiveIntelCard items={intelData} source={source} lastSync={lastSync} />
+               </div>
                
-               <div className="hidden md:block border border-white/5 bg-white/5 rounded-xl backdrop-blur-md p-6 flex flex-col justify-center items-center text-center group hover:border-white/10 transition-colors">
+               <div className="hidden md:flex border border-white/5 bg-white/5 rounded-xl backdrop-blur-md p-6 flex-col justify-center items-center text-center group hover:border-white/10 transition-colors">
                   <Globe className="w-8 h-8 text-neutral-600 mb-3 opacity-50 group-hover:text-neutral-400 group-hover:opacity-100 transition-all" />
                   <h4 className="text-sm font-medium text-neutral-400">Global Map</h4>
                   <p className="text-xs text-neutral-600 font-mono mt-1">MODULE_OFFLINE</p>
@@ -152,27 +153,50 @@ export default function ClinicalDashboard({ intelData, lastSync }) {
   );
 }
 
-// --- SUBCOMPONENTS (Styled for Clinical OS) ---
+// --- INTELLIGENCE CARD (Visualizes LIVE vs BACKUP) ---
 
-function LiveIntelCard({ items, lastSync }) {
-  // Determine status based on data presence
+function LiveIntelCard({ items, source, lastSync }) {
   const hasData = items && items.length > 0;
+  const isLive = source === 'LIVE';
   
+  // Theme Logic
+  const theme = isLive ? {
+    border: 'border-emerald-900/30',
+    bg: 'bg-emerald-950/5',
+    headerBorder: 'border-emerald-900/20',
+    headerBg: 'bg-emerald-950/20',
+    text: 'text-emerald-500',
+    hover: 'hover:bg-emerald-900/10',
+    date: 'text-emerald-600 group-hover:text-emerald-400',
+    icon: 'text-emerald-800 group-hover:text-emerald-500'
+  } : {
+    border: 'border-amber-900/30',
+    bg: 'bg-amber-950/5',
+    headerBorder: 'border-amber-900/20',
+    headerBg: 'bg-amber-950/20',
+    text: 'text-amber-500',
+    hover: 'hover:bg-amber-900/10',
+    date: 'text-amber-600 group-hover:text-amber-400',
+    icon: 'text-amber-800 group-hover:text-amber-500'
+  };
+
   return (
-    <div className={`rounded-xl border backdrop-blur-md overflow-hidden flex flex-col transition-colors duration-500 min-h-[220px]
-      ${hasData ? 'border-emerald-900/30 bg-emerald-950/5' : 'border-neutral-800 bg-neutral-900/10'}
+    <div className={`rounded-xl border backdrop-blur-md overflow-hidden flex flex-col transition-colors duration-500 h-full min-h-[320px]
+      ${hasData ? theme.border : 'border-neutral-800'}
+      ${hasData ? theme.bg : 'bg-neutral-900/10'}
     `}>
        <div className={`p-4 border-b flex items-center justify-between
-         ${hasData ? 'border-emerald-900/20 bg-emerald-950/20' : 'border-neutral-800 bg-neutral-900/30'}
+         ${hasData ? theme.headerBorder : 'border-neutral-800'}
+         ${hasData ? theme.headerBg : 'bg-neutral-900/30'}
        `}>
           <div className="flex items-center gap-2">
-            {hasData ? (
-              <Radio className="w-4 h-4 text-emerald-500" />
+            {isLive ? (
+              <Radio className={`w-4 h-4 ${theme.text} animate-pulse`} />
             ) : (
-              <Database className="w-4 h-4 text-neutral-500" />
+              <Database className={`w-4 h-4 ${theme.text}`} />
             )}
-            <span className={`text-[10px] font-bold tracking-wider uppercase ${hasData ? 'text-emerald-500' : 'text-neutral-500'}`}>
-              {hasData ? 'INTELLIGENCE FEED' : 'OFFLINE'}
+            <span className={`text-[10px] font-bold tracking-wider uppercase ${theme.text}`}>
+              {isLive ? 'LIVE INTEL FEED' : 'ARCHIVE DATA (BACKUP)'}
             </span>
           </div>
           <span className="text-[10px] font-mono text-neutral-500">
@@ -180,29 +204,29 @@ function LiveIntelCard({ items, lastSync }) {
           </span>
        </div>
        
-       <div className={`flex-1 flex flex-col divide-y ${hasData ? 'divide-emerald-900/20' : 'divide-neutral-800'}`}>
+       <div className={`flex-1 flex flex-col divide-y ${hasData ? (isLive ? 'divide-emerald-900/20' : 'divide-amber-900/20') : 'divide-neutral-800'}`}>
          {hasData ? items.map((item, i) => (
            <a 
              key={i} 
              href={item.link}
              target="_blank"
              rel="noopener noreferrer" 
-             className="flex-1 p-4 transition-colors flex flex-col justify-center gap-1 group hover:bg-emerald-900/10"
+             className={`flex-1 p-4 transition-colors flex flex-col justify-center gap-1 group ${theme.hover}`}
            >
-             <div className="flex justify-between items-start mb-1">
-               <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-600 group-hover:text-emerald-400">
-                 {item.date}
-               </span>
-               <ArrowUpRight className="w-3 h-3 text-emerald-800 group-hover:text-emerald-500" />
+             <div className="flex justify-between items-center mb-1">
+                <p className="text-sm font-medium text-neutral-200 group-hover:text-white line-clamp-1 leading-snug">
+                  {item.title}
+                </p>
+                <ArrowUpRight className={`w-3 h-3 flex-shrink-0 ml-2 ${theme.icon}`} />
              </div>
-             <p className="text-sm font-medium text-neutral-200 group-hover:text-white line-clamp-1 leading-snug">
-               {item.title}
-             </p>
+             <span className={`text-[10px] font-mono uppercase tracking-widest ${theme.date}`}>
+                {item.date}
+             </span>
            </a>
          )) : (
            <div className="flex-1 flex flex-col items-center justify-center text-neutral-600 p-6">
              <Database className="w-8 h-8 mb-2 opacity-20" />
-             <p className="text-xs font-mono">NO DATA AVAILABLE</p>
+             <p className="text-xs font-mono">DATA STREAM OFFLINE</p>
            </div>
          )}
        </div>
@@ -210,6 +234,7 @@ function LiveIntelCard({ items, lastSync }) {
   );
 }
 
+// --- STANDARD COMPONENTS (Unchanged) ---
 function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
   const styles = {
     critical: {
