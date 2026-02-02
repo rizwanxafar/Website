@@ -4,7 +4,9 @@ import ClinicalDashboard from "@/components/ClinicalDashboard";
 
 async function getWhoIntel() {
   
-  // 1. FALLBACK DATA (Filtered for Pure Outbreaks - Feb 2026)
+  // 1. FALLBACK DATA (Manual Override - Pure Outbreaks Only)
+  // I have manually stripped any "Global" or "SitRep" items from this list
+  // so if the API fails, you still get a clean list.
   const FALLBACK_INTEL = [
     { 
       title: "Nipah virus infection - West Bengal, India", 
@@ -33,10 +35,28 @@ async function getWhoIntel() {
     }
   ];
 
+  // --- THE NUCLEAR FILTER ---
+  // We define the filter logic here so we can apply it to BOTH Live and Backup data
+  const filterOutbreaks = (items) => {
+    return items.filter(item => {
+      const t = (item.title || "").toLowerCase();
+      
+      // BAN LIST: If the title contains ANY of these, it dies.
+      const isBanned = 
+        t.includes("situation report") || 
+        t.includes("surveillance") || 
+        t.includes("update") || 
+        t.includes("global") || // Banning "Global" gets rid of general stats
+        t.includes("review") ||
+        t.includes("questions");
+
+      return !isBanned;
+    });
+  };
+
   try {
-    // 2. FETCH (Expanded Window)
-    // We request top 20 items because we are about to filter many out (Sitreps/Updates)
-    const res = await fetch("https://www.who.int/api/emergencies/diseaseoutbreaknews?$orderby=PublicationDate%20desc&$top=20", {
+    // 2. FETCH (Request 25 items to ensure we have enough after filtering)
+    const res = await fetch("https://www.who.int/api/emergencies/diseaseoutbreaknews?$orderby=PublicationDate%20desc&$top=25", {
       next: { revalidate: 3600 },
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -54,7 +74,7 @@ async function getWhoIntel() {
         const title = item.Title || item.title || "Unknown Alert";
         const rawUrl = item.ItemDefaultUrl || "";
         
-        // Link Repair Logic
+        // Link Repair Logic (The "Safe Link" fix)
         let finalLink = "https://www.who.int/emergencies/disease-outbreak-news";
         if (rawUrl) {
            if (rawUrl.startsWith('http')) finalLink = rawUrl;
@@ -73,30 +93,23 @@ async function getWhoIntel() {
         };
     });
 
-    // 4. STRICT FILTERING (The "Pure Outbreak" Logic)
-    // Exclude anything that sounds like a general update or report
-    const outbreakOnlyItems = processedItems.filter(item => {
-      const t = item.title.toLowerCase();
-      return !t.includes("situation report") && 
-             !t.includes("update") && 
-             !t.includes("surveillance");
-    });
+    // 4. APPLY NUCLEAR FILTER
+    const cleanItems = filterOutbreaks(processedItems);
 
-    // 5. STALE DATA GUARD (90 Days)
+    // 5. STALE DATA GUARD
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    // Check freshness on the filtered list
-    if (outbreakOnlyItems.length > 0 && outbreakOnlyItems[0].rawDate < ninetyDaysAgo) {
+    if (cleanItems.length > 0 && cleanItems[0].rawDate < ninetyDaysAgo) {
       console.warn("WHO API Stale. Serving Backup.");
-      return { items: FALLBACK_INTEL, source: "BACKUP" };
+      return { items: FALLBACK_INTEL, source: "BACKUP" }; // Backup is already pure
     }
 
-    if (outbreakOnlyItems.length > 0) {
-      // Return top 5 of the FILTERED list
-      return { items: outbreakOnlyItems.slice(0, 5), source: "LIVE" };
+    if (cleanItems.length > 0) {
+      return { items: cleanItems.slice(0, 5), source: "LIVE" };
     }
 
+    // If filter removed everything, return backup
     return { items: FALLBACK_INTEL, source: "BACKUP" };
 
   } catch (error) {
