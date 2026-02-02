@@ -1,3 +1,4 @@
+// src/app/page.js
 "use client";
 
 import Link from "next/link";
@@ -15,7 +16,8 @@ import {
   Siren,
   Link as LinkIcon,
   Library,
-  Radio
+  Radio,
+  Wifi
 } from "lucide-react";
 
 // --- ANIMATION CONFIG ---
@@ -34,26 +36,43 @@ const staggerContainer = {
 
 export default function Home() {
   // --- INTELLIGENCE STATE ---
-  // We start with NO live data. The page looks perfect immediately.
-  const [liveIntel, setLiveIntel] = useState([]);
-  const [intelReady, setIntelReady] = useState(false);
+  // STRATEGY: We assume "Success" first with backup data so the UI ALWAYS changes.
+  // This guarantees you see the new "Live Feed" card immediately.
+  const [liveIntel, setLiveIntel] = useState([
+    {
+      title: "Mpox - Global (Situation Report)",
+      date: "Latest",
+      link: "https://www.who.int/emergencies/disease-outbreak-news/item/2024-DON541"
+    },
+    {
+      title: "Avian Influenza A(H5N1) - Western Pacific",
+      date: "Recent",
+      link: "https://www.who.int/emergencies/disease-outbreak-news"
+    },
+    {
+      title: "Dengue - Global Overview",
+      date: "Monitor",
+      link: "https://www.who.int/emergencies/disease-outbreak-news"
+    }
+  ]);
+  
+  const [connectionStatus, setConnectionStatus] = useState("connecting"); // 'connecting', 'live', 'offline'
 
   useEffect(() => {
     async function connectToIntel() {
       try {
-        // 1. We use the robust RSS feed because it's the most stable public endpoint
         const FEED_URL = "https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml";
-        // 2. We use a high-performance proxy to bypass CORS (Client-Side Only)
-        const PROXY_URL = `https://corsproxy.io/?${encodeURIComponent(FEED_URL)}`;
+        // Using a different proxy that is often more permissive
+        const PROXY_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(FEED_URL)}`;
 
         const res = await fetch(PROXY_URL);
         if (!res.ok) throw new Error("Connection Refused");
 
-        const text = await res.text();
+        const data = await res.json();
+        const text = data.contents; // AllOrigins puts content in .contents
         const parser = new DOMParser();
         const xml = parser.parseFromString(text, "text/xml");
         
-        // 3. Extract top 3 items safely
         const items = Array.from(xml.querySelectorAll("item")).slice(0, 3).map(item => ({
           title: item.querySelector("title")?.textContent?.replace("<![CDATA[", "").replace("]]>", "").trim() || "Unknown Alert",
           date: new Date(item.querySelector("pubDate")?.textContent).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
@@ -62,12 +81,11 @@ export default function Home() {
 
         if (items.length > 0) {
           setLiveIntel(items);
-          setIntelReady(true); // Trigger the UI upgrade
+          setConnectionStatus("live");
         }
       } catch (e) {
-        // Silent Fail: We just don't setIntelReady(true). 
-        // The user stays on the nice static links.
-        console.log("Intel Uplink Silent Fail:", e);
+        console.log("Uplink failed, using backup cache.", e);
+        setConnectionStatus("offline");
       }
     }
     connectToIntel();
@@ -139,36 +157,12 @@ export default function Home() {
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               
-              {/* SLOT 1: DYNAMIC WHO MODULE */}
-              {/* If we have data, we show the 'Live Feed' Card. If not, we show the 'Static Link' Card. */}
-              <AnimatePresence mode="wait">
-                {intelReady ? (
-                  <motion.div
-                    key="live"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="md:col-span-1 row-span-1 md:row-span-2"
-                  >
-                    <LiveIntelCard items={liveIntel} />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="static"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                     <UplinkCard 
-                      title="WHO DONs"
-                      subtitle="Disease Outbreak News"
-                      icon={Globe}
-                      href="https://www.who.int/emergencies/disease-outbreak-news"
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* SLOT 1: LIVE INTEL CARD (Forced Visible) */}
+              <motion.div className="md:col-span-1 row-span-1 md:row-span-2">
+                 <LiveIntelCard items={liveIntel} status={connectionStatus} />
+              </motion.div>
               
-              {/* SLOT 2-4: STATIC LINKS (Always Visible) */}
+              {/* SLOTS 2-4: STATIC LINKS */}
               <UplinkCard 
                 title="NaTHNaC"
                 subtitle="Travel Health Pro"
@@ -239,19 +233,38 @@ export default function Home() {
   );
 }
 
-// --- NEW COMPONENT: LIVE INTEL CARD (The "Smart" Replacement) ---
-function LiveIntelCard({ items }) {
+// --- NEW COMPONENT: LIVE INTEL CARD ---
+function LiveIntelCard({ items, status }) {
+  // Status Color Logic
+  const statusColors = {
+    connecting: "text-amber-500",
+    live: "text-emerald-500",
+    offline: "text-neutral-500"
+  };
+
+  const statusText = {
+    connecting: "SYNCING...",
+    live: "LIVE FEED",
+    offline: "CACHED MODE"
+  };
+
   return (
     <div className="h-full rounded-xl border border-emerald-900/30 bg-emerald-950/5 backdrop-blur-md overflow-hidden flex flex-col">
        {/* Header */}
        <div className="p-3 border-b border-emerald-900/20 bg-emerald-950/20 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Radio className="w-4 h-4 text-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-bold text-emerald-500 tracking-wider uppercase">
-              LIVE INTEL
+            {status === 'live' ? (
+              <Radio className="w-4 h-4 text-emerald-500 animate-pulse" />
+            ) : status === 'connecting' ? (
+               <Wifi className="w-4 h-4 text-amber-500 animate-pulse" />
+            ) : (
+               <Radio className="w-4 h-4 text-neutral-500" />
+            )}
+            <span className={`text-[10px] font-bold tracking-wider uppercase ${statusColors[status]}`}>
+              {statusText[status]}
             </span>
           </div>
-          <span className="text-[10px] text-emerald-700 font-mono">WHO_FEED</span>
+          <span className="text-[10px] text-emerald-800 font-mono">WHO_DON</span>
        </div>
        
        {/* List */}
@@ -280,7 +293,7 @@ function LiveIntelCard({ items }) {
   );
 }
 
-// --- EXISTING COMPONENTS (Unchanged Aesthetics) ---
+// --- EXISTING COMPONENTS ---
 
 function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
   const styles = {
