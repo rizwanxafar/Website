@@ -153,7 +153,7 @@ export default function ClinicalDashboard({ intelData, source, lastSync }) {
   );
 }
 
-// --- INTELLIGENCE CARD (Updated Labels) ---
+// --- INTELLIGENCE CARD (Scrollable Terminal) ---
 
 function LiveIntelCard({ items, source, lastSync }) {
   const hasData = items && items.length > 0;
@@ -168,7 +168,8 @@ function LiveIntelCard({ items, source, lastSync }) {
     text: 'text-emerald-500',
     hover: 'hover:bg-emerald-900/10',
     date: 'text-emerald-600 group-hover:text-emerald-400',
-    icon: 'text-emerald-800 group-hover:text-emerald-500'
+    icon: 'text-emerald-800 group-hover:text-emerald-500',
+    scrollbar: 'scrollbar-thumb-emerald-900/50 hover:scrollbar-thumb-emerald-700/50'
   } : {
     border: 'border-amber-900/30',
     bg: 'bg-amber-950/5',
@@ -177,15 +178,16 @@ function LiveIntelCard({ items, source, lastSync }) {
     text: 'text-amber-500',
     hover: 'hover:bg-amber-900/10',
     date: 'text-amber-600 group-hover:text-amber-400',
-    icon: 'text-amber-800 group-hover:text-amber-500'
+    icon: 'text-amber-800 group-hover:text-amber-500',
+    scrollbar: 'scrollbar-thumb-amber-900/50 hover:scrollbar-thumb-amber-700/50'
   };
 
   return (
-    <div className={`rounded-xl border backdrop-blur-md overflow-hidden flex flex-col transition-colors duration-500 h-full min-h-[320px]
+    <div className={`rounded-xl border backdrop-blur-md overflow-hidden flex flex-col transition-colors duration-500 h-full min-h-[420px] max-h-[420px]
       ${hasData ? theme.border : 'border-neutral-800'}
       ${hasData ? theme.bg : 'bg-neutral-900/10'}
     `}>
-       <div className={`p-4 border-b flex items-center justify-between
+       <div className={`p-4 border-b flex items-center justify-between flex-shrink-0 z-10
          ${hasData ? theme.headerBorder : 'border-neutral-800'}
          ${hasData ? theme.headerBg : 'bg-neutral-900/30'}
        `}>
@@ -196,7 +198,6 @@ function LiveIntelCard({ items, source, lastSync }) {
               <Database className={`w-4 h-4 ${theme.text}`} />
             )}
             <span className={`text-[10px] font-bold tracking-wider uppercase ${theme.text}`}>
-              {/* UPDATED LABEL HERE */}
               {isLive ? 'WHO DISEASE OUTBREAK NEWS' : 'ARCHIVE DATA (BACKUP)'}
             </span>
           </div>
@@ -205,32 +206,41 @@ function LiveIntelCard({ items, source, lastSync }) {
           </span>
        </div>
        
-       <div className={`flex-1 flex flex-col divide-y ${hasData ? (isLive ? 'divide-emerald-900/20' : 'divide-amber-900/20') : 'divide-neutral-800'}`}>
+       {/* SCROLLABLE CONTAINER */}
+       <div className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent ${theme.scrollbar} flex flex-col divide-y ${hasData ? (isLive ? 'divide-emerald-900/20' : 'divide-amber-900/20') : 'divide-neutral-800'}`}>
          {hasData ? items.map((item, i) => (
            <a 
              key={i} 
              href={item.link}
              target="_blank"
              rel="noopener noreferrer" 
-             className={`flex-1 p-4 transition-colors flex flex-col justify-center gap-1 group ${theme.hover}`}
+             className={`flex-shrink-0 p-4 transition-colors flex flex-col justify-center gap-1 group ${theme.hover}`}
            >
              <div className="flex justify-between items-center mb-1">
-                <p className="text-sm font-medium text-neutral-200 group-hover:text-white line-clamp-1 leading-snug">
+                <p className="text-sm font-medium text-neutral-200 group-hover:text-white leading-snug">
                   {item.title}
                 </p>
-                <ArrowUpRight className={`w-3 h-3 flex-shrink-0 ml-2 ${theme.icon}`} />
+                <ArrowUpRight className={`w-3 h-3 flex-shrink-0 ml-4 ${theme.icon}`} />
              </div>
              <span className={`text-[10px] font-mono uppercase tracking-widest ${theme.date}`}>
                 {item.date}
              </span>
            </a>
          )) : (
-           <div className="flex-1 flex flex-col items-center justify-center text-neutral-600 p-6">
+           <div className="flex-1 flex flex-col items-center justify-center text-neutral-600 p-6 h-full">
              <Database className="w-8 h-8 mb-2 opacity-20" />
              <p className="text-xs font-mono">DATA STREAM OFFLINE</p>
            </div>
          )}
+         
+         {/* Spacer to ensure last item isn't cut off */}
+         {hasData && <div className="h-4 flex-shrink-0" />}
        </div>
+       
+       {/* FADE OVERLAY (To imply more content) */}
+       {hasData && (
+        <div className={`h-6 bg-gradient-to-t from-black/20 to-transparent pointer-events-none absolute bottom-0 left-0 right-0 z-10`} />
+       )}
     </div>
   );
 }
