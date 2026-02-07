@@ -4,13 +4,13 @@ import ClinicalDashboard from "@/components/ClinicalDashboard";
 
 async function getWhoIntel() {
   
-  // FALLBACK DATA (If WHO servers are totally down)
+  // FALLBACK DATA (Offline Mode)
   const FALLBACK_INTEL = [
     { 
       title: "System Offline: Engaging Backup Data", 
       date: new Date().toISOString(), 
       link: "https://www.who.int/emergencies/disease-outbreak-news",
-      description: "Unable to establish live connection to WHO servers."
+      description: "Unable to establish live connection to WHO servers. Displaying cached safety protocols."
     }
   ];
 
@@ -18,24 +18,42 @@ async function getWhoIntel() {
   const cleanText = (html) => {
     if (!html) return "";
     return html
-      .replace(/<[^>]*>/g, '') // Strip ALL tags
+      .replace(/<[^>]*>/g, '') // Strip HTML tags
       .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
       .replace(/\s+/g, ' ')    // Collapse whitespace
       .trim();
   };
 
-  // --- HELPER: LINK FIXER ---
-  const fixLink = (url) => {
-    if (!url) return "#";
-    const cleanUrl = url.trim();
-    if (cleanUrl.startsWith("http")) return cleanUrl;
-    // Fix relative links (e.g., "/emergencies/...")
-    if (cleanUrl.startsWith("/")) return `https://www.who.int${cleanUrl}`;
-    return `https://www.who.int/${cleanUrl}`;
+  // --- HELPER: SMART LINK CONSTRUCTOR ---
+  const constructLink = (item) => {
+    // 1. Try explicit URL
+    let url = item.ItemDefaultUrl || item.Link || "";
+    
+    // 2. If it's empty, try to build from ID
+    if (!url && item.DonId) {
+      url = item.DonId;
+    }
+
+    // 3. Clean it
+    url = url.trim();
+
+    // 4. Logic Tree
+    if (url.startsWith("http")) return url; // Already full link
+    
+    if (url.includes("/emergencies/")) {
+      // It's a relative path like /emergencies/disease-outbreak-news/item/2024-DON500
+      return `https://www.who.int${url.startsWith("/") ? "" : "/"}${url}`;
+    }
+    
+    // 5. THE FIX: If it's just an ID (e.g. "2026-DON594"), prepend the full path
+    // Remove leading slash if present
+    const cleanId = url.startsWith("/") ? url.substring(1) : url;
+    return `https://www.who.int/emergencies/disease-outbreak-news/item/${cleanId}`;
   };
 
   try {
-    // STRATEGY: JSON API (It is faster and usually has the relative links)
+    // STRATEGY: JSON API
     const res = await fetch("https://www.who.int/api/emergencies/diseaseoutbreaknews?$orderby=PublicationDate%20desc&$top=20", {
         next: { revalidate: 3600 },
         headers: { 
@@ -48,43 +66,38 @@ async function getWhoIntel() {
         const data = await res.json();
         const rawItems = data.value || data || [];
 
-        // MAP & CLEAN
         const mappedItems = rawItems.map(item => {
           
-          // 1. DYNAMIC FIELD HUNTING
-          // We look for ANY field that might contain the text
-          const rawBody = item.Description || item.description || item.IntroText || item.introText || item.Body || item.body || "";
+          // 1. CONTENT CASCADE
+          // We try keys in order of "cleanliness" based on your debug data
+          const rawBody = item.Summary || item.Overview || item.Epidemiology || item.Assessment || "";
           
           // 2. CLEANUP
           let summary = cleanText(rawBody);
 
-          // 3. IF SUMMARY IS STILL EMPTY, USE TITLE
-          if (summary.length < 5) {
-             summary = "New disease outbreak reported. Click for full official details.";
+          // 3. FALLBACK TEXT
+          if (summary.length < 10) {
+             summary = "Detailed clinical data available in full report.";
           }
 
           // 4. TRUNCATE
-          if (summary.length > 200) summary = summary.substring(0, 200) + "...";
+          if (summary.length > 220) summary = summary.substring(0, 220) + "...";
 
           return {
-            title: item.Title || item.title || "Unknown Report",
-            // Date formatting
-            date: new Date(item.PublicationDate || item.Date || new Date()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-            // LINK FIX APPLIED HERE
-            link: fixLink(item.ItemDefaultUrl || item.url || item.Link),
-            description: summary,
-            // DEBUG FIELD: Let's see what keys are actually available
-            debugKeys: Object.keys(item).join(", ")
+            title: item.Title || "Unknown Report",
+            date: new Date(item.PublicationDate || item.Date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+            link: constructLink(item),
+            description: summary
           };
         });
         
-        return { items: mappedItems, source: "LIVE (API)" };
+        return { items: mappedItems, source: "LIVE" };
     }
 
     throw new Error("API Failed");
 
   } catch (error) {
-    console.error("Intel Failure:", error);
+    console.warn("Intel Failure:", error);
     return { items: FALLBACK_INTEL, source: "BACKUP" };
   }
 }
@@ -97,19 +110,10 @@ export default async function Page() {
   });
 
   return (
-    <div className="bg-black min-h-screen">
-       {/* DEBUG PANEL: REMOVE THIS ONCE WORKING */}
-       <div className="fixed bottom-0 left-0 w-full bg-red-900/90 text-red-100 p-2 text-[10px] font-mono z-50 border-t border-red-500 overflow-x-auto whitespace-nowrap">
-         <strong>DEBUG (First Item Keys):</strong> {items[0]?.debugKeys || "No Data"} 
-         <span className="mx-4">|</span>
-         <strong>Link Example:</strong> {items[0]?.link}
-       </div>
-
-      <ClinicalDashboard 
-        intelData={items} 
-        source={source} 
-        lastSync={lastSync}
-      />
-    </div>
+    <ClinicalDashboard 
+      intelData={items} 
+      source={source} 
+      lastSync={lastSync}
+    />
   );
 }
