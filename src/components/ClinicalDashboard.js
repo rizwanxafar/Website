@@ -81,7 +81,7 @@ export default function ClinicalDashboard({ intelData, source, lastSync }) {
             />
           </motion.div>
 
-          {/* 3. INTELLIGENCE DASHBOARD */}
+          {/* 3. INTELLIGENCE DASHBOARD (Full Width) */}
           <motion.div variants={fadeInUp}>
              <div className="flex items-center gap-4 mb-6">
               <span className="font-mono text-sm font-medium text-neutral-400 uppercase tracking-widest flex items-center gap-2">
@@ -91,16 +91,9 @@ export default function ClinicalDashboard({ intelData, source, lastSync }) {
               <div className="h-px flex-1 bg-gradient-to-r from-neutral-800 to-transparent" />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-               <div className="md:col-span-2">
-                 <LiveIntelCard items={intelData} source={source} lastSync={lastSync} />
-               </div>
-               
-               <div className="hidden md:flex border border-white/10 bg-white/5 rounded-xl backdrop-blur-md p-6 flex-col justify-center items-center text-center group hover:border-white/20 transition-colors">
-                  <Globe className="w-8 h-8 text-neutral-600 mb-3 opacity-50 group-hover:text-neutral-400 group-hover:opacity-100 transition-all" />
-                  <h4 className="text-sm font-medium text-neutral-400">Global Map</h4>
-                  <p className="text-xs text-neutral-600 font-mono mt-1">MODULE_OFFLINE</p>
-               </div>
+            {/* FULL WIDTH CONTAINER - No Grid */}
+            <div className="w-full">
+               <LiveIntelCard items={intelData} source={source} lastSync={lastSync} />
             </div>
           </motion.div>
 
@@ -153,7 +146,7 @@ export default function ClinicalDashboard({ intelData, source, lastSync }) {
   );
 }
 
-// --- INTELLIGENCE CARD (Updated UI) ---
+// --- INTELLIGENCE CARD (With Description) ---
 
 function LiveIntelCard({ items, source, lastSync }) {
   const hasData = items && items.length > 0;
@@ -161,7 +154,7 @@ function LiveIntelCard({ items, source, lastSync }) {
   
   // Theme Logic
   const theme = isLive ? {
-    border: 'border-emerald-500/30', // More prominent border
+    border: 'border-emerald-500/30',
     bg: 'bg-emerald-950/5',
     headerBorder: 'border-emerald-900/20',
     headerBg: 'bg-emerald-950/20',
@@ -171,7 +164,7 @@ function LiveIntelCard({ items, source, lastSync }) {
     icon: 'text-emerald-800 group-hover:text-emerald-500',
     scrollbar: 'scrollbar-thumb-emerald-900/50 hover:scrollbar-thumb-emerald-700/50'
   } : {
-    border: 'border-amber-500/30', // More prominent border
+    border: 'border-amber-500/30',
     bg: 'bg-amber-950/5',
     headerBorder: 'border-amber-900/20',
     headerBg: 'bg-amber-950/20',
@@ -183,7 +176,7 @@ function LiveIntelCard({ items, source, lastSync }) {
   };
 
   return (
-    <div className={`rounded-xl border backdrop-blur-md overflow-hidden flex flex-col transition-colors duration-500 h-full min-h-[420px] max-h-[420px]
+    <div className={`rounded-xl border backdrop-blur-md overflow-hidden flex flex-col transition-colors duration-500 h-full min-h-[500px] max-h-[600px]
       ${hasData ? theme.border : 'border-neutral-700'}
       ${hasData ? theme.bg : 'bg-neutral-900/10'}
     `}>
@@ -202,11 +195,10 @@ function LiveIntelCard({ items, source, lastSync }) {
             </span>
           </div>
           <span className="text-[10px] font-mono text-neutral-500">
-            SYNC: {lastSync}
+            LAST UPDATED: {lastSync}
           </span>
        </div>
        
-       {/* SCROLLABLE CONTAINER */}
        <div className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent ${theme.scrollbar} flex flex-col divide-y ${hasData ? (isLive ? 'divide-emerald-900/20' : 'divide-amber-900/20') : 'divide-neutral-800'}`}>
          {hasData ? items.map((item, i) => (
            <a 
@@ -214,17 +206,25 @@ function LiveIntelCard({ items, source, lastSync }) {
              href={item.link}
              target="_blank"
              rel="noopener noreferrer" 
-             className={`flex-shrink-0 p-4 transition-colors flex flex-col justify-center gap-1 group ${theme.hover}`}
+             className={`flex-shrink-0 p-5 transition-colors flex flex-col justify-center gap-2 group ${theme.hover}`}
            >
-             <div className="flex justify-between items-center mb-1">
-                <p className="text-sm font-medium text-neutral-200 group-hover:text-white leading-snug">
-                  {item.title}
-                </p>
-                <ArrowUpRight className={`w-3 h-3 flex-shrink-0 ml-4 ${theme.icon}`} />
+             <div className="flex justify-between items-start">
+                <div className="flex-1">
+                   <p className="text-base font-medium text-neutral-200 group-hover:text-white leading-snug">
+                     {item.title}
+                   </p>
+                   {/* DESCRIPTION TEXT */}
+                   <p className="text-sm text-neutral-500 group-hover:text-neutral-400 mt-1 line-clamp-2 leading-relaxed">
+                     {item.description}
+                   </p>
+                </div>
+                <div className="flex flex-col items-end gap-1 ml-4">
+                  <span className={`text-[10px] font-mono uppercase tracking-widest ${theme.date}`}>
+                    {item.date}
+                  </span>
+                  <ArrowUpRight className={`w-3 h-3 ${theme.icon}`} />
+                </div>
              </div>
-             <span className={`text-[10px] font-mono uppercase tracking-widest ${theme.date}`}>
-                {item.date}
-             </span>
            </a>
          )) : (
            <div className="flex-1 flex flex-col items-center justify-center text-neutral-600 p-6 h-full">
@@ -233,7 +233,6 @@ function LiveIntelCard({ items, source, lastSync }) {
            </div>
          )}
          
-         {/* VIEW MORE ACTION (Last Item) */}
          {hasData && (
            <a 
              href="https://www.who.int/emergencies/disease-outbreak-news"
@@ -256,7 +255,7 @@ function LiveIntelCard({ items, source, lastSync }) {
 function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
   const styles = {
     critical: {
-      border: "border-red-500/30", // Increased Visibility
+      border: "border-red-500/30",
       bg: "bg-red-950/5",
       hoverBg: "hover:bg-red-950/20",
       hoverBorder: "hover:border-red-500/60",
@@ -269,7 +268,7 @@ function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
       glow: "from-red-500/10"
     },
     standard: {
-      border: "border-white/20", // Increased Visibility
+      border: "border-white/20",
       bg: "bg-white/5",
       hoverBg: "hover:bg-white/10",
       hoverBorder: "hover:border-emerald-500/50",
