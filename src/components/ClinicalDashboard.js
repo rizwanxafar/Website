@@ -4,104 +4,111 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Activity, Plane, FileText, GraduationCap, ArrowUpRight,
-  Terminal, ShieldAlert, Siren, Library, Radio, Database, Radar, ExternalLink
+  Terminal, ShieldAlert, Globe, Siren, Link as LinkIcon,
+  Library, Radio, Database, Radar, ExternalLink
 } from "lucide-react";
 
 // --- ANIMATION CONFIG ---
 const fadeInUp = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 20 },
   visible: { 
     opacity: 1, 
     y: 0, 
-    transition: { duration: 0.5, ease: "easeOut" } 
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } 
   }
 };
 
 const staggerContainer = {
-  visible: { transition: { staggerChildren: 0.05 } }
+  visible: { transition: { staggerChildren: 0.1 } }
 };
 
-export default function ClinicalDashboard({ intelData, source, systemStatus, dataDate }) {
+export default function ClinicalDashboard({ intelData, source, lastSync }) {
   return (
-    <main className="min-h-screen bg-[#050505] text-neutral-200 selection:bg-emerald-500/30 selection:text-emerald-200 font-sans overflow-x-hidden">
+    <main className="min-h-screen bg-black text-neutral-200 selection:bg-white selection:text-black overflow-x-hidden font-sans">
       
       {/* --- PROFESSIONAL HEADER --- */}
-      {/* Reduced blur, sharper borders, darker background */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/90 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-12 flex items-center justify-between">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/20 bg-black/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Terminal className="w-4 h-4 text-emerald-600" />
+            <Terminal className="w-4 h-4 text-neutral-500" />
             <span className="font-mono text-xs tracking-widest text-neutral-400 uppercase">
-              ID-Northwest <span className="text-neutral-600">//</span> CLINICAL OS
+              ID-Northwest
             </span>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="font-mono text-[10px] text-emerald-500 tracking-wider">
-                    NET: ONLINE
-                </span>
-            </div>
-            <span className="font-mono text-[10px] text-neutral-500">
-                SYS: {systemStatus}
-            </span>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-mono text-[10px] text-emerald-500 tracking-wider">SYSTEM ONLINE</span>
           </div>
         </div>
       </header>
 
       {/* --- MAIN CONTENT --- */}
-      <div className="relative pt-28 pb-24 px-6 max-w-7xl mx-auto">
+      <div className="relative pt-32 pb-24 px-6 max-w-7xl mx-auto">
         
-        {/* SUBTLE BACKGROUND GRID */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-20" />
-
         <motion.div 
           initial="hidden"
           animate="visible"
           variants={staggerContainer}
-          className="relative space-y-12"
+          className="space-y-16"
         >
 
-          {/* 1. WELCOME SECTION (Cleaner Typography) */}
-          <motion.div variants={fadeInUp} className="max-w-4xl pt-4">
-            <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
-              Infectious Diseases <span className="text-neutral-500">Portal</span>
+          {/* 1. WELCOME SECTION */}
+          <motion.div variants={fadeInUp} className="max-w-4xl">
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-neutral-600 mb-6">
+              Welcome to <span className="text-white">Infectious Diseases</span> Portal
             </h1>
-            <p className="text-lg text-neutral-400 max-w-2xl leading-relaxed">
-              Clinical decision support, local guidelines, and real-time surveillance for the Northwest region.
+            <p className="text-xl text-neutral-400 max-w-2xl leading-relaxed font-light">
+              High-precision algorithms and local guidelines for Infectious Diseases. 
+              Designed for rapid deployment in clinical settings.
             </p>
           </motion.div>
 
-          {/* 2. ACTIVE TOOLS (Sharper Cards) */}
-          <motion.div variants={fadeInUp} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* 2. ACTIVE TOOLS */}
+          <motion.div variants={fadeInUp} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ToolCard 
               href="/algorithms/travel/risk-assessment-returning-traveller"
               variant="critical"
               icon={ShieldAlert}
               title="VHF Risk Assessment"
-              subtitle="Rapid Triage Protocol"
+              subtitle="VHF risk assessment for returned traveller"
             />
             <ToolCard 
               href="/algorithms/travel/travel-history-generator"
               variant="standard"
               icon={Plane}
               title="Travel History Generator"
-              subtitle="Admission Documentation"
+              subtitle="Create accurate travel history"
             />
           </motion.div>
 
-          {/* 3. INTELLIGENCE DASHBOARD (High Fidelity) */}
+          {/* 3. INTELLIGENCE DASHBOARD (Full Width) */}
           <motion.div variants={fadeInUp}>
-             <SectionHeader icon={Radar} title="Global Surveillance" />
-             <div className="w-full">
-               <LiveIntelCard items={intelData} source={source} dataDate={dataDate} />
-             </div>
+             <div className="flex items-center gap-4 mb-6">
+              <span className="font-mono text-sm font-medium text-neutral-400 uppercase tracking-widest flex items-center gap-2">
+                <Radar className="w-4 h-4" />
+                GLOBAL SURVEILLANCE
+              </span>
+              <div className="h-px flex-1 bg-gradient-to-r from-neutral-800 to-transparent" />
+            </div>
+
+            {/* FULL WIDTH CONTAINER */}
+            <div className="w-full">
+               <LiveIntelCard items={intelData} source={source} lastSync={lastSync} />
+            </div>
           </motion.div>
 
-          {/* 4. IMPORTANT LINKS (Reduced - Removed WHO DON) */}
+          {/* 4. IMPORTANT LINKS */}
           <motion.div variants={fadeInUp}>
-            <SectionHeader icon={ExternalLink} title="External Uplinks" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="flex items-center gap-4 mb-6">
+              <span className="font-mono text-sm font-medium text-neutral-400 uppercase tracking-widest flex items-center gap-2">
+                <LinkIcon className="w-4 h-4" />
+                IMPORTANT LINKS
+              </span>
+              <div className="h-px flex-1 bg-gradient-to-r from-neutral-800 to-transparent" />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <UplinkCard title="WHO DONs" subtitle="Disease Outbreak News" icon={Globe} href="https://www.who.int/emergencies/disease-outbreak-news" />
               <UplinkCard title="NaTHNaC" subtitle="Travel Health Pro" icon={Plane} href="https://travelhealthpro.org.uk" />
               <UplinkCard title="CDC Travel" subtitle="Notices & Levels" icon={ShieldAlert} href="https://wwwnc.cdc.gov/travel/notices" />
               <UplinkCard title="ProMED-mail" subtitle="Rapid Alerts" icon={Siren} href="https://promedmail.org/" />
@@ -110,8 +117,15 @@ export default function ClinicalDashboard({ intelData, source, systemStatus, dat
 
           {/* 5. RESOURCES */}
           <motion.div variants={fadeInUp}>
-             <SectionHeader icon={Library} title="Clinical Resources" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center gap-4 mb-8">
+              <span className="font-mono text-sm font-medium text-neutral-400 uppercase tracking-widest flex items-center gap-2">
+                <Library className="w-4 h-4" />
+                Resources
+              </span>
+              <div className="h-px flex-1 bg-gradient-to-r from-neutral-800 to-transparent" />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <ResourceCard href="/algorithms" icon={Activity} title="Algorithms" description="Interactive flowcharts for clinical pathways and diagnostics." />
               <ResourceCard href="/guidelines" icon={FileText} title="Guidelines" description="Static reference documents, policy PDFs, and local protocols." />
               <ResourceCard href="/teaching" icon={GraduationCap} title="Education" description="Teaching materials, case studies, and departmental slides." />
@@ -119,14 +133,11 @@ export default function ClinicalDashboard({ intelData, source, systemStatus, dat
           </motion.div>
 
           {/* 6. FOOTER */}
-          <motion.div variants={fadeInUp} className="pt-12 border-t border-white/10 flex justify-between items-center text-[10px] text-neutral-600 font-mono uppercase tracking-wider">
-            <span>ID-NW © 2026 // SYSTEM V2.4</span>
-            <div className="flex gap-4">
-                <a href="#" className="hover:text-neutral-400 transition-colors">Privacy</a>
-                <a href="mailto:infectionnw@gmail.com" className="hover:text-white transition-colors">
-                Contact Admin
-                </a>
-            </div>
+          <motion.div variants={fadeInUp} className="pt-12 border-t border-neutral-900 flex justify-between items-center text-xs text-neutral-600 font-mono">
+            <span>ID-NW © 2024</span>
+            <a href="mailto:infectionnw@gmail.com" className="hover:text-white transition-colors">
+              CONTACT ADMIN
+            </a>
           </motion.div>
 
         </motion.div>
@@ -135,101 +146,171 @@ export default function ClinicalDashboard({ intelData, source, systemStatus, dat
   );
 }
 
-// --- SUB-COMPONENTS ---
+// --- INTELLIGENCE CARD (With Extracted Summary) ---
 
-function SectionHeader({ icon: Icon, title }) {
-    return (
-        <div className="flex items-center gap-3 mb-4 border-b border-white/10 pb-2">
-            <Icon className="w-4 h-4 text-emerald-500" />
-            <span className="font-mono text-xs font-medium text-neutral-400 uppercase tracking-widest">
-                {title}
-            </span>
-        </div>
-    )
-}
-
-function LiveIntelCard({ items, source, dataDate }) {
+function LiveIntelCard({ items, source, lastSync }) {
+  const hasData = items && items.length > 0;
   const isLive = source === 'LIVE';
   
+  // Theme Logic
+  const theme = isLive ? {
+    border: 'border-emerald-500/30',
+    bg: 'bg-emerald-950/5',
+    headerBorder: 'border-emerald-900/20',
+    headerBg: 'bg-emerald-950/20',
+    text: 'text-emerald-500',
+    hover: 'hover:bg-emerald-900/10',
+    date: 'text-emerald-600 group-hover:text-emerald-400',
+    icon: 'text-emerald-800 group-hover:text-emerald-500',
+    scrollbar: 'scrollbar-thumb-emerald-900/50 hover:scrollbar-thumb-emerald-700/50'
+  } : {
+    border: 'border-amber-500/30',
+    bg: 'bg-amber-950/5',
+    headerBorder: 'border-amber-900/20',
+    headerBg: 'bg-amber-950/20',
+    text: 'text-amber-500',
+    hover: 'hover:bg-amber-900/10',
+    date: 'text-amber-600 group-hover:text-amber-400',
+    icon: 'text-amber-800 group-hover:text-amber-500',
+    scrollbar: 'scrollbar-thumb-amber-900/50 hover:scrollbar-thumb-amber-700/50'
+  };
+
   return (
-    <div className="rounded-sm border border-white/10 bg-neutral-900/40 backdrop-blur-sm overflow-hidden flex flex-col h-[550px]">
-       {/* HEADER */}
-       <div className="px-4 py-3 border-b border-white/10 bg-white/5 flex items-center justify-between flex-shrink-0">
+    <div className={`rounded-xl border backdrop-blur-md overflow-hidden flex flex-col transition-colors duration-500 h-full min-h-[500px] max-h-[600px]
+      ${hasData ? theme.border : 'border-neutral-700'}
+      ${hasData ? theme.bg : 'bg-neutral-900/10'}
+    `}>
+       <div className={`p-4 border-b flex items-center justify-between flex-shrink-0 z-10
+         ${hasData ? theme.headerBorder : 'border-neutral-800'}
+         ${hasData ? theme.headerBg : 'bg-neutral-900/30'}
+       `}>
           <div className="flex items-center gap-2">
-            {isLive ? <Radio className="w-3 h-3 text-emerald-500 animate-pulse" /> : <Database className="w-3 h-3 text-amber-500" />}
-            <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-neutral-300">
-              WHO DISEASE OUTBREAK NEWS
+            {isLive ? (
+              <Radio className={`w-4 h-4 ${theme.text} animate-pulse`} />
+            ) : (
+              <Database className={`w-4 h-4 ${theme.text}`} />
+            )}
+            <span className={`text-[10px] font-bold tracking-wider uppercase ${theme.text}`}>
+              {isLive ? 'WHO DISEASE OUTBREAK NEWS' : 'ARCHIVE DATA (BACKUP)'}
             </span>
           </div>
           <span className="text-[10px] font-mono text-neutral-500">
-            DATA CURRENT AS OF: <span className="text-neutral-300">{dataDate}</span>
+            LAST UPDATED: {lastSync}
           </span>
        </div>
        
-       {/* FEED */}
-       <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-800 hover:scrollbar-thumb-neutral-600">
-         {items.map((item, i) => (
+       <div className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent ${theme.scrollbar} flex flex-col divide-y ${hasData ? (isLive ? 'divide-emerald-900/20' : 'divide-amber-900/20') : 'divide-neutral-800'}`}>
+         {hasData ? items.map((item, i) => (
            <a 
              key={i} 
              href={item.link}
              target="_blank"
              rel="noopener noreferrer" 
-             className="block p-5 border-b border-white/5 hover:bg-white/5 transition-colors group"
+             className={`flex-shrink-0 p-5 transition-colors flex flex-col justify-center gap-2 group ${theme.hover}`}
            >
-             <div className="flex justify-between items-start mb-2">
-                <h3 className="text-sm font-semibold text-neutral-200 group-hover:text-emerald-400 transition-colors leading-snug pr-4">
-                  {item.title}
-                </h3>
-                <span className="text-[10px] font-mono text-neutral-500 whitespace-nowrap pt-1">
+             <div className="flex justify-between items-start">
+                <div className="flex-1 pr-4">
+                   <p className="text-base font-medium text-neutral-200 group-hover:text-white leading-snug">
+                     {item.title}
+                   </p>
+                   {/* EXTRACTED "SITUATION AT A GLANCE" */}
+                   {item.description && (
+                     <p className="text-sm text-neutral-500 group-hover:text-neutral-400 mt-2 line-clamp-2 leading-relaxed font-light">
+                       {item.description}
+                     </p>
+                   )}
+                </div>
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <span className={`text-[10px] font-mono uppercase tracking-widest ${theme.date}`}>
                     {item.date}
-                </span>
+                  </span>
+                  <ArrowUpRight className={`w-3 h-3 ${theme.icon} mt-1`} />
+                </div>
              </div>
-             <p className="text-xs text-neutral-400 leading-relaxed font-sans max-w-3xl">
-                {item.description}
-             </p>
            </a>
-         ))}
-       </div>
-       
-       <div className="p-2 border-t border-white/10 bg-black/20 text-center">
-         <a 
-           href="https://www.who.int/emergencies/disease-outbreak-news"
-           target="_blank"
-           rel="noopener noreferrer"
-           className="text-[10px] font-mono text-neutral-500 hover:text-emerald-500 uppercase tracking-widest transition-colors inline-flex items-center gap-2"
-         >
-           View Source Database <ArrowUpRight className="w-3 h-3" />
-         </a>
+         )) : (
+           <div className="flex-1 flex flex-col items-center justify-center text-neutral-600 p-6 h-full">
+             <Database className="w-8 h-8 mb-2 opacity-20" />
+             <p className="text-xs font-mono">DATA STREAM OFFLINE</p>
+           </div>
+         )}
+         
+         {hasData && (
+           <a 
+             href="https://www.who.int/emergencies/disease-outbreak-news"
+             target="_blank"
+             rel="noopener noreferrer"
+             className={`p-4 flex items-center justify-center gap-2 text-xs font-mono tracking-widest uppercase transition-colors
+               ${isLive ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20' : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'}
+             `}
+           >
+             <span>View More on WHO Website</span>
+             <ExternalLink className="w-3 h-3" />
+           </a>
+         )}
        </div>
     </div>
   );
 }
 
+// --- STANDARD COMPONENTS ---
 function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
-  const isCritical = variant === "critical";
+  const styles = {
+    critical: {
+      border: "border-red-500/30",
+      bg: "bg-red-950/5",
+      hoverBg: "hover:bg-red-950/20",
+      hoverBorder: "hover:border-red-500/60",
+      iconBg: "bg-red-500/10",
+      iconColor: "text-red-500",
+      iconBorder: "border-red-500/20",
+      arrowHover: "group-hover:text-red-500",
+      textHover: "group-hover:text-red-100",
+      subtext: "text-red-200/50",
+      glow: "from-red-500/10"
+    },
+    standard: {
+      border: "border-white/20",
+      bg: "bg-white/5",
+      hoverBg: "hover:bg-white/10",
+      hoverBorder: "hover:border-emerald-500/50",
+      iconBg: "bg-emerald-500/10",
+      iconColor: "text-emerald-500",
+      iconBorder: "border-emerald-500/20",
+      arrowHover: "group-hover:text-emerald-500",
+      textHover: "group-hover:text-emerald-100",
+      subtext: "text-emerald-200/50",
+      glow: "from-emerald-500/10"
+    }
+  };
+
+  const s = styles[variant];
+
   return (
     <Link 
       href={href}
-      className={`group relative h-40 rounded-sm border transition-all duration-300 overflow-hidden
-        ${isCritical 
-            ? "border-red-900/30 bg-red-950/5 hover:border-red-500/30 hover:bg-red-900/10" 
-            : "border-white/10 bg-white/5 hover:border-emerald-500/30 hover:bg-white/10"
-        }`}
+      className={`group relative h-48 md:h-64 rounded-2xl border ${s.border} ${s.bg} backdrop-blur-md
+                 ${s.hoverBg} ${s.hoverBorder} transition-all duration-500 overflow-hidden`}
     >
-      <div className="absolute inset-0 p-6 flex flex-col justify-between z-10">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50" />
+      <div className="absolute inset-0 p-8 flex flex-col justify-between z-20">
         <div className="flex justify-between items-start">
-            <Icon className={`w-5 h-5 ${isCritical ? "text-red-500" : "text-emerald-500"}`} />
-            <ArrowUpRight className="w-4 h-4 text-neutral-600 group-hover:text-neutral-300 transition-colors" />
+          <span className={`p-3 rounded-lg ${s.iconBg} ${s.iconColor} border ${s.iconBorder} backdrop-blur-sm`}>
+            <Icon className="w-6 h-6" />
+          </span>
+          <ArrowUpRight className={`w-5 h-5 text-neutral-700 ${s.arrowHover} transition-colors`} />
         </div>
         <div>
-          <h3 className="text-lg font-medium text-neutral-200 group-hover:text-white transition-colors">
+          <h3 className={`text-2xl font-semibold text-white mb-2 ${s.textHover} transition-colors`}>
             {title}
           </h3>
-          <p className="text-xs text-neutral-500 font-mono mt-1">
+          <p className={`text-sm ${s.subtext} font-mono uppercase tracking-wider`}>
             {subtitle}
           </p>
         </div>
       </div>
+      <div className="absolute inset-0 z-10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12" />
+      <div className={`absolute inset-0 bg-gradient-to-t ${s.glow} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
     </Link>
   );
 }
@@ -240,19 +321,23 @@ function UplinkCard({ title, subtitle, icon: Icon, href }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group p-4 rounded-sm border border-white/10 bg-neutral-900/30 hover:bg-white/5 hover:border-emerald-500/30 transition-all flex items-center gap-3"
+      className="group relative p-4 rounded-xl border border-white/20 bg-white/5 backdrop-blur-md
+                 hover:bg-white/10 hover:border-white/30 transition-all duration-300 flex items-center gap-4 overflow-hidden"
     >
-      <div className="p-2 bg-black border border-white/5 text-neutral-400 group-hover:text-emerald-500 transition-colors rounded-sm">
-        <Icon className="w-4 h-4" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-30" />
+      <div className="relative z-10 p-2 rounded-lg bg-black/40 border border-white/10 text-neutral-400 group-hover:text-white group-hover:border-white/20 transition-all">
+        <Icon className="w-5 h-5" />
       </div>
-      <div>
-        <h4 className="text-xs font-medium text-neutral-300 group-hover:text-white transition-colors">
-            {title}
+      <div className="relative z-10 flex-1 min-w-0">
+        <h4 className="text-sm font-medium text-neutral-300 group-hover:text-white truncate transition-colors">
+          {title}
         </h4>
-        <p className="text-[10px] uppercase tracking-wider text-neutral-600 font-mono">
-            {subtitle}
+        <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-mono truncate">
+          {subtitle}
         </p>
       </div>
+      <ArrowUpRight className="relative z-10 w-3 h-3 text-neutral-600 group-hover:text-white transition-colors" />
+      <div className="absolute inset-0 z-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12" />
     </a>
   );
 }
@@ -261,13 +346,18 @@ function ResourceCard({ href, icon: Icon, title, description }) {
   return (
     <Link 
       href={href}
-      className="group p-6 rounded-sm border border-white/10 bg-neutral-900/20 hover:bg-white/5 hover:border-white/20 transition-all"
+      className="group relative p-6 rounded-xl border border-white/20 bg-black/40 backdrop-blur-md 
+                 hover:bg-white/5 hover:border-white/30 transition-all duration-300 overflow-hidden"
     >
-      <Icon className="w-5 h-5 text-neutral-500 group-hover:text-white mb-4 transition-colors" />
-      <h4 className="text-sm font-medium text-white mb-2">{title}</h4>
-      <p className="text-xs text-neutral-500 leading-relaxed">
+       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50" />
+      <div className="relative z-10 mb-8 opacity-50 group-hover:opacity-100 transition-opacity">
+        <Icon className="w-6 h-6 text-white" />
+      </div>
+      <h4 className="relative z-10 text-lg font-medium text-white mb-2">{title}</h4>
+      <p className="relative z-10 text-sm text-neutral-500 leading-relaxed group-hover:text-neutral-400 transition-colors">
         {description}
       </p>
+      <div className="absolute inset-0 z-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12" />
     </Link>
   );
 }
