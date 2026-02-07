@@ -4,8 +4,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Activity, Plane, FileText, GraduationCap, ArrowUpRight,
-  Terminal, ShieldAlert, Globe, Siren, Link as LinkIcon,
-  Library, Radio, Database, Radar, ExternalLink
+  Terminal, ShieldAlert, Siren, Link as LinkIcon,
+  Library, Radio, Database, Radar
 } from "lucide-react";
 
 // --- ANIMATION CONFIG ---
@@ -22,7 +22,7 @@ const staggerContainer = {
   visible: { transition: { staggerChildren: 0.1 } }
 };
 
-export default function ClinicalDashboard({ intelData, source, lastSync }) {
+export default function ClinicalDashboard({ intelData, source }) {
   return (
     <main className="min-h-screen bg-black text-neutral-200 selection:bg-white selection:text-black overflow-x-hidden font-sans">
       
@@ -93,7 +93,7 @@ export default function ClinicalDashboard({ intelData, source, lastSync }) {
 
             {/* FULL WIDTH CONTAINER */}
             <div className="w-full">
-               <LiveIntelCard items={intelData} source={source} lastSync={lastSync} />
+               <LiveIntelCard items={intelData} source={source} />
             </div>
           </motion.div>
 
@@ -107,8 +107,7 @@ export default function ClinicalDashboard({ intelData, source, lastSync }) {
               <div className="h-px flex-1 bg-gradient-to-r from-neutral-800 to-transparent" />
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <UplinkCard title="WHO DONs" subtitle="Disease Outbreak News" icon={Globe} href="https://www.who.int/emergencies/disease-outbreak-news" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <UplinkCard title="NaTHNaC" subtitle="Travel Health Pro" icon={Plane} href="https://travelhealthpro.org.uk" />
               <UplinkCard title="CDC Travel" subtitle="Notices & Levels" icon={ShieldAlert} href="https://wwwnc.cdc.gov/travel/notices" />
               <UplinkCard title="ProMED-mail" subtitle="Rapid Alerts" icon={Siren} href="https://promedmail.org/" />
@@ -148,7 +147,7 @@ export default function ClinicalDashboard({ intelData, source, lastSync }) {
 
 // --- INTELLIGENCE CARD (With Extracted Summary) ---
 
-function LiveIntelCard({ items, source, lastSync }) {
+function LiveIntelCard({ items, source }) {
   const hasData = items && items.length > 0;
   const isLive = source === 'LIVE';
   
@@ -194,9 +193,7 @@ function LiveIntelCard({ items, source, lastSync }) {
               {isLive ? 'WHO DISEASE OUTBREAK NEWS' : 'ARCHIVE DATA (BACKUP)'}
             </span>
           </div>
-          <span className="text-[10px] font-mono text-neutral-500">
-            LAST UPDATED: {lastSync}
-          </span>
+          {/* REMOVED LAST UPDATED TIMER */}
        </div>
        
        <div className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent ${theme.scrollbar} flex flex-col divide-y ${hasData ? (isLive ? 'divide-emerald-900/20' : 'divide-amber-900/20') : 'divide-neutral-800'}`}>
@@ -235,19 +232,7 @@ function LiveIntelCard({ items, source, lastSync }) {
            </div>
          )}
          
-         {hasData && (
-           <a 
-             href="https://www.who.int/emergencies/disease-outbreak-news"
-             target="_blank"
-             rel="noopener noreferrer"
-             className={`p-4 flex items-center justify-center gap-2 text-xs font-mono tracking-widest uppercase transition-colors
-               ${isLive ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20' : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'}
-             `}
-           >
-             <span>View More on WHO Website</span>
-             <ExternalLink className="w-3 h-3" />
-           </a>
-         )}
+         {/* REMOVED WHO DON BUTTON */}
        </div>
     </div>
   );
