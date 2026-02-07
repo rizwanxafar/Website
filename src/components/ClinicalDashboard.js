@@ -91,7 +91,7 @@ export default function ClinicalDashboard({ intelData, source, lastSync }) {
               <div className="h-px flex-1 bg-gradient-to-r from-neutral-800 to-transparent" />
             </div>
 
-            {/* FULL WIDTH CONTAINER - No Grid */}
+            {/* FULL WIDTH CONTAINER */}
             <div className="w-full">
                <LiveIntelCard items={intelData} source={source} lastSync={lastSync} />
             </div>
@@ -146,7 +146,7 @@ export default function ClinicalDashboard({ intelData, source, lastSync }) {
   );
 }
 
-// --- INTELLIGENCE CARD (With Description) ---
+// --- INTELLIGENCE CARD (With Extracted Summary) ---
 
 function LiveIntelCard({ items, source, lastSync }) {
   const hasData = items && items.length > 0;
@@ -209,20 +209,22 @@ function LiveIntelCard({ items, source, lastSync }) {
              className={`flex-shrink-0 p-5 transition-colors flex flex-col justify-center gap-2 group ${theme.hover}`}
            >
              <div className="flex justify-between items-start">
-                <div className="flex-1">
+                <div className="flex-1 pr-4">
                    <p className="text-base font-medium text-neutral-200 group-hover:text-white leading-snug">
                      {item.title}
                    </p>
-                   {/* DESCRIPTION TEXT */}
-                   <p className="text-sm text-neutral-500 group-hover:text-neutral-400 mt-1 line-clamp-2 leading-relaxed">
-                     {item.description}
-                   </p>
+                   {/* EXTRACTED "SITUATION AT A GLANCE" */}
+                   {item.description && (
+                     <p className="text-sm text-neutral-500 group-hover:text-neutral-400 mt-2 line-clamp-2 leading-relaxed font-light">
+                       {item.description}
+                     </p>
+                   )}
                 </div>
-                <div className="flex flex-col items-end gap-1 ml-4">
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
                   <span className={`text-[10px] font-mono uppercase tracking-widest ${theme.date}`}>
                     {item.date}
                   </span>
-                  <ArrowUpRight className={`w-3 h-3 ${theme.icon}`} />
+                  <ArrowUpRight className={`w-3 h-3 ${theme.icon} mt-1`} />
                 </div>
              </div>
            </a>
