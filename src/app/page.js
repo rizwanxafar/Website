@@ -4,7 +4,7 @@ import ClinicalDashboard from "@/components/ClinicalDashboard";
 
 async function getWhoIntel() {
   
-  // 1. FALLBACK DATA (With Descriptions)
+  // 1. FALLBACK DATA (Static)
   const FALLBACK_INTEL = [
     { 
       title: "Nipah virus infection - West Bengal, India", 
@@ -29,40 +29,42 @@ async function getWhoIntel() {
       date: "22 Jan", 
       link: "https://www.who.int/emergencies/disease-outbreak-news",
       description: "New sylvatic cases have been identified. Vaccination campaigns are being intensified in affected municipalities."
-    },
-    { 
-      title: "Chikungunya - French Guiana", 
-      date: "20 Jan", 
-      link: "https://www.who.int/emergencies/disease-outbreak-news",
-      description: "Vector control measures have been implemented following an increase in reported arboviral activity."
-    },
-     { 
-      title: "Cholera - Zimbabwe", 
-      date: "12 Jan", 
-      link: "https://www.who.int/emergencies/disease-outbreak-news",
-      description: "The cholera situation remains critical with new cases reported in Harare. WHO is supporting the local response."
-    },
-    { 
-      title: "Dengue - Global Overview", 
-      date: "10 Jan", 
-      link: "https://www.who.int/emergencies/disease-outbreak-news",
-      description: "Global dengue incidence has risen significantly compared to the previous year, driven by climate factors."
     }
   ];
 
-  // --- HELPER: TEXT CLEANER ---
-  // Strips HTML tags and truncates to ~140 chars
-  const cleanDescription = (text) => {
-    if (!text) return "Details available in full report.";
-    const stripped = text.replace(/<[^>]*>?/gm, ''); // Remove HTML
-    return stripped.length > 140 ? stripped.substring(0, 140) + "..." : stripped;
+  // --- HELPER: INTELLIGENCE PARSER ---
+  const extractSituation = (htmlContent, fallbackSummary) => {
+    if (!htmlContent) return fallbackSummary || "";
+
+    // 1. Define the Start and End markers (Case Insensitive)
+    // We look for "Situation at a glance" and stop at "Description of the situation"
+    const pattern = /(?:Situation at a glance|At a glance)([\s\S]*?)(?:Description of the situation|Epidemiology|Public health response)/i;
+    const match = htmlContent.match(pattern);
+
+    let rawText = "";
+
+    if (match && match[1]) {
+      // Found the specific section
+      rawText = match[1];
+    } else {
+      // If markers are missing, take the first 300 chars of the whole thing
+      rawText = htmlContent;
+    }
+
+    // 2. Clean HTML Tags (Remove <p>, <strong>, <br>, etc.)
+    const cleanText = rawText
+      .replace(/<[^>]*>?/gm, ' ') // Replace tags with space
+      .replace(/\s+/g, ' ')       // Collapse multiple spaces
+      .trim();
+
+    // 3. Truncate for UI (Max 220 chars)
+    return cleanText.length > 220 ? cleanText.substring(0, 220) + "..." : cleanText;
   };
 
   // --- HELPER: SORTING ---
   const cleanAndSort = (items) => {
     return items
       .map(item => {
-         // Link Logic
          let finalLink = "https://www.who.int/emergencies/disease-outbreak-news";
          if (item.link) {
             if (item.link.startsWith('http')) finalLink = item.link;
@@ -74,7 +76,7 @@ async function getWhoIntel() {
            title: item.title || "Unknown Alert",
            date: new Date(item.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
            link: finalLink,
-           description: cleanDescription(item.description), // Clean the description
+           description: extractSituation(item.rawBody, item.description), // USE THE EXTRACTOR
            rawDate: new Date(item.date)
          };
       })
@@ -82,43 +84,9 @@ async function getWhoIntel() {
   };
 
   try {
-    // 2. ATTEMPT A: JSON API
-    try {
-      const res = await fetch("https://www.who.int/api/emergencies/diseaseoutbreaknews?$orderby=PublicationDate%20desc&$top=30", {
-        next: { revalidate: 3600 },
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-          "Accept": "application/json"
-        }
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const rawItems = data.value || data || [];
-        
-        const mappedItems = rawItems.map(item => ({
-          title: item.Title || item.title,
-          date: item.PublicationDate || item.Date,
-          link: item.ItemDefaultUrl,
-          // Try to find description in common OData fields
-          description: item.Description || item.IntroText || item.Abstract || "" 
-        }));
-
-        const processed = cleanAndSort(mappedItems);
-
-        const ninetyDaysAgo = new Date();
-        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-        
-        if (processed.length > 0 && processed[0].rawDate > ninetyDaysAgo) {
-          return { items: processed, source: "LIVE" };
-        }
-        console.warn("JSON API returned stale data. Trying RSS...");
-      }
-    } catch (e) {
-      console.warn("JSON API Failed. Switching to RSS...", e.message);
-    }
-
-    // 3. ATTEMPT B: RSS FEED
+    // 2. PRIMARY STRATEGY: RSS FEED
+    // Why RSS? Because it consistently includes the HTML body in the <description> tag,
+    // which allows our Regex to find "Situation at a glance". The JSON list often hides this.
     const rssRes = await fetch("https://www.who.int/feeds/entity/emergencies/disease-outbreak-news/en/rss.xml", {
        next: { revalidate: 3600 },
        headers: { "User-Agent": "Mozilla/5.0 (Compatible; ClinicalOS/1.0)" }
@@ -131,6 +99,7 @@ async function getWhoIntel() {
       const titleRegex = /<title><!\[CDATA\[(.*?)\]\]><\/title>|<title>(.*?)<\/title>/;
       const dateRegex = /<pubDate>(.*?)<\/pubDate>/;
       const linkRegex = /<link>(.*?)<\/link>/;
+      // Capture the FULL description HTML for parsing
       const descRegex = /<description><!\[CDATA\[(.*?)\]\]><\/description>|<description>(.*?)<\/description>/;
 
       const rssItems = [];
@@ -142,12 +111,16 @@ async function getWhoIntel() {
         const linkMatch = itemContent.match(linkRegex);
         const descMatch = itemContent.match(descRegex);
 
+        // Get the raw HTML payload
+        const rawBody = descMatch ? (descMatch[1] || descMatch[2]) : "";
+
         if (titleMatch && dateMatch) {
           rssItems.push({
             title: titleMatch[1] || titleMatch[2],
             date: dateMatch[1],
             link: linkMatch ? linkMatch[1] : null,
-            description: descMatch ? (descMatch[1] || descMatch[2]) : ""
+            rawBody: rawBody, // Pass raw HTML to the cleaner
+            description: ""   // Will be generated by cleaner
           });
         }
         if (rssItems.length >= 30) break;
@@ -157,6 +130,25 @@ async function getWhoIntel() {
         const processedRSS = cleanAndSort(rssItems);
         return { items: processedRSS, source: "LIVE" };
       }
+    }
+
+    // 3. FALLBACK: JSON API
+    // If RSS fails, we try JSON, though it might lack the full body text.
+    const res = await fetch("https://www.who.int/api/emergencies/diseaseoutbreaknews?$orderby=PublicationDate%20desc&$top=30", {
+        next: { revalidate: 3600 },
+        headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
+
+    if (res.ok) {
+        const data = await res.json();
+        const rawItems = data.value || data || [];
+        const mappedItems = rawItems.map(item => ({
+          title: item.Title || item.title,
+          date: item.PublicationDate || item.Date,
+          link: item.ItemDefaultUrl,
+          rawBody: item.Description || item.IntroText || "" // Best effort
+        }));
+        return { items: cleanAndSort(mappedItems), source: "LIVE" };
     }
 
     return { items: cleanAndSort(FALLBACK_INTEL.map(i => ({...i, date: new Date().toISOString()}))), source: "BACKUP" };
