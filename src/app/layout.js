@@ -1,11 +1,11 @@
-// src/app/layout.js
-import "./globals.css";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import "./globals.css";
 
-// 1. Setup Fonts: "Inter" for reading, "JetBrains Mono" for data
+// 1. LOAD FONTS
+// We use Inter for UI text (clean, legible) and JetBrains Mono for data (technical look).
 const inter = Inter({ 
-  subsets: ["latin"],
-  variable: "--font-sans",
+  subsets: ["latin"], 
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -16,29 +16,20 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata = {
-  title: "ID Northwest",
-  description: "Clinical decision support for infectious diseases.",
+  title: "ID-Northwest | Clinical OS",
+  description: "Infectious Diseases Clinical Operating System",
 };
 
 export default function RootLayout({ children }) {
   return (
-    // 2. FORCE BLACK BACKGROUND on the HTML tag (Fixes the overscroll white gap)
-    <html lang="en" className="h-full bg-black">
-      <body className={`${inter.variable} ${mono.variable} font-sans min-h-full bg-black text-neutral-200 antialiased selection:bg-emerald-500/30 selection:text-emerald-200`}>
-        
-        {/* Accessibility: Skip to content for keyboard users */}
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] rounded px-3 py-2
-                     bg-emerald-500 text-black font-mono text-sm font-bold"
-        >
-          Skip to content
-        </a>
-
-        {/* 3. NO NAVBAR & NO WIDTH LIMITS */}
-        {/* We render {children} directly. The page.js will handle the layout. */}
+    <html lang="en" className={`${inter.variable} ${mono.variable}`}>
+      {/* 2. APPLY GLOBAL THEME
+        - bg-slate-950: Matches your new dashboard background
+        - text-slate-200: Default high-contrast text
+        - antialiased: Makes text look sharper on NHS monitors
+      */}
+      <body className="bg-slate-950 text-slate-200 antialiased min-h-screen selection:bg-emerald-500/30 selection:text-emerald-200">
         {children}
-        
       </body>
     </html>
   );
