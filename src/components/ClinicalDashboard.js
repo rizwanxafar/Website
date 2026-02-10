@@ -24,10 +24,12 @@ const staggerContainer = {
 
 export default function ClinicalDashboard({ intelData, source }) {
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-200 selection:bg-emerald-500/30 selection:text-emerald-200 overflow-x-hidden font-sans">
+    // CHANGED: Reverted bg-slate-950 to bg-black
+    <main className="min-h-screen bg-black text-slate-200 selection:bg-emerald-500/30 selection:text-emerald-200 overflow-x-hidden font-sans">
       
       {/* --- HEADER --- */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md">
+      {/* CHANGED: Reverted bg-slate-950/90 to bg-black/90 */}
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800 bg-black/90 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Terminal className="w-5 h-5 text-slate-400" />
