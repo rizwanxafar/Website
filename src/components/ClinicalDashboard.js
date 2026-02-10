@@ -24,20 +24,22 @@ const staggerContainer = {
 
 export default function ClinicalDashboard({ intelData, source }) {
   return (
-    <main className="min-h-screen bg-black text-neutral-200 selection:bg-white selection:text-black overflow-x-hidden font-sans">
+    // CHANGE 1: Deep Slate Background (bg-slate-950) for better contrast on NHS screens
+    <main className="min-h-screen bg-slate-950 text-slate-200 selection:bg-emerald-500/30 selection:text-emerald-200 overflow-x-hidden font-sans">
       
       {/* --- PROFESSIONAL HEADER --- */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/20 bg-black/80 backdrop-blur-xl">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Terminal className="w-4 h-4 text-neutral-500" />
-            <span className="font-mono text-xs tracking-widest text-neutral-400 uppercase">
+            <Terminal className="w-5 h-5 text-slate-400" />
+            {/* Increased font weight for legibility */}
+            <span className="font-mono text-sm font-medium tracking-widest text-slate-300 uppercase">
               ID-Northwest
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-mono text-[10px] text-emerald-500 tracking-wider">SYSTEM ONLINE</span>
+            <span className="font-mono text-xs font-semibold text-emerald-500 tracking-wider">SYSTEM ONLINE</span>
           </div>
         </div>
       </header>
@@ -54,17 +56,19 @@ export default function ClinicalDashboard({ intelData, source }) {
 
           {/* 1. WELCOME SECTION */}
           <motion.div variants={fadeInUp} className="max-w-4xl">
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-neutral-600 mb-6">
-              Welcome to <span className="text-white">Infectious Diseases</span> Portal
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-white mb-6">
+              Welcome to <span className="text-emerald-500">Infectious Diseases</span> Portal
             </h1>
-            <p className="text-xl text-neutral-400 max-w-2xl leading-relaxed font-light">
+            {/* Increased text size and weight for readability */}
+            <p className="text-xl text-slate-300 max-w-3xl leading-relaxed font-normal">
               High-precision algorithms and local guidelines for Infectious Diseases. 
               Designed for rapid deployment in clinical settings.
             </p>
           </motion.div>
 
           {/* 2. ACTIVE TOOLS */}
-          <motion.div variants={fadeInUp} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Added 'items-stretch' to make cards uniform height */}
+          <motion.div variants={fadeInUp} className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
             <ToolCard 
               href="/algorithms/travel/risk-assessment-returning-traveller"
               variant="critical"
@@ -81,14 +85,15 @@ export default function ClinicalDashboard({ intelData, source }) {
             />
           </motion.div>
 
-          {/* 3. INTELLIGENCE DASHBOARD (Full Width) */}
+          {/* 3. INTELLIGENCE DASHBOARD */}
           <motion.div variants={fadeInUp}>
              <div className="flex items-center gap-4 mb-6">
-              <span className="font-mono text-sm font-medium text-neutral-400 uppercase tracking-widest flex items-center gap-2">
-                <Radar className="w-4 h-4" />
-                GLOBAL SURVEILLANCE
+              {/* UPDATED WORDING per request */}
+              <span className="font-mono text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Radar className="w-5 h-5" />
+                WHO DISEASE OUTBREAK NEWS
               </span>
-              <div className="h-px flex-1 bg-gradient-to-r from-neutral-800 to-transparent" />
+              <div className="h-px flex-1 bg-gradient-to-r from-slate-800 to-transparent" />
             </div>
 
             {/* FULL WIDTH CONTAINER */}
@@ -100,11 +105,11 @@ export default function ClinicalDashboard({ intelData, source }) {
           {/* 4. IMPORTANT LINKS */}
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-6">
-              <span className="font-mono text-sm font-medium text-neutral-400 uppercase tracking-widest flex items-center gap-2">
-                <LinkIcon className="w-4 h-4" />
+              <span className="font-mono text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <LinkIcon className="w-5 h-5" />
                 IMPORTANT LINKS
               </span>
-              <div className="h-px flex-1 bg-gradient-to-r from-neutral-800 to-transparent" />
+              <div className="h-px flex-1 bg-gradient-to-r from-slate-800 to-transparent" />
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -117,14 +122,15 @@ export default function ClinicalDashboard({ intelData, source }) {
           {/* 5. RESOURCES */}
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-8">
-              <span className="font-mono text-sm font-medium text-neutral-400 uppercase tracking-widest flex items-center gap-2">
-                <Library className="w-4 h-4" />
+              <span className="font-mono text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Library className="w-5 h-5" />
                 Resources
               </span>
-              <div className="h-px flex-1 bg-gradient-to-r from-neutral-800 to-transparent" />
+              <div className="h-px flex-1 bg-gradient-to-r from-slate-800 to-transparent" />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Added 'items-stretch' for uniform card heights */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
               <ResourceCard href="/algorithms" icon={Activity} title="Algorithms" description="Interactive flowcharts for clinical pathways and diagnostics." />
               <ResourceCard href="/guidelines" icon={FileText} title="Guidelines" description="Static reference documents, policy PDFs, and local protocols." />
               <ResourceCard href="/teaching" icon={GraduationCap} title="Education" description="Teaching materials, case studies, and departmental slides." />
@@ -132,9 +138,9 @@ export default function ClinicalDashboard({ intelData, source }) {
           </motion.div>
 
           {/* 6. FOOTER */}
-          <motion.div variants={fadeInUp} className="pt-12 border-t border-neutral-900 flex justify-between items-center text-xs text-neutral-600 font-mono">
+          <motion.div variants={fadeInUp} className="pt-12 border-t border-slate-800 flex justify-between items-center text-sm text-slate-500 font-mono">
             <span>ID-NW © 2024</span>
-            <a href="mailto:infectionnw@gmail.com" className="hover:text-white transition-colors">
+            <a href="mailto:infectionnw@gmail.com" className="hover:text-slate-300 transition-colors">
               CONTACT ADMIN
             </a>
           </motion.div>
@@ -145,43 +151,44 @@ export default function ClinicalDashboard({ intelData, source }) {
   );
 }
 
-// --- INTELLIGENCE CARD (With Extracted Summary) ---
+// --- INTELLIGENCE CARD (Refined for Clarity) ---
 
 function LiveIntelCard({ items, source }) {
   const hasData = items && items.length > 0;
   const isLive = source === 'LIVE';
   
-  // Theme Logic
+  // Theme Logic - Switched to Slate/Emerald mix
   const theme = isLive ? {
     border: 'border-emerald-500/30',
-    bg: 'bg-emerald-950/5',
-    headerBorder: 'border-emerald-900/20',
+    bg: 'bg-emerald-950/10', // Slightly darker for contrast
+    headerBorder: 'border-emerald-900/30',
     headerBg: 'bg-emerald-950/20',
-    text: 'text-emerald-500',
-    hover: 'hover:bg-emerald-900/10',
-    date: 'text-emerald-600 group-hover:text-emerald-400',
-    icon: 'text-emerald-800 group-hover:text-emerald-500',
+    text: 'text-emerald-400',
+    hover: 'hover:bg-emerald-900/20',
+    date: 'text-emerald-500 group-hover:text-emerald-300',
+    icon: 'text-emerald-700 group-hover:text-emerald-400',
     scrollbar: 'scrollbar-thumb-emerald-900/50 hover:scrollbar-thumb-emerald-700/50'
   } : {
     border: 'border-amber-500/30',
-    bg: 'bg-amber-950/5',
-    headerBorder: 'border-amber-900/20',
+    bg: 'bg-amber-950/10',
+    headerBorder: 'border-amber-900/30',
     headerBg: 'bg-amber-950/20',
     text: 'text-amber-500',
-    hover: 'hover:bg-amber-900/10',
+    hover: 'hover:bg-amber-900/20',
     date: 'text-amber-600 group-hover:text-amber-400',
     icon: 'text-amber-800 group-hover:text-amber-500',
     scrollbar: 'scrollbar-thumb-amber-900/50 hover:scrollbar-thumb-amber-700/50'
   };
 
   return (
-    <div className={`rounded-xl border backdrop-blur-md overflow-hidden flex flex-col transition-colors duration-500 h-full min-h-[500px] max-h-[600px]
-      ${hasData ? theme.border : 'border-neutral-700'}
-      ${hasData ? theme.bg : 'bg-neutral-900/10'}
+    <div className={`rounded-xl border backdrop-blur-sm overflow-hidden flex flex-col transition-colors duration-500 h-full min-h-[500px] max-h-[600px] shadow-2xl
+      ${hasData ? theme.border : 'border-slate-800'}
+      ${hasData ? theme.bg : 'bg-slate-900/30'}
     `}>
-       <div className={`p-4 border-b flex items-center justify-between flex-shrink-0 z-10
-         ${hasData ? theme.headerBorder : 'border-neutral-800'}
-         ${hasData ? theme.headerBg : 'bg-neutral-900/30'}
+       {/* Removed "Last Updated" and "WHO DON" text as requested */}
+       <div className={`p-3 border-b flex items-center justify-between flex-shrink-0 z-10
+         ${hasData ? theme.headerBorder : 'border-slate-800'}
+         ${hasData ? theme.headerBg : 'bg-slate-900/50'}
        `}>
           <div className="flex items-center gap-2">
             {isLive ? (
@@ -189,14 +196,11 @@ function LiveIntelCard({ items, source }) {
             ) : (
               <Database className={`w-4 h-4 ${theme.text}`} />
             )}
-            <span className={`text-[10px] font-bold tracking-wider uppercase ${theme.text}`}>
-              {isLive ? 'WHO DISEASE OUTBREAK NEWS' : 'ARCHIVE DATA (BACKUP)'}
-            </span>
+            {/* REMOVED: The redundant "WHO DISEASE OUTBREAK NEWS" text here */}
           </div>
-          {/* REMOVED LAST UPDATED TIMER */}
        </div>
        
-       <div className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent ${theme.scrollbar} flex flex-col divide-y ${hasData ? (isLive ? 'divide-emerald-900/20' : 'divide-amber-900/20') : 'divide-neutral-800'}`}>
+       <div className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent ${theme.scrollbar} flex flex-col divide-y ${hasData ? (isLive ? 'divide-emerald-900/20' : 'divide-amber-900/20') : 'divide-slate-800'}`}>
          {hasData ? items.map((item, i) => (
            <a 
              key={i} 
@@ -207,64 +211,64 @@ function LiveIntelCard({ items, source }) {
            >
              <div className="flex justify-between items-start">
                 <div className="flex-1 pr-4">
-                   <p className="text-base font-medium text-neutral-200 group-hover:text-white leading-snug">
+                   {/* Increased Title Weight */}
+                   <p className="text-base font-semibold text-slate-100 group-hover:text-white leading-snug">
                      {item.title}
                    </p>
-                   {/* EXTRACTED "SITUATION AT A GLANCE" */}
+                   {/* Increased Description Contrast & Size */}
                    {item.description && (
-                     <p className="text-sm text-neutral-500 group-hover:text-neutral-400 mt-2 line-clamp-2 leading-relaxed font-light">
+                     <p className="text-sm text-slate-400 group-hover:text-slate-300 mt-2 line-clamp-2 leading-relaxed font-normal">
                        {item.description}
                      </p>
                    )}
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  <span className={`text-[10px] font-mono uppercase tracking-widest ${theme.date}`}>
+                  <span className={`text-xs font-mono font-medium uppercase tracking-widest ${theme.date}`}>
                     {item.date}
                   </span>
-                  <ArrowUpRight className={`w-3 h-3 ${theme.icon} mt-1`} />
+                  <ArrowUpRight className={`w-4 h-4 ${theme.icon} mt-1`} />
                 </div>
              </div>
            </a>
          )) : (
-           <div className="flex-1 flex flex-col items-center justify-center text-neutral-600 p-6 h-full">
+           <div className="flex-1 flex flex-col items-center justify-center text-slate-600 p-6 h-full">
              <Database className="w-8 h-8 mb-2 opacity-20" />
-             <p className="text-xs font-mono">DATA STREAM OFFLINE</p>
+             <p className="text-sm font-mono">DATA STREAM OFFLINE</p>
            </div>
          )}
-         
-         {/* REMOVED WHO DON BUTTON */}
        </div>
     </div>
   );
 }
 
-// --- STANDARD COMPONENTS ---
+// --- STANDARD COMPONENTS (Uniform & High Contrast) ---
+
 function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
   const styles = {
     critical: {
       border: "border-red-500/30",
-      bg: "bg-red-950/5",
-      hoverBg: "hover:bg-red-950/20",
-      hoverBorder: "hover:border-red-500/60",
+      bg: "bg-red-950/10",
+      hoverBg: "hover:bg-red-900/20",
+      hoverBorder: "hover:border-red-500/50",
       iconBg: "bg-red-500/10",
-      iconColor: "text-red-500",
+      iconColor: "text-red-400",
       iconBorder: "border-red-500/20",
-      arrowHover: "group-hover:text-red-500",
+      arrowHover: "group-hover:text-red-400",
       textHover: "group-hover:text-red-100",
-      subtext: "text-red-200/50",
+      subtext: "text-red-200/60",
       glow: "from-red-500/10"
     },
     standard: {
-      border: "border-white/20",
-      bg: "bg-white/5",
-      hoverBg: "hover:bg-white/10",
-      hoverBorder: "hover:border-emerald-500/50",
+      border: "border-slate-700",
+      bg: "bg-slate-900/50",
+      hoverBg: "hover:bg-slate-800",
+      hoverBorder: "hover:border-emerald-500/40",
       iconBg: "bg-emerald-500/10",
       iconColor: "text-emerald-500",
       iconBorder: "border-emerald-500/20",
-      arrowHover: "group-hover:text-emerald-500",
-      textHover: "group-hover:text-emerald-100",
-      subtext: "text-emerald-200/50",
+      arrowHover: "group-hover:text-emerald-400",
+      textHover: "group-hover:text-white",
+      subtext: "text-emerald-100/60",
       glow: "from-emerald-500/10"
     }
   };
@@ -274,27 +278,29 @@ function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
   return (
     <Link 
       href={href}
-      className={`group relative h-48 md:h-64 rounded-2xl border ${s.border} ${s.bg} backdrop-blur-md
-                 ${s.hoverBg} ${s.hoverBorder} transition-all duration-500 overflow-hidden`}
+      // Added h-full to ensure uniform height in grid
+      className={`group relative h-full min-h-[180px] rounded-xl border ${s.border} ${s.bg} backdrop-blur-sm
+                 ${s.hoverBg} ${s.hoverBorder} transition-all duration-300 overflow-hidden flex flex-col`}
     >
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-50" />
-      <div className="absolute inset-0 p-8 flex flex-col justify-between z-20">
-        <div className="flex justify-between items-start">
-          <span className={`p-3 rounded-lg ${s.iconBg} ${s.iconColor} border ${s.iconBorder} backdrop-blur-sm`}>
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-30" />
+      
+      {/* Used flex-1 to push content properly */}
+      <div className="relative p-6 flex flex-col justify-between h-full z-20">
+        <div className="flex justify-between items-start mb-4">
+          <span className={`p-3 rounded-lg ${s.iconBg} ${s.iconColor} border ${s.iconBorder}`}>
             <Icon className="w-6 h-6" />
           </span>
-          <ArrowUpRight className={`w-5 h-5 text-neutral-700 ${s.arrowHover} transition-colors`} />
+          <ArrowUpRight className={`w-5 h-5 text-slate-500 ${s.arrowHover} transition-colors`} />
         </div>
         <div>
-          <h3 className={`text-2xl font-semibold text-white mb-2 ${s.textHover} transition-colors`}>
+          <h3 className={`text-xl font-bold text-slate-100 mb-2 ${s.textHover} transition-colors`}>
             {title}
           </h3>
-          <p className={`text-sm ${s.subtext} font-mono uppercase tracking-wider`}>
+          <p className={`text-sm ${s.subtext} font-mono font-medium uppercase tracking-wider`}>
             {subtitle}
           </p>
         </div>
       </div>
-      <div className="absolute inset-0 z-10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12" />
       <div className={`absolute inset-0 bg-gradient-to-t ${s.glow} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
     </Link>
   );
@@ -306,23 +312,22 @@ function UplinkCard({ title, subtitle, icon: Icon, href }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative p-4 rounded-xl border border-white/20 bg-white/5 backdrop-blur-md
-                 hover:bg-white/10 hover:border-white/30 transition-all duration-300 flex items-center gap-4 overflow-hidden"
+      // Added h-full for uniform height
+      className="group relative p-4 h-full rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur-sm
+                 hover:bg-slate-800 hover:border-slate-600 transition-all duration-200 flex items-center gap-4 overflow-hidden"
     >
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-30" />
-      <div className="relative z-10 p-2 rounded-lg bg-black/40 border border-white/10 text-neutral-400 group-hover:text-white group-hover:border-white/20 transition-all">
+      <div className="relative z-10 p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-400 group-hover:text-white group-hover:border-slate-600 transition-all">
         <Icon className="w-5 h-5" />
       </div>
       <div className="relative z-10 flex-1 min-w-0">
-        <h4 className="text-sm font-medium text-neutral-300 group-hover:text-white truncate transition-colors">
+        <h4 className="text-sm font-bold text-slate-300 group-hover:text-white truncate transition-colors">
           {title}
         </h4>
-        <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-mono truncate">
+        <p className="text-xs uppercase tracking-wider text-slate-500 font-mono font-medium truncate">
           {subtitle}
         </p>
       </div>
-      <ArrowUpRight className="relative z-10 w-3 h-3 text-neutral-600 group-hover:text-white transition-colors" />
-      <div className="absolute inset-0 z-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12" />
+      <ArrowUpRight className="relative z-10 w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
     </a>
   );
 }
@@ -331,18 +336,21 @@ function ResourceCard({ href, icon: Icon, title, description }) {
   return (
     <Link 
       href={href}
-      className="group relative p-6 rounded-xl border border-white/20 bg-black/40 backdrop-blur-md 
-                 hover:bg-white/5 hover:border-white/30 transition-all duration-300 overflow-hidden"
+      // Added h-full and flex flex-col for uniform height
+      className="group relative p-6 h-full rounded-xl border border-slate-800 bg-slate-900/40 backdrop-blur-sm 
+                 hover:bg-slate-800 hover:border-slate-600 transition-all duration-200 overflow-hidden flex flex-col"
     >
-       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50" />
-      <div className="relative z-10 mb-8 opacity-50 group-hover:opacity-100 transition-opacity">
-        <Icon className="w-6 h-6 text-white" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-50" />
+      <div className="relative z-10 mb-6 text-slate-500 group-hover:text-white transition-colors">
+        <Icon className="w-7 h-7" />
       </div>
-      <h4 className="relative z-10 text-lg font-medium text-white mb-2">{title}</h4>
-      <p className="relative z-10 text-sm text-neutral-500 leading-relaxed group-hover:text-neutral-400 transition-colors">
+      <h4 className="relative z-10 text-lg font-bold text-slate-200 group-hover:text-white mb-2 transition-colors">
+        {title}
+      </h4>
+      {/* Increased description legibility */}
+      <p className="relative z-10 text-sm text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors flex-1 font-normal">
         {description}
       </p>
-      <div className="absolute inset-0 z-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12" />
     </Link>
   );
 }
