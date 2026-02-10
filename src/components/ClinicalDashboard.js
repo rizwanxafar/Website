@@ -26,7 +26,7 @@ export default function ClinicalDashboard({ intelData, source }) {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-200 selection:bg-emerald-500/30 selection:text-emerald-200 overflow-x-hidden font-sans">
       
-      {/* --- HEADER (Cleaned - No Blinker) --- */}
+      {/* --- HEADER --- */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -35,7 +35,6 @@ export default function ClinicalDashboard({ intelData, source }) {
               ID-Northwest
             </span>
           </div>
-          {/* REMOVED: System Online Blinker */}
         </div>
       </header>
 
@@ -46,12 +45,11 @@ export default function ClinicalDashboard({ intelData, source }) {
           initial="hidden"
           animate="visible"
           variants={staggerContainer}
-          className="space-y-16"
+          className="space-y-12" // Reduced vertical spacing between sections
         >
 
-          {/* 1. WELCOME SECTION (Reverted Colours) */}
+          {/* 1. WELCOME SECTION */}
           <motion.div variants={fadeInUp} className="max-w-4xl">
-            {/* Reverted: Dark Grey 'Welcome' + White 'Infectious Diseases' */}
             <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-slate-600 mb-6">
               Welcome to <span className="text-white">Infectious Diseases</span> Portal
             </h1>
@@ -61,7 +59,7 @@ export default function ClinicalDashboard({ intelData, source }) {
             </p>
           </motion.div>
 
-          {/* 2. ACTIVE TOOLS (Uniform Grid) */}
+          {/* 2. ACTIVE TOOLS (Kept these as Hero Cards) */}
           <motion.div variants={fadeInUp} className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
             <ToolCard 
               href="/algorithms/travel/risk-assessment-returning-traveller"
@@ -94,9 +92,9 @@ export default function ClinicalDashboard({ intelData, source }) {
             </div>
           </motion.div>
 
-          {/* 4. IMPORTANT LINKS (Strict Uniform Grid) */}
+          {/* 4. IMPORTANT LINKS (COMPACT DESIGN) */}
           <motion.div variants={fadeInUp}>
-            <div className="flex items-center gap-4 mb-6">
+            <div className="flex items-center gap-4 mb-4">
               <span className="font-mono text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <LinkIcon className="w-5 h-5" />
                 IMPORTANT LINKS
@@ -104,17 +102,16 @@ export default function ClinicalDashboard({ intelData, source }) {
               <div className="h-px flex-1 bg-gradient-to-r from-slate-800 to-transparent" />
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
-              {/* Uses unified StandardCard component */}
-              <StandardCard title="NaTHNaC" icon={Plane} href="https://travelhealthpro.org.uk" />
-              <StandardCard title="CDC Travel" icon={ShieldAlert} href="https://wwwnc.cdc.gov/travel/notices" />
-              <StandardCard title="ProMED-mail" icon={Siren} href="https://promedmail.org/" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <CompactCard title="NaTHNaC" icon={Plane} href="https://travelhealthpro.org.uk" />
+              <CompactCard title="CDC Travel" icon={ShieldAlert} href="https://wwwnc.cdc.gov/travel/notices" />
+              <CompactCard title="ProMED-mail" icon={Siren} href="https://promedmail.org/" />
             </div>
           </motion.div>
 
-          {/* 5. RESOURCES (Strict Uniform Grid - Same Look) */}
+          {/* 5. RESOURCES (COMPACT DESIGN) */}
           <motion.div variants={fadeInUp}>
-            <div className="flex items-center gap-4 mb-8">
+            <div className="flex items-center gap-4 mb-4">
               <span className="font-mono text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                 <Library className="w-5 h-5" />
                 Resources
@@ -122,11 +119,10 @@ export default function ClinicalDashboard({ intelData, source }) {
               <div className="h-px flex-1 bg-gradient-to-r from-slate-800 to-transparent" />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-               {/* Uses unified StandardCard component (Descriptions optional, but style matches above) */}
-              <StandardCard href="/algorithms" icon={Activity} title="Algorithms" description="Interactive flowcharts for clinical pathways and diagnostics." />
-              <StandardCard href="/guidelines" icon={FileText} title="Guidelines" description="Static reference documents, policy PDFs, and local protocols." />
-              <StandardCard href="/teaching" icon={GraduationCap} title="Education" description="Teaching materials, case studies, and departmental slides." />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <CompactCard href="/algorithms" icon={Activity} title="Algorithms" description="Interactive flowcharts." />
+              <CompactCard href="/guidelines" icon={FileText} title="Guidelines" description="Static reference docs." />
+              <CompactCard href="/teaching" icon={GraduationCap} title="Education" description="Teaching materials." />
             </div>
           </motion.div>
 
@@ -144,7 +140,7 @@ export default function ClinicalDashboard({ intelData, source }) {
   );
 }
 
-// --- INTELLIGENCE CARD (Cleaned) ---
+// --- INTELLIGENCE CARD ---
 
 function LiveIntelCard({ items, source }) {
   const hasData = items && items.length > 0;
@@ -153,8 +149,6 @@ function LiveIntelCard({ items, source }) {
   const theme = isLive ? {
     border: 'border-emerald-500/30',
     bg: 'bg-emerald-950/10',
-    headerBorder: 'border-emerald-900/30',
-    headerBg: 'bg-emerald-950/20',
     text: 'text-emerald-400',
     hover: 'hover:bg-emerald-900/20',
     date: 'text-emerald-500 group-hover:text-emerald-300',
@@ -163,8 +157,6 @@ function LiveIntelCard({ items, source }) {
   } : {
     border: 'border-amber-500/30',
     bg: 'bg-amber-950/10',
-    headerBorder: 'border-amber-900/30',
-    headerBg: 'bg-amber-950/20',
     text: 'text-amber-500',
     hover: 'hover:bg-amber-900/20',
     date: 'text-amber-600 group-hover:text-amber-400',
@@ -177,12 +169,8 @@ function LiveIntelCard({ items, source }) {
       ${hasData ? theme.border : 'border-slate-800'}
       ${hasData ? theme.bg : 'bg-slate-900/30'}
     `}>
-       {/* Removed Blinker & Text from Header */}
-       <div className={`p-3 border-b flex items-center justify-between flex-shrink-0 z-10 h-8
-         ${hasData ? theme.headerBorder : 'border-slate-800'}
-         ${hasData ? theme.headerBg : 'bg-slate-900/50'}
-       `}>
-          {/* Empty div to maintain spacing if needed, or just kept minimal */}
+       {/* Minimal Header */}
+       <div className={`p-3 border-b flex items-center justify-between flex-shrink-0 z-10 h-8 border-slate-800 bg-slate-900/50`}>
        </div>
        
        <div className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent ${theme.scrollbar} flex flex-col divide-y ${hasData ? (isLive ? 'divide-emerald-900/20' : 'divide-amber-900/20') : 'divide-slate-800'}`}>
@@ -224,9 +212,9 @@ function LiveIntelCard({ items, source }) {
   );
 }
 
-// --- UNIFIED STANDARD CARD (For Links & Resources) ---
-// This replaces UplinkCard and ResourceCard to ensure perfect uniformity
-function StandardCard({ href, icon: Icon, title, description }) {
+// --- NEW COMPACT CARD (Horizontal Layout) ---
+// This ensures uniform height and compact design for both Links and Resources
+function CompactCard({ href, icon: Icon, title, description }) {
   const isExternal = href.startsWith('http');
 
   return (
@@ -234,37 +222,35 @@ function StandardCard({ href, icon: Icon, title, description }) {
       href={href}
       target={isExternal ? "_blank" : undefined}
       rel={isExternal ? "noopener noreferrer" : undefined}
-      className="group relative p-6 h-full rounded-xl border border-slate-800 bg-slate-900/40 backdrop-blur-sm 
-                 hover:bg-slate-800 hover:border-slate-600 transition-all duration-200 overflow-hidden flex flex-col"
+      className="group relative flex items-center gap-4 p-4 rounded-lg border border-slate-800 bg-slate-900/40 backdrop-blur-sm 
+                 hover:bg-slate-800 hover:border-slate-600 transition-all duration-200 overflow-hidden"
     >
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-50" />
       
-      {/* Icon */}
-      <div className="relative z-10 mb-6 text-slate-500 group-hover:text-white transition-colors">
-        <Icon className="w-7 h-7" />
+      {/* Icon - Fixed Size Box */}
+      <div className="relative z-10 flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-md bg-slate-950 border border-slate-800 text-slate-500 group-hover:text-white group-hover:border-slate-600 transition-all">
+        <Icon className="w-5 h-5" />
       </div>
 
-      {/* Title */}
-      <h4 className="relative z-10 text-lg font-bold text-slate-200 group-hover:text-white mb-2 transition-colors">
-        {title}
-      </h4>
-
-      {/* Description (Only renders if provided, but layout remains consistent) */}
-      {description && (
-        <p className="relative z-10 text-sm text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors flex-1 font-normal">
-          {description}
-        </p>
-      )}
-
-      {/* Hover Arrow Effect */}
-      <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-        <ArrowUpRight className="w-5 h-5 text-slate-400" />
+      {/* Text Content */}
+      <div className="relative z-10 flex-1 min-w-0">
+        <h4 className="text-base font-bold text-slate-200 group-hover:text-white transition-colors truncate">
+          {title}
+        </h4>
+        {description && (
+          <p className="text-xs text-slate-500 group-hover:text-slate-400 truncate font-normal mt-0.5">
+            {description}
+          </p>
+        )}
       </div>
+
+      {/* Arrow */}
+      <ArrowUpRight className="relative z-10 w-4 h-4 text-slate-600 group-hover:text-white transition-colors flex-shrink-0" />
     </Link>
   );
 }
 
-// --- FEATURED TOOL CARD (Kept distinct as they are "Hero" tools) ---
+// --- FEATURED TOOL CARD (Hero) ---
 function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
   const styles = {
     critical: {
@@ -300,7 +286,7 @@ function ToolCard({ href, variant = "standard", icon: Icon, title, subtitle }) {
   return (
     <Link 
       href={href}
-      className={`group relative h-full min-h-[180px] rounded-xl border ${s.border} ${s.bg} backdrop-blur-sm
+      className={`group relative h-full min-h-[160px] rounded-xl border ${s.border} ${s.bg} backdrop-blur-sm
                  ${s.hoverBg} ${s.hoverBorder} transition-all duration-300 overflow-hidden flex flex-col`}
     >
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-30" />
