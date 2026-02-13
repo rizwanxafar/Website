@@ -24,12 +24,11 @@ const staggerContainer = {
 
 export default function ClinicalDashboard({ intelData, source }) {
   return (
-    // CHANGED: Reverted bg-slate-950 to bg-black
-    <main className="min-h-screen bg-black text-slate-200 selection:bg-emerald-500/30 selection:text-emerald-200 overflow-x-hidden font-sans">
+    // THEME: Deep Slate Background for NHS Monitor Legibility
+    <main className="min-h-screen bg-slate-950 text-slate-200 selection:bg-emerald-500/30 selection:text-emerald-200 overflow-x-hidden font-sans">
       
       {/* --- HEADER --- */}
-      {/* CHANGED: Reverted bg-slate-950/90 to bg-black/90 */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800 bg-black/90 backdrop-blur-md">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Terminal className="w-5 h-5 text-slate-400" />
@@ -47,11 +46,12 @@ export default function ClinicalDashboard({ intelData, source }) {
           initial="hidden"
           animate="visible"
           variants={staggerContainer}
-          className="space-y-12" // Reduced vertical spacing between sections
+          className="space-y-12"
         >
 
           {/* 1. WELCOME SECTION */}
           <motion.div variants={fadeInUp} className="max-w-4xl">
+            {/* High Contrast: Dark Slate Grey + White */}
             <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-slate-600 mb-6">
               Welcome to <span className="text-white">Infectious Diseases</span> Portal
             </h1>
@@ -61,7 +61,7 @@ export default function ClinicalDashboard({ intelData, source }) {
             </p>
           </motion.div>
 
-          {/* 2. ACTIVE TOOLS (Kept these as Hero Cards) */}
+          {/* 2. ACTIVE TOOLS (Hero Cards - Uniform Height) */}
           <motion.div variants={fadeInUp} className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
             <ToolCard 
               href="/algorithms/travel/risk-assessment-returning-traveller"
@@ -94,7 +94,7 @@ export default function ClinicalDashboard({ intelData, source }) {
             </div>
           </motion.div>
 
-          {/* 4. IMPORTANT LINKS (COMPACT DESIGN) */}
+          {/* 4. IMPORTANT LINKS (Compact & Uniform) */}
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-4">
               <span className="font-mono text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -111,7 +111,7 @@ export default function ClinicalDashboard({ intelData, source }) {
             </div>
           </motion.div>
 
-          {/* 5. RESOURCES (COMPACT DESIGN) */}
+          {/* 5. RESOURCES (Compact & Uniform) */}
           <motion.div variants={fadeInUp}>
             <div className="flex items-center gap-4 mb-4">
               <span className="font-mono text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -214,8 +214,7 @@ function LiveIntelCard({ items, source }) {
   );
 }
 
-// --- NEW COMPACT CARD (Horizontal Layout) ---
-// This ensures uniform height and compact design for both Links and Resources
+// --- COMPACT CARD (Horizontal) ---
 function CompactCard({ href, icon: Icon, title, description }) {
   const isExternal = href.startsWith('http');
 
@@ -229,12 +228,12 @@ function CompactCard({ href, icon: Icon, title, description }) {
     >
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-50" />
       
-      {/* Icon - Fixed Size Box */}
+      {/* Icon */}
       <div className="relative z-10 flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-md bg-slate-950 border border-slate-800 text-slate-500 group-hover:text-white group-hover:border-slate-600 transition-all">
         <Icon className="w-5 h-5" />
       </div>
 
-      {/* Text Content */}
+      {/* Text */}
       <div className="relative z-10 flex-1 min-w-0">
         <h4 className="text-base font-bold text-slate-200 group-hover:text-white transition-colors truncate">
           {title}
