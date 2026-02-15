@@ -13,7 +13,7 @@ import {
   ADHERENCE_OPTIONS 
 } from '../../_lib/constants';
 import { getIsoFromCountryName } from '../../_lib/utils';
-import { MapPin, Users, Syringe, Pill, Trash, Plus, Navigation } from 'lucide-react'; // Added Icons
+import { MapPin, Users, Syringe, Pill, Trash, Plus, Navigation } from 'lucide-react';
 import SearchableSelect from '../ui/SearchableSelect';
 import MultiSelectTags from '../ui/MultiSelectTags';
 import SimpleSelect from '../ui/SimpleSelect';
@@ -51,31 +51,31 @@ export default function TripCard({
 
   const headerTitle = totalTrips > 1 ? `TRIP_0${index + 1}` : "TRIP_DETAILS";
 
-  // --- STYLES (Hardcoded for "Blackout Protocol") ---
-  const CARD_BASE = "rounded-2xl border border-neutral-800 bg-neutral-900/20 p-6";
-  const LABEL = "block text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-wider mb-2";
-  const SUB_LABEL = "block text-[10px] font-mono text-neutral-600 uppercase mb-1";
+  // --- STYLES ---
+  const CARD_BASE = "rounded-xl border border-slate-700 bg-slate-800/40 p-6";
+  const LABEL = "block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider mb-2";
+  const SUB_LABEL = "block text-[10px] font-mono text-slate-500 uppercase mb-1";
   
-  const INPUT_STYLES = "w-full bg-black/50 border border-neutral-800 rounded px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-emerald-500 placeholder:text-neutral-700 transition-colors font-sans";
+  const INPUT_STYLES = "w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 placeholder:text-slate-600 transition-colors font-sans";
   
-  const BTN_TOGGLE_BASE = "px-3 py-1.5 text-[11px] font-mono uppercase tracking-wide rounded border transition-all duration-200";
-  const BTN_TOGGLE_ACTIVE = "bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]";
-  const BTN_TOGGLE_INACTIVE = "bg-neutral-950 border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300";
+  const BTN_TOGGLE_BASE = "px-3 py-1.5 text-[11px] font-mono uppercase tracking-wide rounded-lg border transition-all duration-200";
+  const BTN_TOGGLE_ACTIVE = "bg-emerald-500/10 border-emerald-500/50 text-emerald-400";
+  const BTN_TOGGLE_INACTIVE = "bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300";
 
-  const BTN_ACTION = "flex items-center gap-2 px-3 py-1.5 rounded text-[11px] font-mono uppercase tracking-wide border transition-all";
-  const BTN_ADD = "bg-neutral-900 border-neutral-800 text-emerald-500 hover:border-emerald-500/50 hover:bg-emerald-950/20";
-  const BTN_REMOVE = "bg-transparent border-transparent text-neutral-600 hover:text-red-400";
+  const BTN_ACTION = "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-mono uppercase tracking-wide border transition-all";
+  const BTN_ADD = "bg-slate-900 border-slate-700 text-emerald-500 hover:border-emerald-500/50 hover:bg-emerald-500/10 px-3 py-1.5 rounded-lg flex items-center gap-2 text-[10px] font-mono font-bold tracking-wide uppercase";
+  const BTN_REMOVE = "bg-transparent border-transparent text-slate-500 hover:text-red-400";
 
   return (
     <div ref={innerRef} className={CARD_BASE}>
       
       {/* HEADER */}
-      <div className="flex items-start justify-between gap-3 mb-6 border-b border-neutral-800/50 pb-4">
+      <div className="flex items-start justify-between gap-3 mb-6 border-b border-slate-700 pb-4">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center h-8 w-8 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+          <div className="flex items-center justify-center h-8 w-8 rounded bg-emerald-500/10 border border-emerald-500/50 text-emerald-500">
              <Navigation className="w-4 h-4" />
           </div>
-          <h2 className="text-sm font-bold text-neutral-200 font-mono tracking-widest">{headerTitle}</h2>
+          <h2 className="text-sm font-bold text-slate-200 font-mono tracking-widest">{headerTitle}</h2>
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={() => addStop(trip.id)} className={BTN_ADD}>
@@ -122,7 +122,7 @@ export default function TripCard({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* REASON */}
-        <div className="p-4 rounded-xl border border-neutral-800 bg-black/40">
+        <div className="p-4 rounded-xl border border-slate-700 bg-slate-900/30">
           <label className={LABEL}>Travel Purpose</label>
           <input 
             type="text" 
@@ -134,7 +134,7 @@ export default function TripCard({
         </div>
 
         {/* COMPANIONS */}
-        <div className="p-4 rounded-xl border border-neutral-800 bg-black/40">
+        <div className="p-4 rounded-xl border border-slate-700 bg-slate-900/30">
           <label className={clsx(LABEL, "flex items-center gap-2")}>
             <Users className="w-3 h-3" /> Companions
           </label>
@@ -175,7 +175,7 @@ export default function TripCard({
           </SmoothReveal>
 
           <SmoothReveal show={trip.companions.group !== 'Alone'}>
-            <div className="grid gap-3 border-t border-neutral-800 pt-3">
+            <div className="grid gap-3 border-t border-slate-700 pt-3">
               <div>
                 <label className={SUB_LABEL}>Are they well?</label>
                 <div className="flex gap-2">
@@ -213,7 +213,7 @@ export default function TripCard({
         </div>
 
         {/* VACCINES */}
-        <div className="p-4 rounded-xl border border-neutral-800 bg-black/40">
+        <div className="p-4 rounded-xl border border-slate-700 bg-slate-900/30">
           <label className={clsx(LABEL, "flex items-center gap-2")}>
             <Syringe className="w-3 h-3" /> Pre-Travel Vaccines
           </label>
@@ -233,7 +233,7 @@ export default function TripCard({
             ))}
           </div>
           <SmoothReveal show={trip.vaccines?.status === 'Taken'}>
-             <div className="border-t border-neutral-800 pt-3">
+             <div className="border-t border-slate-700 pt-3">
                <label className={SUB_LABEL}>Select Vaccines</label>
                <MultiSelectTags 
                  value={trip.vaccines.details || []}
@@ -246,7 +246,7 @@ export default function TripCard({
         </div>
 
         {/* MALARIA */}
-        <div className="p-4 rounded-xl border border-neutral-800 bg-black/40">
+        <div className="p-4 rounded-xl border border-slate-700 bg-slate-900/30">
           <label className={clsx(LABEL, "flex items-center gap-2")}>
             <Pill className="w-3 h-3" /> Malaria Prophylaxis
           </label>
@@ -266,7 +266,7 @@ export default function TripCard({
             ))}
           </div>
           <SmoothReveal show={trip.malaria.indication === 'Taken'}>
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-neutral-800">
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-700">
               <div>
                 <label className={SUB_LABEL}>Drug</label>
                 <SimpleSelect value={trip.malaria.drug} onChange={(val) => setMalaria({ drug: val })} options={MALARIA_DRUGS} />
@@ -298,8 +298,8 @@ export default function TripCard({
 
       {/* LAYOVERS SECTION */}
       {trip.layovers.length > 0 && (
-        <div className="mt-8 border-t border-neutral-800 pt-6">
-          <h3 className="text-xs font-bold font-mono text-neutral-500 uppercase tracking-widest mb-4">Transit / Layovers</h3>
+        <div className="mt-8 border-t border-slate-700 pt-6">
+          <h3 className="text-xs font-bold font-mono text-slate-500 uppercase tracking-widest mb-4">Transit / Layovers</h3>
           <div className="space-y-4">
             {trip.layovers.map((l) => (
               <LayoverCard key={l.id} innerRef={setItemRef(l.id)} layover={l} onChange={(patch) => updateLayover(trip.id, l.id, patch)} onRemove={() => removeLayover(trip.id, l.id)} highlighted={highlight.layoverIds.has(l.id)} />
