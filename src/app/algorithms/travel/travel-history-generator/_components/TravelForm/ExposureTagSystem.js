@@ -1,5 +1,5 @@
 import { clsx } from 'clsx';
-import { Check, AlertCircle } from 'lucide-react'; 
+import { Check } from 'lucide-react'; 
 import SmoothReveal from '../ui/SmoothReveal';
 import { EXPOSURE_CATEGORIES } from '../../_lib/constants';
 
@@ -26,8 +26,8 @@ export default function ExposureTagSystem({ exposures, onChange }) {
     cat.items.some(item => exposures[item.key] === 'yes' || exposures[item.key] === true)
   );
 
-  // --- NEW SCALED STYLES ---
-  const CATEGORY_HEADER = "text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 pb-2 border-b border-slate-700";
+  // --- STYLES ---
+  const CATEGORY_HEADER = "text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 pb-2 border-b border-slate-700";
   const CARD_BASE = "flex items-center justify-between p-3.5 rounded-lg border transition-all duration-200";
   const CARD_DEFAULT = "bg-slate-800/40 border-slate-700 hover:bg-slate-800/80";
   const CARD_YES = "bg-emerald-500/10 border-emerald-500/50 shadow-sm";
@@ -37,8 +37,8 @@ export default function ExposureTagSystem({ exposures, onChange }) {
   const BTN_NO_ACTIVE = "bg-slate-700 border-slate-600 text-slate-300 shadow-sm";
   const BTN_INACTIVE = "bg-transparent border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300 hover:bg-slate-800";
   
-  const TEXTAREA_STYLES = "w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-base text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 min-h-[100px] resize-none font-sans placeholder:text-slate-600 transition-colors shadow-sm";
-  const LABEL_STYLES = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3";
+  const TEXTAREA_STYLES = "w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-base text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 min-h-[100px] resize-none font-sans placeholder:text-slate-500 transition-colors shadow-sm";
+  const LABEL_STYLES = "block text-xs font-bold text-slate-300 uppercase tracking-wider mb-3";
 
   return (
     <div className="space-y-10">
@@ -102,12 +102,7 @@ export default function ExposureTagSystem({ exposures, onChange }) {
       {/* POSITIVE DETAILS (Hidden until triggered) */}
       <SmoothReveal show={hasPositive}>
         <div className="space-y-4 pt-8 border-t border-slate-700 mt-6">
-          <div className="flex items-center gap-3 mb-2">
-             <div className="p-1.5 rounded-full bg-emerald-500/10">
-               <AlertCircle className="w-5 h-5 text-emerald-500" />
-             </div>
-             <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest">Positive Exposure Details</label>
-          </div>
+          <label className={LABEL_STYLES}>Positive Exposure Details</label>
           <textarea 
             rows={3} 
             className={TEXTAREA_STYLES}
