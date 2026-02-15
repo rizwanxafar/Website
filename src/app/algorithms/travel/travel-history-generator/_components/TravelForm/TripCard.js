@@ -49,51 +49,59 @@ export default function TripCard({
     return names;
   }, [originISO2]);
 
-  const headerTitle = totalTrips > 1 ? `TRIP_0${index + 1}` : "TRIP_DETAILS";
+  const headerTitle = totalTrips > 1 ? `Trip Information 0${index + 1}` : "Trip Information";
 
-  // --- STYLES ---
-  const CARD_BASE = "rounded-xl border border-slate-700 bg-slate-800/40 p-6";
-  const LABEL = "block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider mb-2";
-  const SUB_LABEL = "block text-[10px] font-mono text-slate-500 uppercase mb-1";
+  // --- NEW SAAAS STYLES ---
+  const CARD_BASE = "rounded-2xl border border-slate-700 bg-slate-800/30 p-8 shadow-sm";
+  const LABEL = "block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5";
+  const SUB_LABEL = "block text-xs font-medium text-slate-500 uppercase mb-2";
   
-  const INPUT_STYLES = "w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 placeholder:text-slate-600 transition-colors font-sans";
+  // Standardized Large Input (16px text, 48px height)
+  const INPUT_STYLES = "w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-base text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 placeholder:text-slate-600 transition-all shadow-sm";
   
-  const BTN_TOGGLE_BASE = "px-3 py-1.5 text-[11px] font-mono uppercase tracking-wide rounded-lg border transition-all duration-200";
-  const BTN_TOGGLE_ACTIVE = "bg-emerald-500/10 border-emerald-500/50 text-emerald-400";
+  // Larger Toggle Buttons
+  const BTN_TOGGLE_BASE = "px-5 py-2.5 text-xs font-bold uppercase tracking-wide rounded-lg border transition-all duration-200 flex-1 sm:flex-none text-center";
+  const BTN_TOGGLE_ACTIVE = "bg-emerald-500/10 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]";
   const BTN_TOGGLE_INACTIVE = "bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300";
 
-  const BTN_ACTION = "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-mono uppercase tracking-wide border transition-all";
-  const BTN_ADD = "bg-slate-900 border-slate-700 text-emerald-500 hover:border-emerald-500/50 hover:bg-emerald-500/10 px-3 py-1.5 rounded-lg flex items-center gap-2 text-[10px] font-mono font-bold tracking-wide uppercase";
-  const BTN_REMOVE = "bg-transparent border-transparent text-slate-500 hover:text-red-400";
+  const BTN_ADD = "bg-slate-900 border border-slate-700 text-emerald-500 hover:border-emerald-500/50 hover:bg-emerald-500/10 px-4 py-2.5 rounded-lg flex items-center gap-2 text-xs font-bold tracking-wide uppercase transition-all shadow-sm";
+  const BTN_REMOVE = "bg-transparent border-transparent text-slate-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-500/10 transition-colors";
 
   return (
     <div ref={innerRef} className={CARD_BASE}>
       
       {/* HEADER */}
-      <div className="flex items-start justify-between gap-3 mb-6 border-b border-slate-700 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center h-8 w-8 rounded bg-emerald-500/10 border border-emerald-500/50 text-emerald-500">
-             <Navigation className="w-4 h-4" />
+      <div className="flex items-start justify-between gap-6 mb-10 border-b border-slate-700 pb-6">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+             <Navigation className="w-5 h-5" />
           </div>
-          <h2 className="text-sm font-bold text-slate-200 font-mono tracking-widest">{headerTitle}</h2>
+          <div>
+            <h2 className="text-xl font-bold text-slate-100 tracking-tight">{headerTitle}</h2>
+            <p className="text-sm text-slate-500 font-medium">Core logistics and risk assessment</p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button type="button" onClick={() => addStop(trip.id)} className={BTN_ADD}>
-            <Plus className="w-3 h-3" /> Destination
+            <Plus className="w-4 h-4" /> Destination
           </button>
           <button type="button" onClick={() => addLayover(trip.id)} className={BTN_ADD}>
-            <Plus className="w-3 h-3" /> Layover
+            <Plus className="w-4 h-4" /> Layover
           </button>
+          <div className="w-px h-8 bg-slate-700 mx-1 self-center" />
           <button type="button" onClick={() => removeTrip(trip.id)} className={BTN_REMOVE}>
-            <Trash className="w-4 h-4" />
+            <Trash className="w-5 h-5" />
           </button>
         </div>
       </div>
 
       {/* ORIGIN SECTION */}
-      <div className="mb-8">
-        <label className={LABEL}>Origin Point</label>
-        <div className="grid sm:grid-cols-2 gap-4">
+      <div className="mb-10 p-6 rounded-xl bg-slate-900/50 border border-slate-700/50">
+        <label className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-wider mb-4">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          Origin Point
+        </label>
+        <div className="grid sm:grid-cols-2 gap-8">
           <div>
             <label className={SUB_LABEL}>Country</label>
             <div className="relative group">
@@ -119,10 +127,10 @@ export default function TripCard({
       </div>
 
       {/* META DATA GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* REASON */}
-        <div className="p-4 rounded-xl border border-slate-700 bg-slate-900/30">
+        <div className="p-6 rounded-xl border border-slate-700 bg-slate-800/20">
           <label className={LABEL}>Travel Purpose</label>
           <input 
             type="text" 
@@ -134,11 +142,11 @@ export default function TripCard({
         </div>
 
         {/* COMPANIONS */}
-        <div className="p-4 rounded-xl border border-slate-700 bg-slate-900/30">
+        <div className="p-6 rounded-xl border border-slate-700 bg-slate-800/20">
           <label className={clsx(LABEL, "flex items-center gap-2")}>
-            <Users className="w-3 h-3" /> Companions
+            <Users className="w-4 h-4 text-indigo-400" /> Companions
           </label>
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex flex-wrap gap-3 mb-4">
             {COMPANION_GROUPS.map((opt) => (
               <button
                 key={opt}
@@ -163,7 +171,7 @@ export default function TripCard({
           </div>
 
           <SmoothReveal show={trip.companions.group === 'Other'}>
-            <div className="mb-3">
+            <div className="mb-4">
               <input 
                 type="text" 
                 className={INPUT_STYLES}
@@ -175,10 +183,10 @@ export default function TripCard({
           </SmoothReveal>
 
           <SmoothReveal show={trip.companions.group !== 'Alone'}>
-            <div className="grid gap-3 border-t border-slate-700 pt-3">
+            <div className="grid gap-4 border-t border-slate-700 pt-4">
               <div>
                 <label className={SUB_LABEL}>Are they well?</label>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   {COMPANION_WELL_OPTIONS.map((opt) => {
                     const val = opt.toLowerCase(); 
                     return (
@@ -213,11 +221,11 @@ export default function TripCard({
         </div>
 
         {/* VACCINES */}
-        <div className="p-4 rounded-xl border border-slate-700 bg-slate-900/30">
+        <div className="p-6 rounded-xl border border-slate-700 bg-slate-800/20">
           <label className={clsx(LABEL, "flex items-center gap-2")}>
-            <Syringe className="w-3 h-3" /> Pre-Travel Vaccines
+            <Syringe className="w-4 h-4 text-pink-400" /> Pre-Travel Vaccines
           </label>
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex flex-wrap gap-3 mb-4">
             {VACCINE_STATUS_OPTIONS.map(opt => (
               <button
                 key={opt}
@@ -233,7 +241,7 @@ export default function TripCard({
             ))}
           </div>
           <SmoothReveal show={trip.vaccines?.status === 'Taken'}>
-             <div className="border-t border-slate-700 pt-3">
+             <div className="border-t border-slate-700 pt-4">
                <label className={SUB_LABEL}>Select Vaccines</label>
                <MultiSelectTags 
                  value={trip.vaccines.details || []}
@@ -246,11 +254,11 @@ export default function TripCard({
         </div>
 
         {/* MALARIA */}
-        <div className="p-4 rounded-xl border border-slate-700 bg-slate-900/30">
+        <div className="p-6 rounded-xl border border-slate-700 bg-slate-800/20">
           <label className={clsx(LABEL, "flex items-center gap-2")}>
-            <Pill className="w-3 h-3" /> Malaria Prophylaxis
+            <Pill className="w-4 h-4 text-amber-400" /> Malaria Prophylaxis
           </label>
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex flex-wrap gap-3 mb-4">
             {MALARIA_STATUS_OPTIONS.map(opt => (
               <button
                 key={opt}
@@ -266,7 +274,7 @@ export default function TripCard({
             ))}
           </div>
           <SmoothReveal show={trip.malaria.indication === 'Taken'}>
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-700">
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-700">
               <div>
                 <label className={SUB_LABEL}>Drug</label>
                 <SimpleSelect value={trip.malaria.drug} onChange={(val) => setMalaria({ drug: val })} options={MALARIA_DRUGS} />
@@ -281,7 +289,12 @@ export default function TripCard({
       </div>
 
       {/* STOPS SECTION */}
-      <div className="mt-8 space-y-6">
+      <div className="mt-12 space-y-8">
+        <div className="flex items-center gap-4">
+           <div className="h-px bg-slate-700 flex-grow" />
+           <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Itinerary Details</span>
+           <div className="h-px bg-slate-700 flex-grow" />
+        </div>
         {trip.stops.map((stop, sIdx) => (
           <StopCard 
             key={stop.id} 
@@ -298,9 +311,9 @@ export default function TripCard({
 
       {/* LAYOVERS SECTION */}
       {trip.layovers.length > 0 && (
-        <div className="mt-8 border-t border-slate-700 pt-6">
-          <h3 className="text-xs font-bold font-mono text-slate-500 uppercase tracking-widest mb-4">Transit / Layovers</h3>
-          <div className="space-y-4">
+        <div className="mt-12 border-t border-slate-700 pt-8">
+          <h3 className="text-sm font-bold font-mono text-slate-500 uppercase tracking-widest mb-6 pl-1">Transit / Layovers</h3>
+          <div className="space-y-6">
             {trip.layovers.map((l) => (
               <LayoverCard key={l.id} innerRef={setItemRef(l.id)} layover={l} onChange={(patch) => updateLayover(trip.id, l.id, patch)} onRemove={() => removeLayover(trip.id, l.id)} highlighted={highlight.layoverIds.has(l.id)} />
             ))}
