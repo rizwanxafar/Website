@@ -25,39 +25,41 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
   const removeCity = (i) => { const next = [...normalizedCities]; next.splice(i, 1); if (next.length === 0) next.push({ name: '', arrival: '', departure: '' }); commitCities(next); };
   const toggleAccommodation = (value) => { const set = new Set(stop.accommodations || []); if (set.has(value)) set.delete(value); else set.add(value); onChange({ accommodations: Array.from(set) }); };
 
-  const headerTitle = totalStops > 1 ? `DESTINATION_0${index + 1}` : "DESTINATION";
+  const headerTitle = totalStops > 1 ? `Destination 0${index + 1}` : "Destination";
 
   // --- STYLES ---
   const CARD_BASE = clsx(
-    "rounded-lg border p-5 transition-colors duration-300",
+    "rounded-xl border p-8 transition-all duration-300 shadow-sm",
     highlighted 
-      ? "border-red-500/50 bg-red-500/10" 
-      : "border-slate-700 bg-slate-800/40"
+      ? "border-red-500/50 bg-red-500/5 ring-1 ring-red-500/30" 
+      : "border-slate-700 bg-slate-800/20"
   );
-  const LABEL = "block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider mb-2";
-  const SUB_LABEL = "block text-[10px] font-mono text-slate-500 uppercase mb-1";
-  const INPUT_STYLES = "w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 placeholder:text-slate-600 transition-colors font-sans";
+  const LABEL = "block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5";
+  const SUB_LABEL = "block text-xs font-medium text-slate-500 uppercase mb-2";
+  const INPUT_STYLES = "w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-base text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 placeholder:text-slate-600 transition-colors shadow-sm";
 
   return (
     <div ref={innerRef} className={CARD_BASE}>
       
       {/* HEADER */}
-      <div className="flex items-start justify-between gap-3 mb-6 border-b border-slate-700 pb-4">
-        <div className="flex items-center gap-2 text-slate-200">
-          <MapPin className="w-4 h-4 text-emerald-500" />
-          <h3 className="text-sm font-bold font-mono tracking-widest">{headerTitle}</h3>
+      <div className="flex items-start justify-between gap-4 mb-8 border-b border-slate-700/50 pb-5">
+        <div className="flex items-center gap-3 text-slate-200">
+          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+             <MapPin className="w-5 h-5" />
+          </div>
+          <h3 className="text-lg font-bold tracking-tight">{headerTitle}</h3>
         </div>
         <button 
           type="button" 
           onClick={onRemove} 
-          className="text-[10px] font-mono text-slate-500 hover:text-red-400 uppercase tracking-wider flex items-center gap-1 transition-colors"
+          className="px-3 py-1.5 rounded-lg text-xs font-bold font-mono text-slate-500 hover:text-red-400 hover:bg-red-500/10 uppercase tracking-wider flex items-center gap-2 transition-colors"
         >
-          <Trash className="w-3 h-3" /> Remove
+          <Trash className="w-4 h-4" /> Remove
         </button>
       </div>
 
       {/* COUNTRY & DATES */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
         <div className="w-full">
            <label className={LABEL}>Country</label>
            <SearchableSelect 
@@ -78,14 +80,14 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
       </div>
 
       {/* CITIES */}
-      <div className="p-4 rounded-lg bg-slate-900 border border-slate-700 mb-6">
-        <label className={clsx(LABEL, "flex items-center gap-2 mb-4")}>
-          <Home className="w-3 h-3" /> Cities Visited
+      <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-700/60 mb-8 shadow-inner">
+        <label className={clsx(LABEL, "flex items-center gap-2 mb-6 text-slate-300")}>
+          <Home className="w-4 h-4 text-emerald-500" /> Cities Visited
         </label>
         
-        <div className="space-y-3">
+        <div className="space-y-6">
           {normalizedCities.map((row, i) => (
-            <div key={i} className="grid sm:grid-cols-3 lg:grid-cols-4 gap-3 items-end">
+            <div key={i} className="grid sm:grid-cols-3 lg:grid-cols-4 gap-6 items-end pb-6 border-b border-slate-800 last:border-0 last:pb-0">
               <div className="w-full">
                 <label className={SUB_LABEL}>City Name</label>
                 <SearchableSelect 
@@ -107,9 +109,9 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
               <button 
                 type="button" 
                 onClick={() => removeCity(i)} 
-                className="h-[38px] w-full sm:w-auto px-3 rounded-lg border border-slate-700 bg-slate-800 text-slate-500 hover:text-red-400 hover:border-red-500/50 transition-colors flex items-center justify-center"
+                className="h-[46px] w-full sm:w-auto px-4 rounded-lg border border-slate-700 bg-slate-800 text-slate-500 hover:text-red-400 hover:border-red-500/50 hover:bg-red-500/10 transition-colors flex items-center justify-center"
               >
-                <Trash className="w-3.5 h-3.5" />
+                <Trash className="w-4 h-4" />
               </button>
             </div>
           ))}
@@ -117,17 +119,17 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
           <button 
             type="button" 
             onClick={addCity} 
-            className="mt-2 text-[10px] font-mono font-bold text-emerald-500 hover:text-emerald-400 flex items-center gap-1 uppercase tracking-wide"
+            className="mt-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold font-mono text-emerald-500 flex items-center gap-2 uppercase tracking-wide transition-colors border border-slate-700"
           >
-            <Plus className="w-3 h-3" /> Add_City
+            <Plus className="w-4 h-4" /> Add_City
           </button>
         </div>
       </div>
 
       {/* ACCOMMODATION */}
-      <div className="mb-6">
+      <div className="mb-8">
         <label className={LABEL}>Accommodation Type</label>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {ACCOMMODATION_OPTIONS.map((opt) => {
             const checked = (stop.accommodations || []).includes(opt);
             const id = `${stop.id}-accom-${opt.replace(/\s+/g, '-').toLowerCase()}`;
@@ -136,26 +138,26 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
                 key={opt} 
                 htmlFor={id} 
                 className={clsx(
-                  "flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-all",
+                  "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all shadow-sm group select-none",
                   checked 
-                    ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400" 
-                    : "bg-slate-800/40 border-slate-700 text-slate-500 hover:bg-slate-700/50"
+                    ? "bg-emerald-500/10 border-emerald-500 text-emerald-400" 
+                    : "bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-800 hover:border-slate-500"
                 )}
               >
                 <input 
                   id={id} 
                   type="checkbox" 
-                  className="appearance-none h-4 w-4 rounded border border-slate-600 bg-slate-800 checked:bg-emerald-500 checked:border-emerald-500 focus:ring-0 focus:ring-offset-0" 
+                  className="appearance-none h-5 w-5 rounded border border-slate-600 bg-slate-800 checked:bg-emerald-500 checked:border-emerald-500 focus:ring-0 focus:ring-offset-0 transition-colors" 
                   checked={checked} 
                   onChange={() => toggleAccommodation(opt)} 
                 />
-                <span className="text-xs font-mono uppercase">{opt}</span>
+                <span className="text-sm font-medium group-hover:text-slate-200 transition-colors">{opt}</span>
               </label>
             );
           })}
         </div>
         {(stop.accommodations || []).includes('Other') && (
-          <div className="mt-2">
+          <div className="mt-4">
             <input 
               type="text" 
               className={INPUT_STYLES} 
@@ -168,9 +170,9 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
       </div>
 
       {/* EXPOSURES */}
-      <div className="border-t border-slate-700 pt-6">
-        <label className={clsx(LABEL, "flex items-center gap-2 mb-4")}>
-          <Activity className="w-3 h-3" /> Risk Exposures & Activities
+      <div className="border-t border-slate-700 pt-8">
+        <label className={clsx(LABEL, "flex items-center gap-2 mb-6 text-slate-300")}>
+          <Activity className="w-4 h-4 text-emerald-500" /> Risk Exposures & Activities
         </label>
         <div className="p-1"> 
           <ExposureTagSystem exposures={exp} onChange={(newExp) => onChange({ exposures: newExp })} />
