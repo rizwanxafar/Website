@@ -13,26 +13,27 @@ export default function SimpleSelect({ value, onChange, options = [], placeholde
   const selectedOption = options.find(o => getValue(o) === value);
   const displayLabel = selectedOption ? getLabel(selectedOption) : (value || placeholder);
 
-  // --- STYLES ---
-  const BTN_BASE = "relative w-full cursor-default rounded-md border bg-neutral-900 py-2 pl-3 pr-10 text-left text-sm shadow-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors";
-  const BTN_COLOR = "border-neutral-800 text-neutral-200";
-  const BTN_PLACEHOLDER = "text-neutral-500";
+  // --- CLINICAL SAAS STYLES ---
+  // H-12 (48px) and Text-Base (16px)
+  const BTN_BASE = "relative w-full cursor-default rounded-lg border bg-slate-900 py-3 pl-4 pr-10 text-left text-base shadow-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors h-12";
+  const BTN_COLOR = "border-slate-700 text-white";
+  const BTN_PLACEHOLDER = "text-slate-500";
   
-  const DROPDOWN_BASE = "absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-neutral-950 border border-neutral-800 py-1 text-base shadow-2xl ring-1 ring-black/5 focus:outline-none sm:text-sm";
+  const DROPDOWN_BASE = "absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-slate-950 border border-slate-800 py-1 text-base shadow-xl ring-1 ring-black/5 focus:outline-none sm:text-sm custom-scrollbar";
   
-  const OPTION_BASE = "relative cursor-pointer select-none py-2 pl-10 pr-4 transition-colors";
-  const OPTION_ACTIVE = "bg-emerald-900/20 text-emerald-400";
-  const OPTION_INACTIVE = "text-neutral-300";
+  const OPTION_BASE = "relative cursor-pointer select-none py-3 pl-10 pr-4 transition-colors border-b border-slate-800/50 last:border-0";
+  const OPTION_ACTIVE = "bg-slate-800 text-emerald-400";
+  const OPTION_INACTIVE = "text-slate-300";
 
   return (
-    <div className="relative mt-1">
+    <div className="relative w-full">
       <Listbox value={value} onChange={onChange}>
         <ListboxButton className={clsx(BTN_BASE, BTN_COLOR)}>
           <span className={clsx("block truncate", !selectedOption && !value && BTN_PLACEHOLDER)}>
             {displayLabel}
           </span>
-          <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-            <ChevronDown className="h-4 w-4 text-neutral-500" aria-hidden="true" />
+          <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+            <ChevronDown className="h-5 w-5 text-slate-500" aria-hidden="true" />
           </span>
         </ListboxButton>
         <Transition
@@ -55,7 +56,7 @@ export default function SimpleSelect({ value, onChange, options = [], placeholde
                 >
                   {({ selected, active }) => (
                     <>
-                      <span className={clsx('block truncate', selected ? 'font-medium text-emerald-400' : 'font-normal')}>
+                      <span className={clsx('block truncate', selected ? 'font-bold text-emerald-400' : 'font-normal')}>
                         {label}
                       </span>
                       {selected ? (
