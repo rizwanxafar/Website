@@ -26,29 +26,29 @@ export default function ExposureTagSystem({ exposures, onChange }) {
     cat.items.some(item => exposures[item.key] === 'yes' || exposures[item.key] === true)
   );
 
-  // --- STYLES ---
-  const CATEGORY_HEADER = "text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3 pb-1 border-b border-slate-700";
-  const CARD_BASE = "flex items-center justify-between p-2.5 rounded-lg border transition-all duration-200";
-  const CARD_DEFAULT = "bg-slate-800/40 border-slate-700 hover:bg-slate-700/50";
-  const CARD_YES = "bg-emerald-500/10 border-emerald-500/50";
+  // --- NEW SCALED STYLES ---
+  const CATEGORY_HEADER = "text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 pb-2 border-b border-slate-700";
+  const CARD_BASE = "flex items-center justify-between p-3.5 rounded-lg border transition-all duration-200";
+  const CARD_DEFAULT = "bg-slate-800/40 border-slate-700 hover:bg-slate-800/80";
+  const CARD_YES = "bg-emerald-500/10 border-emerald-500/50 shadow-sm";
   
-  const BTN_BASE = "px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider rounded border transition-colors min-w-[36px]";
-  const BTN_YES_ACTIVE = "bg-emerald-600 border-emerald-600 text-white";
-  const BTN_NO_ACTIVE = "bg-slate-700 border-slate-600 text-slate-300";
-  const BTN_INACTIVE = "bg-transparent border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300";
+  const BTN_BASE = "px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md border transition-colors min-w-[50px]";
+  const BTN_YES_ACTIVE = "bg-emerald-600 border-emerald-600 text-white shadow-sm";
+  const BTN_NO_ACTIVE = "bg-slate-700 border-slate-600 text-slate-300 shadow-sm";
+  const BTN_INACTIVE = "bg-transparent border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300 hover:bg-slate-800";
   
-  const TEXTAREA_STYLES = "w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 min-h-[80px] resize-none font-sans placeholder:text-slate-600";
-  const LABEL_STYLES = "block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider mb-2";
+  const TEXTAREA_STYLES = "w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-base text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 min-h-[100px] resize-none font-sans placeholder:text-slate-600 transition-colors shadow-sm";
+  const LABEL_STYLES = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       
       {/* EXPOSURE GRID */}
-      <div className="space-y-8">
+      <div className="space-y-10">
         {EXPOSURE_CATEGORIES.map((cat) => (
           <div key={cat.title}>
             <div className={CATEGORY_HEADER}>{cat.title}</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {cat.items.map((item) => {
                 const status = exposures[item.key] || 'unknown';
                 const isYes = status === 'yes' || status === true;
@@ -59,11 +59,11 @@ export default function ExposureTagSystem({ exposures, onChange }) {
                     key={item.key} 
                     className={clsx(CARD_BASE, isYes ? CARD_YES : CARD_DEFAULT)}
                   >
-                    <span className={clsx("text-xs font-medium mr-2 truncate", isYes ? "text-emerald-400" : "text-slate-400")} title={item.label}>
+                    <span className={clsx("text-sm font-medium mr-3 truncate", isYes ? "text-emerald-400" : "text-slate-300")} title={item.label}>
                       {item.label}
                     </span>
                     
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
                         onClick={() => setItem(item.key, 'yes')}
@@ -88,43 +88,45 @@ export default function ExposureTagSystem({ exposures, onChange }) {
       </div>
 
       {/* MARK REMAINING BUTTON */}
-      <div className="flex justify-end pt-2">
+      <div className="flex justify-end pt-4">
         <button 
           type="button" 
           onClick={markRestAsNo}
-          className="flex items-center gap-2 px-3 py-1.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-mono font-bold text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 transition-all uppercase tracking-wide"
+          className="flex items-center gap-3 px-5 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-bold font-mono text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 hover:bg-slate-800/80 transition-all uppercase tracking-wide shadow-sm"
         >
-          <Check className="w-3 h-3" />
-          Mark_Rest_Negative
+          <Check className="w-4 h-4" />
+          Mark Remaining as Negative
         </button>
       </div>
 
       {/* POSITIVE DETAILS (Hidden until triggered) */}
       <SmoothReveal show={hasPositive}>
-        <div className="space-y-3 pt-6 border-t border-slate-700">
-          <div className="flex items-center gap-2 mb-2">
-             <AlertCircle className="w-4 h-4 text-emerald-500" />
-             <label className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Positive Exposure Details</label>
+        <div className="space-y-4 pt-8 border-t border-slate-700 mt-6">
+          <div className="flex items-center gap-3 mb-2">
+             <div className="p-1.5 rounded-full bg-emerald-500/10">
+               <AlertCircle className="w-5 h-5 text-emerald-500" />
+             </div>
+             <label className="text-sm font-bold text-emerald-500 uppercase tracking-widest">Positive Exposure Details</label>
           </div>
           <textarea 
             rows={3} 
             className={TEXTAREA_STYLES}
             value={exposures.positiveDetails || ''}
             onChange={(e) => onChange({ ...exposures, positiveDetails: e.target.value })} 
-            placeholder="Describe the nature of the exposure(s)..."
+            placeholder="Describe the nature of the exposure(s) in detail..."
           />
         </div>
       </SmoothReveal>
 
       {/* OTHER NOTES */}
-      <div className="pt-6 border-t border-slate-700">
-        <label className={LABEL_STYLES}>Additional Notes</label>
+      <div className="pt-8 border-t border-slate-700">
+        <label className={LABEL_STYLES}>Additional Clinical Notes</label>
         <textarea 
           rows={2} 
           className={TEXTAREA_STYLES}
           value={exposures.otherText} 
           onChange={(e) => onChange({ ...exposures, otherText: e.target.value })} 
-          placeholder="Any other relevant trip details..."
+          placeholder="Any other relevant trip details, hazards, or observations..."
         />
       </div>
     </div>
