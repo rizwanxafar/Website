@@ -34,9 +34,9 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
       ? "border-red-500/50 bg-red-500/5 ring-1 ring-red-500/30" 
       : "border-slate-700 bg-slate-800/20"
   );
-  const LABEL = "block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5";
-  const SUB_LABEL = "block text-xs font-medium text-slate-500 uppercase mb-2";
-  const INPUT_STYLES = "w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-base text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 placeholder:text-slate-600 transition-colors shadow-sm";
+  const LABEL = "block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2.5";
+  const SUB_LABEL = "block text-xs font-medium text-slate-300 uppercase mb-2";
+  const INPUT_STYLES = "w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-base text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 placeholder:text-slate-500 transition-colors shadow-sm";
 
   return (
     <div ref={innerRef} className={CARD_BASE}>
@@ -141,7 +141,7 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
                   "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all shadow-sm group select-none",
                   checked 
                     ? "bg-emerald-500/10 border-emerald-500 text-emerald-400" 
-                    : "bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-800 hover:border-slate-500"
+                    : "bg-slate-800/40 border-slate-700 hover:bg-slate-800/80"
                 )}
               >
                 <input 
@@ -151,7 +151,7 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
                   checked={checked} 
                   onChange={() => toggleAccommodation(opt)} 
                 />
-                <span className="text-sm font-medium group-hover:text-slate-200 transition-colors">{opt}</span>
+                <span className={clsx("text-sm font-medium transition-colors", checked ? "text-emerald-400" : "text-slate-300 group-hover:text-slate-200")}>{opt}</span>
               </label>
             );
           })}
