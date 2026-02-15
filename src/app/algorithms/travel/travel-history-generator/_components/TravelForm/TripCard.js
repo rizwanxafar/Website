@@ -13,7 +13,7 @@ import {
   ADHERENCE_OPTIONS 
 } from '../../_lib/constants';
 import { getIsoFromCountryName } from '../../_lib/utils';
-import { MapPin, Users, Syringe, Pill, Trash, Plus, Navigation } from 'lucide-react';
+import { MapPin, Users, Syringe, Pill, Trash, Plus, Navigation, Briefcase } from 'lucide-react';
 import SearchableSelect from '../ui/SearchableSelect';
 import MultiSelectTags from '../ui/MultiSelectTags';
 import SimpleSelect from '../ui/SimpleSelect';
@@ -51,18 +51,18 @@ export default function TripCard({
 
   const headerTitle = totalTrips > 1 ? `Trip Information 0${index + 1}` : "Trip Information";
 
-  // --- NEW SAAAS STYLES ---
+  // --- STYLES ---
   const CARD_BASE = "rounded-2xl border border-slate-700 bg-slate-800/30 p-8 shadow-sm";
-  const LABEL = "block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5";
-  const SUB_LABEL = "block text-xs font-medium text-slate-500 uppercase mb-2";
+  const LABEL = "block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2.5";
+  const SUB_LABEL = "block text-xs font-medium text-slate-300 uppercase mb-2";
   
   // Standardized Large Input (16px text, 48px height)
-  const INPUT_STYLES = "w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-base text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 placeholder:text-slate-600 transition-all shadow-sm";
+  const INPUT_STYLES = "w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-base text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 placeholder:text-slate-500 transition-all shadow-sm";
   
   // Larger Toggle Buttons
   const BTN_TOGGLE_BASE = "px-5 py-2.5 text-xs font-bold uppercase tracking-wide rounded-lg border transition-all duration-200 flex-1 sm:flex-none text-center";
   const BTN_TOGGLE_ACTIVE = "bg-emerald-500/10 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]";
-  const BTN_TOGGLE_INACTIVE = "bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300";
+  const BTN_TOGGLE_INACTIVE = "bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-500 hover:text-white";
 
   const BTN_ADD = "bg-slate-900 border border-slate-700 text-emerald-500 hover:border-emerald-500/50 hover:bg-emerald-500/10 px-4 py-2.5 rounded-lg flex items-center gap-2 text-xs font-bold tracking-wide uppercase transition-all shadow-sm";
   const BTN_REMOVE = "bg-transparent border-transparent text-slate-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-500/10 transition-colors";
@@ -131,7 +131,9 @@ export default function TripCard({
         
         {/* REASON */}
         <div className="p-6 rounded-xl border border-slate-700 bg-slate-800/20">
-          <label className={LABEL}>Travel Purpose</label>
+          <label className={clsx(LABEL, "flex items-center gap-2")}>
+             <Briefcase className="w-4 h-4 text-cyan-400" /> Travel Purpose
+          </label>
           <input 
             type="text" 
             placeholder="e.g. VFR, Business, Tourism" 
