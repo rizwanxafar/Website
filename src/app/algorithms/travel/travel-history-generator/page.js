@@ -92,19 +92,19 @@ export default function TravelHistoryGeneratorPage() {
   const clearAll = () => { if (confirm('Clear all data?')) setState(initialState); };
 
   return (
-    <div className="min-h-screen bg-black text-neutral-300 font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
+    <div className="min-h-screen bg-slate-900 text-slate-200 font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
       
       {/* --- PAGE HEADER --- */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-black/90 backdrop-blur-md border-b border-neutral-800">
+      <header className="fixed top-0 left-0 right-0 z-40 bg-slate-900 border-b border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-neutral-500 hover:text-emerald-400 transition-colors">
+            <Link href="/" className="text-slate-400 hover:text-emerald-400 transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <div className="h-6 w-px bg-neutral-800" />
+            <div className="h-6 w-px bg-slate-700" />
             <div className="flex items-center gap-3">
               <Plane className="w-5 h-5 text-emerald-500" />
-              <span className="font-mono text-xs tracking-widest text-neutral-400 uppercase hidden sm:inline-block">
+              <span className="font-mono text-xs tracking-widest text-slate-400 uppercase hidden sm:inline-block">
                 Travel_History_Generator
               </span>
             </div>
@@ -113,14 +113,14 @@ export default function TravelHistoryGeneratorPage() {
           <div className="flex items-center gap-3">
             <button 
               onClick={clearAll}
-              className="px-3 py-1.5 rounded-md text-xs font-mono text-neutral-500 hover:text-red-400 hover:bg-red-950/30 transition-colors flex items-center gap-2"
+              className="px-3 py-1.5 rounded-md text-xs font-mono text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">RESET</span>
             </button>
             <button 
               onClick={() => setPrintOpen(true)}
-              className="px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-mono tracking-wide shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all flex items-center gap-2"
+              className="px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold font-mono tracking-wide transition-all flex items-center gap-2"
             >
               <Printer className="w-3.5 h-3.5" />
               GENERATE_REPORT
@@ -133,10 +133,10 @@ export default function TravelHistoryGeneratorPage() {
       <main className="pt-24 pb-20 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto space-y-8">
 
-          {/* PRIVACY WARNING (Fixed: Single line, no title) */}
-          <div className="rounded border border-amber-900/50 bg-amber-950/10 p-3 flex items-center gap-3">
+          {/* PRIVACY WARNING */}
+          <div className="rounded border border-amber-500/50 bg-amber-500/10 p-3 flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
-            <p className="text-sm font-mono text-amber-500/90">
+            <p className="text-sm font-mono text-amber-500">
               Do not enter patient-identifiable data (PID). This tool processes data locally.
             </p>
           </div>
@@ -145,7 +145,7 @@ export default function TravelHistoryGeneratorPage() {
           {issues.length > 0 && (
             <div className="space-y-2">
               {issues.map((e, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded border border-red-900/50 bg-red-950/20 text-red-400 text-sm font-mono">
+                <div key={i} className="flex items-center gap-3 p-3 rounded border border-red-500/50 bg-red-500/10 text-red-400 text-sm font-mono">
                   <Terminal className="w-4 h-4" />
                   {e.msg}
                 </div>
@@ -178,32 +178,31 @@ export default function TravelHistoryGeneratorPage() {
             <button 
               type="button" 
               onClick={addTrip} 
-              className="w-full py-4 rounded-xl border border-dashed border-neutral-800 text-neutral-500 hover:text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-950/10 transition-all flex items-center justify-center gap-2 group"
+              className="w-full py-4 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:text-emerald-500 hover:border-emerald-500/50 hover:bg-slate-800 transition-all flex items-center justify-center gap-2 group"
             >
               <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              {/* Changed Text: Initialize New Trip -> Add New Trip */}
               <span className="font-mono text-sm tracking-wider uppercase">Add New Trip</span>
             </button>
           </section>
 
           {/* SIGNIFICANT PAST TRAVEL SECTION */}
-          <section className="rounded-xl border border-neutral-800 bg-neutral-900/30 overflow-hidden">
-            <div className="px-6 py-4 border-b border-neutral-800 bg-neutral-900/50 flex items-center gap-3">
-               <div className="h-2 w-2 rounded-full bg-neutral-600" />
-               <h2 className="text-sm font-bold text-neutral-300 uppercase tracking-wider">Significant Past Travel</h2>
+          <section className="rounded-lg border border-slate-700 bg-slate-800/40 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-700 bg-slate-800/60 flex items-center gap-3">
+               <div className="h-2 w-2 rounded-full bg-slate-500" />
+               <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Significant Past Travel</h2>
             </div>
             
             <div className="p-6 space-y-4">
               {state.pastTravels.length === 0 && (
-                <p className="text-sm text-neutral-600 font-mono italic px-2">No historical data recorded.</p>
+                <p className="text-sm text-slate-400 font-mono italic px-2">No historical data recorded.</p>
               )}
               
               {state.pastTravels.map((pt) => (
-                <div key={pt.id} ref={setItemRef(pt.id)} className="grid gap-4 sm:grid-cols-12 items-start p-4 rounded-lg border border-neutral-800 bg-black/40 hover:border-neutral-700 transition-colors">
+                <div key={pt.id} ref={setItemRef(pt.id)} className="grid gap-4 sm:grid-cols-12 items-start p-4 rounded-lg border border-slate-700 bg-slate-900 hover:border-slate-600 transition-colors">
                   
                   {/* Country Input */}
                   <div className="sm:col-span-4">
-                    <label className="block text-[10px] font-mono text-neutral-500 uppercase mb-1.5">Country</label>
+                    <label className="block text-[10px] font-mono text-slate-400 uppercase mb-1.5">Country</label>
                     <SearchableSelect 
                       value={pt.country} 
                       onChange={(val) => updatePastTravel(pt.id, { country: val })} 
@@ -214,11 +213,11 @@ export default function TravelHistoryGeneratorPage() {
 
                   {/* Year Input */}
                   <div className="sm:col-span-2">
-                    <label className="block text-[10px] font-mono text-neutral-500 uppercase mb-1.5">Year</label>
+                    <label className="block text-[10px] font-mono text-slate-400 uppercase mb-1.5">Year</label>
                     <input 
                       type="text" 
                       placeholder="YYYY" 
-                      className="w-full bg-neutral-900 border border-neutral-800 rounded px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-emerald-500 font-mono"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 font-mono placeholder:text-slate-600"
                       value={pt.year}
                       onChange={(e) => updatePastTravel(pt.id, { year: e.target.value })} 
                     />
@@ -226,11 +225,11 @@ export default function TravelHistoryGeneratorPage() {
 
                   {/* Details Input */}
                   <div className="sm:col-span-5">
-                    <label className="block text-[10px] font-mono text-neutral-500 uppercase mb-1.5">Clinical Notes</label>
+                    <label className="block text-[10px] font-mono text-slate-400 uppercase mb-1.5">Clinical Notes</label>
                     <textarea 
                       rows={1}
                       placeholder="Details..."
-                      className="w-full bg-neutral-900 border border-neutral-800 rounded px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-emerald-500 min-h-[42px] resize-none"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 min-h-[42px] resize-none placeholder:text-slate-600"
                       value={pt.details}
                       onChange={(e) => updatePastTravel(pt.id, { details: e.target.value })}
                     />
@@ -238,7 +237,7 @@ export default function TravelHistoryGeneratorPage() {
 
                   {/* Delete Button */}
                   <div className="sm:col-span-1 flex justify-end pt-7">
-                    <button type="button" onClick={() => removePastTravel(pt.id)} className="text-neutral-600 hover:text-red-500 transition-colors">
+                    <button type="button" onClick={() => removePastTravel(pt.id)} className="text-slate-500 hover:text-red-500 transition-colors">
                       <Trash className="w-4 h-4" />
                     </button>
                   </div>
