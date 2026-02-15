@@ -33,8 +33,8 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
   };
 
   // --- BUTTON STYLES ---
-  const BTN_PRIMARY = "flex items-center gap-2 px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-mono uppercase tracking-wide shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all";
-  const BTN_SECONDARY = "flex items-center gap-2 px-4 py-2 rounded bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-600 text-xs font-bold font-mono uppercase tracking-wide transition-all";
+  const BTN_PRIMARY = "flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-mono uppercase tracking-wide shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all";
+  const BTN_SECONDARY = "flex items-center gap-2 px-5 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 text-xs font-bold font-mono uppercase tracking-wide transition-all";
 
   return (
     <Transition show={open} as={Fragment}>
@@ -50,7 +50,7 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-sm transition-opacity print:hidden" />
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity print:hidden" />
         </TransitionChild>
 
         <div className="fixed inset-0 z-10 overflow-y-auto print:overflow-visible print:inset-auto print:absolute print:top-0 print:left-0 print:w-full print:h-full">
@@ -65,7 +65,7 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
               leaveTo="opacity-0 scale-95"
             >
               {/* MODAL PANEL */}
-              <DialogPanel className="relative transform overflow-hidden rounded-xl bg-neutral-950 border border-neutral-800 text-left shadow-2xl transition-all w-full max-w-5xl h-[85vh] flex flex-col print:h-auto print:shadow-none print:w-full print:max-w-none print:rounded-none print:border-none print:bg-white print:overflow-visible print:block">
+              <DialogPanel className="relative transform overflow-hidden rounded-xl bg-slate-950 border border-slate-800 text-left shadow-2xl transition-all w-full max-w-5xl h-[85vh] flex flex-col print:h-auto print:shadow-none print:w-full print:max-w-none print:rounded-none print:border-none print:bg-white print:overflow-visible print:block">
                 
                 {/* --- CSS RESET FOR PRINTING --- */}
                 <style jsx global>{`
@@ -107,10 +107,15 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
                 `}</style>
 
                 {/* HEADER (Controls) */}
-                <div className="bg-neutral-900/50 px-4 py-3 border-b border-neutral-800 flex items-center justify-between shrink-0 print:hidden backdrop-blur-md">
+                <div className="bg-slate-900 px-6 py-4 border-b border-slate-800 flex items-center justify-between shrink-0 print:hidden backdrop-blur-md">
                   <div className="flex items-center gap-3">
-                    <Printer className="w-5 h-5 text-emerald-500" />
-                    <span className="text-sm font-bold text-neutral-300 font-mono tracking-wider uppercase">Report Preview</span>
+                    <div className="p-2 rounded bg-emerald-500/10 text-emerald-500">
+                      <Printer className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-100 font-mono tracking-wider uppercase">Report Preview</h3>
+                      <p className="text-xs text-slate-500">Ready to print or copy</p>
+                    </div>
                   </div>
                   <div className="flex gap-3">
                     <button type="button" className={BTN_PRIMARY} onClick={handlePrint}>
@@ -123,10 +128,10 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
                 </div>
 
                 {/* CONTENT AREA */}
-                <div className="flex-1 overflow-y-auto bg-neutral-900/50 p-8 print:p-0 print:bg-white print:overflow-visible custom-scrollbar">
+                <div className="flex-1 overflow-y-auto bg-slate-900/50 p-8 print:p-0 print:bg-white print:overflow-visible custom-scrollbar">
                   
                   {/* THE PAPER (White Sheet) */}
-                  <div id="print-root" className="bg-white text-slate-900 max-w-3xl mx-auto shadow-2xl p-10 min-h-[800px] print:shadow-none print:p-0 print:min-h-0 print:static">
+                  <div id="print-root" className="bg-white text-slate-900 max-w-3xl mx-auto shadow-2xl p-12 min-h-[1000px] print:shadow-none print:p-0 print:min-h-0 print:static">
                     
                     {/* Report Header */}
                     <div className="border-b-2 border-slate-900 pb-6 mb-8 flex justify-between items-end">
@@ -148,8 +153,7 @@ export default function PrintOverlay({ open, onClose, events, summaryHtml, summa
                     {/* TEXT SUMMARY */}
                     <div>
                        <div className="flex items-center justify-between mb-4 border-b border-slate-200 pb-2 print:border-none">
-                         {/* CHANGED LABEL HERE */}
-                         <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900">Travel History</h2>
+                         <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900">Itinerary & Exposure Summary</h2>
                          <button 
                            type="button" 
                            onClick={handleCopy}
