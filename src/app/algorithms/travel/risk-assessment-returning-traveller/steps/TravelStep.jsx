@@ -1,7 +1,17 @@
-// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/TravelStep.jsx
 "use client";
 
 import { useMemo } from "react";
+
+const btnSecondary =
+  "px-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-600 hover:border-slate-400 text-sm font-medium transition-colors";
+
+const btnPrimary =
+  "inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-brand hover:opacity-90 text-white text-sm font-semibold transition-opacity " +
+  "disabled:opacity-40 disabled:cursor-not-allowed";
+
+const inputStyles =
+  "w-full rounded-lg bg-white border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 " +
+  "focus:border-brand focus:ring-2 focus:ring-brand/20 focus:outline-none transition-colors";
 
 export default function TravelStep({ selected = [], setSelected, onset = "", setOnset, onBack, onNext }) {
   const addExample = () => {
@@ -13,29 +23,27 @@ export default function TravelStep({ selected = [], setSelected, onset = "", set
   };
 
   const canContinue = useMemo(() => onset && selected.length > 0, [onset, selected.length]);
-  const btnStyle = "rounded-lg px-3 py-1.5 text-sm font-medium border border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-white";
-  const btnNext = "rounded-lg px-3 py-1.5 text-sm font-bold bg-red-600 text-white disabled:opacity-50";
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-bold text-white">Travel Details (Dev)</h2>
+    <div className="space-y-5">
+      <h2 className="text-base font-semibold text-slate-900">Travel Details</h2>
       <div>
-        <label className="block text-sm font-medium text-neutral-400 mb-1">Date of Onset</label>
-        <input type="date" value={onset} onChange={(e) => setOnset(e.target.value)} className="w-full rounded bg-neutral-950 border border-neutral-800 px-3 py-2 text-white" />
+        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Date of Onset</label>
+        <input type="date" value={onset} onChange={(e) => setOnset(e.target.value)} className={inputStyles} />
       </div>
       <div>
-        <button type="button" onClick={addExample} className={btnStyle}>+ Add Mock Country</button>
-        <ul className="mt-2 space-y-2">
+        <button type="button" onClick={addExample} className={btnSecondary}>+ Add Mock Country</button>
+        <ul className="mt-3 space-y-2">
           {selected.map((c) => (
-            <li key={c.id} className="rounded border border-neutral-800 p-2 text-sm text-neutral-300">
+            <li key={c.id} className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700">
               {c.name} ({c.arrival} → {c.leaving})
             </li>
           ))}
         </ul>
       </div>
-      <div className="flex gap-2 pt-2">
-        <button type="button" onClick={onBack} className={btnStyle}>Back</button>
-        <button type="button" onClick={onNext} disabled={!canContinue} className={btnNext}>Continue</button>
+      <div className="flex gap-2 pt-4 border-t border-slate-200">
+        <button type="button" onClick={onBack} className={btnSecondary}>Back</button>
+        <button type="button" onClick={onNext} disabled={!canContinue} className={btnPrimary}>Continue</button>
       </div>
     </div>
   );
