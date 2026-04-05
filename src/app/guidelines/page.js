@@ -1,54 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { FileText, ArrowLeft, Terminal } from "lucide-react";
+import { FileText, ArrowLeft } from "lucide-react";
+import NavBar from "@/components/NavBar";
 
 export default function GuidelinesPage() {
   return (
-    <main className="min-h-screen bg-black text-neutral-200 font-sans flex flex-col relative overflow-hidden">
-      
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
-
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Terminal className="w-4 h-4 text-neutral-500" />
-            <span className="font-mono text-xs tracking-widest text-neutral-400 uppercase">
-              ID-Northwest // GUIDELINES
-            </span>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <NavBar />
+      <main className="flex flex-col items-center justify-center px-6 py-24">
+        <div className="max-w-md w-full text-center">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm mb-6">
+            <FileText className="w-7 h-7 text-slate-400 dark:text-slate-500" />
           </div>
-        </div>
-      </header>
-
-      <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10">
-        <div className="max-w-md w-full border border-white/10 bg-neutral-900/20 backdrop-blur-md rounded-2xl p-8 text-center">
-          
-          <div className="mx-auto w-16 h-16 bg-neutral-800/50 rounded-full flex items-center justify-center mb-6 border border-white/5">
-            <FileText className="w-8 h-8 text-neutral-400" />
-          </div>
-
-          <h1 className="text-2xl font-bold text-white mb-2">Library Syncing</h1>
-          <p className="text-neutral-500 mb-8 leading-relaxed">
-            Local guidelines and static reference documents are currently being indexed for the portal.
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+            Guidelines
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-8">
+            Local guidelines and reference documents are currently being indexed for the portal.
           </p>
-
-          <div className="bg-neutral-950 rounded-lg p-4 mb-8 border border-neutral-800 font-mono text-xs text-left text-neutral-400">
-             <p className="mb-1"><span className="text-emerald-500">➜</span> fetch_documents</p>
-             <p className="mb-1">... connecting_to_archive [OK]</p>
-             <p className="mb-1">... parsing_pdf_metadata [WAITING]</p>
-             <p className="text-blue-500">ℹ INFO: INDEX_BUILDING</p>
-          </div>
-
-          <Link 
+          <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-medium text-white bg-neutral-800 hover:bg-neutral-700 px-6 py-3 rounded-lg transition-colors border border-white/10"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand hover:opacity-90 px-5 py-2.5 rounded-lg transition-opacity"
           >
             <ArrowLeft className="w-4 h-4" />
             Return to Dashboard
           </Link>
-
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

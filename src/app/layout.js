@@ -1,17 +1,14 @@
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-// 1. LOAD FONTS
-// Inter for UI text (clean, legible)
-const inter = Inter({ 
-  subsets: ["latin"], 
+const inter = Inter({
+  subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
 });
 
-// JetBrains Mono for data, IDs, and "Technical" elements
-const mono = JetBrains_Mono({ 
-  subsets: ["latin"], 
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
   variable: "--font-mono",
   display: "swap",
 });
@@ -24,12 +21,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} ${mono.variable}`}>
-      {/* 2. APPLY GLOBAL THEME
-         - bg-slate-900: Matches the Dashboard component exactly.
-         - text-slate-200: High readability.
-         - antialiased: Crucial for font clarity on older screens.
-      */}
-      <body className="bg-slate-900 text-slate-200 antialiased min-h-screen selection:bg-emerald-500/30 selection:text-emerald-200">
+      <body className="bg-slate-50 text-slate-900 antialiased min-h-screen dark:bg-slate-900 dark:text-slate-100 selection:bg-brand/20 selection:text-brand dark:selection:bg-brand/30 dark:selection:text-slate-200">
         {children}
       </body>
     </html>

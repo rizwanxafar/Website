@@ -14,44 +14,37 @@ export default function ResponsiveDatePicker({ value, onChange }) {
     onChange(format(d, 'yyyy-MM-dd'));
   };
 
-  // --- CLINICAL SAAS STYLES ---
-  const INPUT_STYLES = "w-full h-12 bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-base text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 placeholder:text-slate-500 transition-colors font-sans flex items-center justify-between shadow-sm cursor-pointer hover:border-slate-600";
-  const PANEL_BASE = "absolute z-50 mt-2 p-5 bg-slate-950 rounded-xl shadow-2xl border border-slate-800 w-[320px]";
+  const INPUT_STYLES = "w-full h-10 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors flex items-center justify-between cursor-pointer hover:border-slate-400 dark:hover:border-slate-500";
+  const PANEL_BASE = "absolute z-50 mt-2 p-4 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 w-[300px]";
 
   return (
     <div className="relative w-full">
-      {/* MOBILE: Native Input (Dark Mode) */}
+      {/* MOBILE: Native Input */}
       <div className="block md:hidden">
-        <div className="relative">
-           <input
-            type="date"
-            className={INPUT_STYLES}
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            // Force browser date picker to be dark mode
-            style={{ colorScheme: 'dark' }} 
-          />
-        </div>
+        <input
+          type="date"
+          className={INPUT_STYLES}
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+        />
       </div>
 
       {/* DESKTOP: Custom Popover */}
       <div className="hidden md:block">
         <Popover className="relative w-full">
           <PopoverButton className={INPUT_STYLES}>
-            <span className={clsx("block truncate", !value && "text-slate-500")}>
+            <span className={clsx("block truncate", !value && "text-slate-400 dark:text-slate-500")}>
               {value ? formatDMY(value) : "Select date..."}
             </span>
-            <span className="text-slate-500">
-              <CalendarIcon className="w-5 h-5" />
-            </span>
+            <CalendarIcon className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
           </PopoverButton>
 
           <Transition
             as={Fragment}
-            enter="transition ease-out duration-200"
+            enter="transition ease-out duration-150"
             enterFrom="opacity-0 translate-y-1"
             enterTo="opacity-100 translate-y-0"
-            leave="transition ease-in duration-150"
+            leave="transition ease-in duration-100"
             leaveFrom="opacity-100 translate-y-0"
             leaveTo="opacity-0 translate-y-1"
           >
@@ -63,28 +56,27 @@ export default function ResponsiveDatePicker({ value, onChange }) {
                   onSelect={(d) => { handleDaySelect(d); close(); }}
                   showOutsideDays
                   classNames={{
-                    months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                    month: "space-y-4",
-                    caption: "flex justify-center pt-1 relative items-center mb-4",
-                    caption_label: "text-sm font-bold text-slate-200 uppercase tracking-widest",
+                    months: "flex flex-col",
+                    month: "space-y-3",
+                    caption: "flex justify-center pt-1 relative items-center mb-2",
+                    caption_label: "text-sm font-semibold text-slate-800 dark:text-slate-200",
                     nav: "space-x-1 flex items-center",
-                    nav_button: "h-8 w-8 bg-transparent hover:bg-slate-800 rounded-lg flex items-center justify-center text-slate-400 transition",
+                    nav_button: "h-7 w-7 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 transition-colors",
                     nav_button_previous: "absolute left-1",
                     nav_button_next: "absolute right-1",
-                    table: "w-full border-collapse space-y-1",
+                    table: "w-full border-collapse",
                     head_row: "flex",
-                    head_cell: "text-slate-500 rounded-md w-9 font-normal text-[0.8rem] uppercase font-mono",
-                    row: "flex w-full mt-2",
-                    cell: "text-center text-sm relative p-0 focus-within:relative focus-within:z-20",
-                    day: "h-9 w-9 p-0 font-medium hover:bg-slate-800 rounded-lg text-slate-300 transition-colors",
-                    // SELECTED STATE: Emerald Block
-                    day_selected: "!bg-emerald-600 !text-white font-bold shadow-md shadow-emerald-900/50", 
-                    // TODAY STATE: Underline
-                    day_today: "text-emerald-400 font-bold underline decoration-slate-600 underline-offset-4",
+                    head_cell: "text-slate-400 dark:text-slate-500 rounded-md w-9 font-normal text-[0.75rem] uppercase",
+                    row: "flex w-full mt-1",
+                    cell: "text-center text-sm relative p-0",
+                    day: "h-9 w-9 p-0 font-normal text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors",
+                    day_selected: "!bg-brand !text-white font-semibold rounded-lg",
+                    day_today: "text-brand dark:text-brandAlt font-semibold",
+                    day_outside: "text-slate-300 dark:text-slate-600",
                   }}
                   components={{
-                    IconLeft: () => <ChevronLeft className="w-5 h-5" />,
-                    IconRight: () => <ChevronRight className="w-5 h-5" />,
+                    IconLeft: () => <ChevronLeft className="w-4 h-4" />,
+                    IconRight: () => <ChevronRight className="w-4 h-4" />,
                   }}
                 />
               )}

@@ -4,36 +4,24 @@ import { clsx } from 'clsx';
 import { ChevronDown, Check } from 'lucide-react';
 
 export default function SimpleSelect({ value, onChange, options = [], placeholder = 'Select...' }) {
-  
-  // Helper: Handle both ["Option A"] and [{label: "Option A", value: "a"}]
   const getLabel = (opt) => (typeof opt === 'object' ? (opt.label || opt.name) : opt);
   const getValue = (opt) => (typeof opt === 'object' ? (opt.value || opt.id) : opt);
 
-  // Find the label for the currently selected value
   const selectedOption = options.find(o => getValue(o) === value);
   const displayLabel = selectedOption ? getLabel(selectedOption) : (value || placeholder);
 
-  // --- CLINICAL SAAS STYLES ---
-  // H-12 (48px) and Text-Base (16px)
-  const BTN_BASE = "relative w-full cursor-default rounded-lg border bg-slate-900 py-3 pl-4 pr-10 text-left text-base shadow-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors h-12";
-  const BTN_COLOR = "border-slate-700 text-white";
-  const BTN_PLACEHOLDER = "text-slate-500";
-  
-  const DROPDOWN_BASE = "absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-slate-950 border border-slate-800 py-1 text-base shadow-xl ring-1 ring-black/5 focus:outline-none sm:text-sm custom-scrollbar";
-  
-  const OPTION_BASE = "relative cursor-pointer select-none py-3 pl-10 pr-4 transition-colors border-b border-slate-800/50 last:border-0";
-  const OPTION_ACTIVE = "bg-slate-800 text-emerald-400";
-  const OPTION_INACTIVE = "text-slate-300";
+  const BTN_BASE = "relative w-full cursor-default rounded-lg border bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 py-2.5 pl-3.5 pr-9 text-left text-sm text-slate-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-colors h-10";
+  const DROPDOWN_BASE = "absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-1 text-sm shadow-lg focus:outline-none custom-scrollbar";
 
   return (
     <div className="relative w-full">
       <Listbox value={value} onChange={onChange}>
-        <ListboxButton className={clsx(BTN_BASE, BTN_COLOR)}>
-          <span className={clsx("block truncate", !selectedOption && !value && BTN_PLACEHOLDER)}>
+        <ListboxButton className={BTN_BASE}>
+          <span className={clsx("block truncate", !selectedOption && !value && "text-slate-400 dark:text-slate-500")}>
             {displayLabel}
           </span>
           <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-            <ChevronDown className="h-5 w-5 text-slate-500" aria-hidden="true" />
+            <ChevronDown className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
           </span>
         </ListboxButton>
         <Transition
@@ -50,20 +38,23 @@ export default function SimpleSelect({ value, onChange, options = [], placeholde
                 <ListboxOption
                   key={idx}
                   className={({ active }) =>
-                    clsx(OPTION_BASE, active ? OPTION_ACTIVE : OPTION_INACTIVE)
+                    clsx(
+                      'relative cursor-pointer select-none py-2.5 pl-9 pr-4 border-b border-slate-100 dark:border-slate-800 last:border-0',
+                      active ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'
+                    )
                   }
                   value={optValue}
                 >
-                  {({ selected, active }) => (
+                  {({ selected }) => (
                     <>
-                      <span className={clsx('block truncate', selected ? 'font-bold text-emerald-400' : 'font-normal')}>
+                      <span className={clsx('block truncate text-sm', selected ? 'font-semibold' : 'font-normal')}>
                         {label}
                       </span>
-                      {selected ? (
-                        <span className={clsx('absolute inset-y-0 left-0 flex items-center pl-3', active ? 'text-emerald-400' : 'text-emerald-500')}>
-                          <Check className="h-4 w-4" aria-hidden="true" />
+                      {selected && (
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-brand dark:text-brandAlt">
+                          <Check className="h-3.5 w-3.5" aria-hidden="true" />
                         </span>
-                      ) : null}
+                      )}
                     </>
                   )}
                 </ListboxOption>

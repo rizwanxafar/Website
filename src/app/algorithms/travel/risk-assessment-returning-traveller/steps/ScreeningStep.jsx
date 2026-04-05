@@ -2,24 +2,26 @@
 "use client";
 
 import DecisionCard from "@/components/DecisionCard";
+import { clsx } from "clsx";
 
-// --- THEME CONSTANTS ---
 const btnPrimary =
-  "inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 " +
-  "text-sm font-bold font-mono tracking-wide text-white uppercase " +
-  "bg-red-600 hover:bg-red-500 shadow-[0_0_15px_rgba(220,38,38,0.4)] " +
-  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500/70 " +
-  "disabled:opacity-50 disabled:cursor-not-allowed transition-all";
+  "inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 " +
+  "text-sm font-semibold text-white " +
+  "bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 " +
+  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 " +
+  "disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
 
 const btnSecondary =
-  "rounded-lg px-4 py-2 border border-neutral-800 bg-neutral-900 text-neutral-400 " +
-  "hover:text-white hover:border-neutral-600 text-xs font-bold font-mono uppercase tracking-wide transition-all";
+  "rounded-lg px-4 py-2.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 " +
+  "hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-400 dark:hover:border-slate-600 text-sm font-medium transition-colors";
 
 const yesNoBtn = (active) =>
-  "px-4 py-2 text-xs font-bold font-mono uppercase tracking-wider rounded border transition-all " +
-  (active
-    ? "bg-red-600 border-red-600 text-white shadow-lg"
-    : "bg-neutral-950 border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300");
+  clsx(
+    "px-5 py-2.5 text-sm font-semibold rounded-lg border transition-colors",
+    active
+      ? "bg-red-600 border-red-600 text-white"
+      : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+  );
 
 export default function ScreeningStep({
   q1Fever, setQ1Fever,
@@ -34,12 +36,12 @@ export default function ScreeningStep({
   const canProceed = q1Fever === "yes" && q2Exposure === "no";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Q1 */}
-      <div className="rounded-xl border border-neutral-800 bg-neutral-900/30 p-6">
-        <div className="mb-4 text-sm font-medium text-neutral-200">
+      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 p-6">
+        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-4 leading-relaxed">
           Does the patient have an illness with a history of feverishness?
-        </div>
+        </p>
         <div className="flex gap-2">
           <button type="button" onClick={() => setQ1Fever("yes")} className={yesNoBtn(q1Fever === "yes")}>
             Yes
@@ -52,12 +54,12 @@ export default function ScreeningStep({
 
       {/* Q2 */}
       {q2Available && (
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/30 p-6 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="mb-4 text-sm font-medium text-neutral-200">
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-4 leading-relaxed">
             Has the patient cared for / come into contact with body fluids of / handled clinical
             specimens from an individual or laboratory animal known or strongly suspected to have
             VHF within the past 21 days?
-          </div>
+          </p>
           <div className="flex gap-2">
             <button type="button" onClick={() => setQ2Exposure("yes")} className={yesNoBtn(q2Exposure === "yes")}>
               Yes
@@ -71,20 +73,18 @@ export default function ScreeningStep({
 
       {/* Decision Blocks */}
       {showGreen && (
-        <div className="opacity-80">
-          <DecisionCard tone="green" title="VHF unlikely; manage locally">
-            <p className="text-neutral-400">Please continue standard local management pathways.</p>
-          </DecisionCard>
-        </div>
+        <DecisionCard tone="green" title="VHF unlikely — manage locally">
+          <p>Please continue standard local management pathways.</p>
+        </DecisionCard>
       )}
 
       {showRed && (
         <>
-          <DecisionCard tone="red" title="AT RISK OF VHF">
-            <ul className="list-disc pl-5 space-y-1 text-neutral-300">
-              <li><strong className="text-white">ISOLATE PATIENT IN SIDE ROOM</strong></li>
-              <li>Discuss with Infection Consultant (Infectious Disease/Microbiology/Virology)</li>
-              <li>Urgent Malaria investigation</li>
+          <DecisionCard tone="red" title="At risk of VHF">
+            <ul className="list-disc pl-4 space-y-1.5">
+              <li><strong>Isolate patient in side room immediately</strong></li>
+              <li>Discuss with Infection Consultant (Infectious Disease / Microbiology / Virology)</li>
+              <li>Urgent malaria investigation</li>
               <li>Full blood count, U&Es, LFTs, clotting screen, CRP, glucose, blood cultures</li>
               <li>Inform laboratory of possible VHF case (for specimen waste disposal if confirmed)</li>
             </ul>
@@ -98,16 +98,14 @@ export default function ScreeningStep({
         </>
       )}
 
-      {/* Normal Controls */}
-      <div className="flex flex-wrap gap-3 pt-4 border-t border-neutral-800">
+      {/* Controls */}
+      <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
         <button type="button" onClick={onContinue} disabled={!canProceed} className={btnPrimary}>
           Continue to Travel Details
         </button>
-
         <button type="button" onClick={() => { setQ1Fever(""); setQ2Exposure(""); }} className={btnSecondary}>
           Edit Answers
         </button>
-
         <button type="button" onClick={onReset} className={btnSecondary}>
           Reset
         </button>
