@@ -8,12 +8,12 @@ export default function CountryChips({ items, onRemove }) {
       {items.map((c) => (
         <span
           key={`chip-${c.id}`}
-          className="inline-flex items-center gap-2 rounded-full border-2 border-slate-300 dark:border-slate-700 px-3 py-1 text-sm text-slate-900 dark:text-slate-100"
+          className="inline-flex items-center gap-2 rounded-full border-2 border-slate-300 px-3 py-1 text-sm text-slate-900"
         >
           {c.name}
           <button
             type="button"
-            className="rounded-md px-1.5 py-0.5 text-slate-600 dark:text-slate-300 hover:text-violet-700 dark:hover:text-violet-400"
+            className="rounded-md px-1.5 py-0.5 text-slate-600 hover:text-violet-700"
             aria-label={`Remove ${c.name}`}
             onClick={() => onRemove?.(c.id)}
           >

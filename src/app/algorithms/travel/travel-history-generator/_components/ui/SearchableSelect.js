@@ -17,8 +17,8 @@ export default function SearchableSelect({ value, onChange, options, placeholder
     }).slice(0, 100);
   }, [query, options]);
 
-  const INPUT_STYLES = "w-full h-10 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg pl-3.5 pr-9 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-colors";
-  const DROPDOWN_BASE = "absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-1 text-sm shadow-lg focus:outline-none custom-scrollbar";
+  const INPUT_STYLES = "w-full h-10 bg-white border border-slate-300 rounded-lg pl-3.5 pr-9 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-colors";
+  const DROPDOWN_BASE = "absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-white border border-slate-200 py-1 text-sm shadow-lg focus:outline-none custom-scrollbar";
 
   return (
     <Combobox value={value} onChange={onChange} nullable>
@@ -30,7 +30,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
           placeholder={placeholder}
         />
         <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-3">
-          <ChevronDown className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+          <ChevronDown className="h-4 w-4 text-slate-400" aria-hidden="true" />
         </ComboboxButton>
 
         <Transition
@@ -45,7 +45,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
               allowCustom ? (
                 <ComboboxOption
                   className={({ active }) =>
-                    clsx('cursor-pointer select-none py-2.5 pl-3.5 pr-4', active ? 'bg-slate-100 dark:bg-slate-800 text-brand dark:text-slate-200' : 'text-slate-600 dark:text-slate-400')
+                    clsx('cursor-pointer select-none py-2.5 pl-3.5 pr-4', active ? 'bg-slate-100 text-brand' : 'text-slate-600')
                   }
                   value={query}
                 >
@@ -55,7 +55,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
                   </div>
                 </ComboboxOption>
               ) : (
-                <div className="px-3.5 py-2.5 text-xs text-slate-400 dark:text-slate-500">No results found</div>
+                <div className="px-3.5 py-2.5 text-xs text-slate-400">No results found</div>
               )
             ) : (
               filteredOptions.map((opt, idx) => {
@@ -66,8 +66,8 @@ export default function SearchableSelect({ value, onChange, options, placeholder
                     key={key}
                     className={({ active }) =>
                       clsx(
-                        'relative cursor-pointer select-none py-2.5 pl-9 pr-4 border-b border-slate-100 dark:border-slate-800 last:border-0',
-                        active ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'
+                        'relative cursor-pointer select-none py-2.5 pl-9 pr-4 border-b border-slate-100 last:border-0',
+                        active ? 'bg-slate-100 text-slate-900' : 'text-slate-700'
                       )
                     }
                     value={label}
@@ -78,7 +78,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
                           {label}
                         </span>
                         {selected && (
-                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-brand dark:text-brandAlt">
+                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-brand">
                             <Check className="h-3.5 w-3.5" aria-hidden="true" />
                           </span>
                         )}

@@ -8,8 +8,8 @@ import SearchableSelect from '../ui/SearchableSelect';
 import ResponsiveDatePicker from '../ui/ResponsiveDatePicker';
 import SimpleSelect from '../ui/SimpleSelect';
 
-const LABEL = "block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2";
-const TEXTAREA_STYLES = "w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand min-h-[80px] resize-none placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors";
+const LABEL = "block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2";
+const TEXTAREA_STYLES = "w-full bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand min-h-[80px] resize-none placeholder:text-slate-400 transition-colors";
 
 export default function LayoverCard({ layover, onChange, onRemove, innerRef, highlighted }) {
   const countryISO2 = useMemo(() => getIsoFromCountryName(layover.country), [layover.country]);
@@ -18,23 +18,23 @@ export default function LayoverCard({ layover, onChange, onRemove, innerRef, hig
   const cardClass = clsx(
     "rounded-xl border p-5 transition-all shadow-sm",
     highlighted
-      ? "border-red-300 dark:border-red-700/50 bg-red-50 dark:bg-red-950/10 ring-1 ring-red-200 dark:ring-red-900/30"
-      : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/30 hover:border-slate-300 dark:hover:border-slate-600"
+      ? "border-red-300 bg-red-50 ring-1 ring-red-200"
+      : "border-slate-200 bg-white hover:border-slate-300"
   );
 
   return (
     <div ref={innerRef} className={cardClass}>
 
       {/* HEADER */}
-      <div className="flex items-center justify-between mb-4 pb-3.5 border-b border-slate-200 dark:border-slate-700">
+      <div className="flex items-center justify-between mb-4 pb-3.5 border-b border-slate-200">
         <div className="flex items-center gap-2.5">
-          <Clock className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
-          <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Transit / Layover</h4>
+          <Clock className="w-4 h-4 text-indigo-500" />
+          <h4 className="text-sm font-semibold text-slate-700">Transit / Layover</h4>
         </div>
         <button
           type="button"
           onClick={onRemove}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
         >
           <Trash className="w-3.5 h-3.5" /> Remove
         </button>

@@ -26,13 +26,13 @@ export default function NavBar() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link
           href="/"
-          className="flex items-center gap-2.5 text-slate-900 dark:text-slate-100 font-semibold hover:opacity-80 transition-opacity"
+          className="flex items-center gap-2.5 text-slate-900 font-semibold hover:opacity-80 transition-opacity"
         >
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white text-xs font-bold bg-brand dark:bg-accent">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white text-xs font-bold bg-brand">
             ID
           </span>
           <span className="text-sm font-semibold tracking-tight">ID North West</span>
@@ -48,8 +48,8 @@ export default function NavBar() {
                 aria-current={active ? "page" : undefined}
                 className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
                   active
-                    ? "bg-brand/8 text-brand dark:bg-accent/20 dark:text-slate-200 font-semibold"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    ? "bg-brand/8 text-brand font-semibold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
                 {item.label}

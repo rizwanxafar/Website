@@ -14,14 +14,14 @@ export default function CountryInput({ value, onChange, label = 'Country *' }) {
 
   return (
     <div>
-      <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1">
+      <label className="block text-sm text-slate-600 mb-1">
         {label}
       </label>
       <input
         list={listId}
         type="text"
         placeholder= "Start typing or select country…"
-        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />

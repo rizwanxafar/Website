@@ -23,7 +23,7 @@ const staggerContainer = {
 
 export default function ClinicalDashboard({ intelData, source }) {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-slate-50">
       <NavBar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -35,13 +35,13 @@ export default function ClinicalDashboard({ intelData, source }) {
         >
           {/* WELCOME */}
           <motion.div variants={fadeInUp} className="max-w-3xl">
-            <p className="text-xs font-semibold text-brand dark:text-brandAlt uppercase tracking-widest mb-3">
+            <p className="text-xs font-semibold text-brand uppercase tracking-widest mb-3">
               Infectious Diseases · North West
             </p>
-            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-slate-50 tracking-tight leading-tight mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight leading-tight mb-4">
               Clinical Decision Support
             </h1>
-            <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+            <p className="text-lg text-slate-600 leading-relaxed">
               Algorithms and tools for Infectious Diseases. Built for clinical use.
             </p>
           </motion.div>
@@ -98,12 +98,12 @@ export default function ClinicalDashboard({ intelData, source }) {
           {/* FOOTER */}
           <motion.div
             variants={fadeInUp}
-            className="pt-8 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-sm text-slate-400"
+            className="pt-8 border-t border-slate-200 flex justify-between items-center text-sm text-slate-400"
           >
             <span>ID-Northwest &copy; {new Date().getFullYear()}</span>
             <a
               href="mailto:infectionnw@gmail.com"
-              className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              className="hover:text-slate-600 transition-colors"
             >
               Contact
             </a>
@@ -117,11 +117,11 @@ export default function ClinicalDashboard({ intelData, source }) {
 function SectionHeader({ icon: Icon, label }) {
   return (
     <div className="flex items-center gap-3">
-      <Icon className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+      <Icon className="w-4 h-4 text-slate-400" />
+      <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
         {label}
       </span>
-      <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+      <div className="h-px flex-1 bg-slate-200" />
     </div>
   );
 }
@@ -131,17 +131,17 @@ function LiveIntelCard({ items, source }) {
   const isLive = source === "LIVE";
 
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 overflow-hidden shadow-sm">
-      <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
-        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+      <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
           {isLive ? "Live feed" : "Cached data"}
         </span>
-        <span className={`text-xs font-semibold ${isLive ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+        <span className={`text-xs font-semibold ${isLive ? "text-emerald-600" : "text-amber-600"}`}>
           {isLive ? "● Live" : "● Offline"}
         </span>
       </div>
 
-      <div className="max-h-[520px] overflow-y-auto custom-scrollbar divide-y divide-slate-100 dark:divide-slate-700/50">
+      <div className="max-h-[520px] overflow-y-auto custom-scrollbar divide-y divide-slate-100">
         {hasData ? (
           items.map((item, i) => (
             <a
@@ -149,23 +149,23 @@ function LiveIntelCard({ items, source }) {
               href={item.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex gap-4 p-4 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors group"
+              className="flex gap-4 p-4 hover:bg-slate-50 transition-colors group"
             >
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-brand dark:group-hover:text-slate-100 leading-snug">
+                <p className="text-sm font-semibold text-slate-800 group-hover:text-brand leading-snug">
                   {item.title}
                 </p>
                 {item.description && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
                     {item.description}
                   </p>
                 )}
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0 pt-0.5">
-                <span className="text-xs font-medium text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                <span className="text-xs font-medium text-slate-400 whitespace-nowrap">
                   {item.date}
                 </span>
-                <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-brand dark:group-hover:text-slate-400 transition-colors" />
+                <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-brand transition-colors" />
               </div>
             </a>
           ))
@@ -187,20 +187,20 @@ function CompactCard({ href, icon: Icon, title, description }) {
       href={href}
       target={isExternal ? "_blank" : undefined}
       rel={isExternal ? "noopener noreferrer" : undefined}
-      className="group flex items-center gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:border-brand/40 dark:hover:border-slate-600 hover:shadow-sm transition-all"
+      className="group flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:border-brand/40 hover:shadow-sm transition-all"
     >
-      <div className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 group-hover:bg-brand/10 group-hover:text-brand dark:group-hover:text-slate-200 transition-colors">
+      <div className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-brand/10 group-hover:text-brand transition-colors">
         <Icon className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-brand dark:group-hover:text-slate-100 transition-colors">
+        <p className="text-sm font-semibold text-slate-800 group-hover:text-brand transition-colors">
           {title}
         </p>
         {description && (
-          <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{description}</p>
+          <p className="text-xs text-slate-500 truncate mt-0.5">{description}</p>
         )}
       </div>
-      <ArrowUpRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-brand dark:group-hover:text-slate-400 shrink-0 transition-colors" />
+      <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-brand shrink-0 transition-colors" />
     </Link>
   );
 }
@@ -208,22 +208,22 @@ function CompactCard({ href, icon: Icon, title, description }) {
 function ToolCard({ href, variant, icon: Icon, title, subtitle }) {
   const styles = {
     critical: {
-      border: "border-red-200 dark:border-red-900/50",
-      hover: "hover:border-red-300 dark:hover:border-red-800",
-      iconBg: "bg-red-50 dark:bg-red-950/30",
-      iconColor: "text-red-600 dark:text-red-500",
-      badge: "bg-red-50 text-red-600 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/50",
+      border: "border-red-200",
+      hover: "hover:border-red-300",
+      iconBg: "bg-red-50",
+      iconColor: "text-red-600",
+      badge: "bg-red-50 text-red-600 border-red-200",
       badgeLabel: "Critical",
-      arrow: "text-red-300 dark:text-red-800 group-hover:text-red-500 dark:group-hover:text-red-400",
+      arrow: "text-red-300 group-hover:text-red-500",
     },
     standard: {
-      border: "border-slate-200 dark:border-slate-700",
-      hover: "hover:border-brand/30 dark:hover:border-slate-600",
-      iconBg: "bg-emerald-50 dark:bg-emerald-950/30",
-      iconColor: "text-emerald-600 dark:text-emerald-500",
-      badge: "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:border-slate-600",
+      border: "border-slate-200",
+      hover: "hover:border-brand/30",
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-600",
+      badge: "bg-slate-100 text-slate-500 border-slate-200",
       badgeLabel: "Tool",
-      arrow: "text-slate-300 dark:text-slate-600 group-hover:text-slate-600 dark:group-hover:text-slate-300",
+      arrow: "text-slate-300 group-hover:text-slate-600",
     },
   };
 
@@ -232,7 +232,7 @@ function ToolCard({ href, variant, icon: Icon, title, subtitle }) {
   return (
     <Link
       href={href}
-      className={`group flex flex-col p-6 rounded-xl border ${s.border} ${s.hover} bg-white dark:bg-slate-800/50 hover:shadow-md transition-all`}
+      className={`group flex flex-col p-6 rounded-xl border ${s.border} ${s.hover} bg-white hover:shadow-md transition-all`}
     >
       <div className="flex items-start justify-between mb-4">
         <div className={`p-2.5 rounded-lg ${s.iconBg}`}>
@@ -240,10 +240,10 @@ function ToolCard({ href, variant, icon: Icon, title, subtitle }) {
         </div>
         <ArrowUpRight className={`w-4 h-4 transition-colors ${s.arrow}`} />
       </div>
-      <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-1 group-hover:text-brand dark:group-hover:text-white transition-colors">
+      <h3 className="text-base font-bold text-slate-900 mb-1 group-hover:text-brand transition-colors">
         {title}
       </h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+      <p className="text-sm text-slate-500 leading-relaxed">
         {subtitle}
       </p>
     </Link>

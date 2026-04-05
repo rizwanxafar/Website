@@ -21,7 +21,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} ${mono.variable}`}>
-      <body className="bg-slate-50 text-slate-900 antialiased min-h-screen dark:bg-slate-900 dark:text-slate-100 selection:bg-brand/20 selection:text-brand dark:selection:bg-brand/30 dark:selection:text-slate-200">
+      <body className="bg-slate-50 text-slate-900 antialiased min-h-screen selection:bg-brand/20 selection:text-brand">
         {children}
       </body>
     </html>

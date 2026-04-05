@@ -52,7 +52,7 @@ export default function CountryInput({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          className="flex-1 rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400"
+          className="flex-1 rounded-lg border-2 border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400"
           aria-autocomplete="list"
           aria-expanded={open}
           aria-controls="country-suggestions"
@@ -61,7 +61,7 @@ export default function CountryInput({
         <button
           type="button"
           onClick={() => onAdd?.()}
-          className="shrink-0 rounded-lg border-2 border-slate-300 dark:border-slate-700 px-4 py-2 font-medium text-slate-900 dark:text-slate-100 hover:border-violet-500 dark:hover:border-violet-400 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition"
+          className="shrink-0 rounded-lg border-2 border-slate-300 px-4 py-2 font-medium text-slate-900 hover:border-violet-500 hover:text-violet-700 hover:bg-violet-50 transition"
           aria-label="Add country"
         >
           Add
@@ -71,7 +71,7 @@ export default function CountryInput({
       {open && suggestions.length > 0 && (
         <ul
           id="country-suggestions"
-          className="absolute z-10 mt-2 max-h-64 w-full overflow-auto rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 shadow-lg"
+          className="absolute z-10 mt-2 max-h-64 w-full overflow-auto rounded-lg border-2 border-slate-300 bg-white shadow-lg"
           role="listbox"
         >
           {suggestions.map((name) => (
@@ -79,7 +79,7 @@ export default function CountryInput({
               <button
                 type="button"
                 onClick={() => onAdd?.(name)}
-                className="w-full text-left px-3 py-2 text-sm text-slate-900 dark:text-slate-100 hover:bg-violet-50 dark:hover:bg-violet-900/20"
+                className="w-full text-left px-3 py-2 text-sm text-slate-900 hover:bg-violet-50"
                 role="option"
               >
                 {name}

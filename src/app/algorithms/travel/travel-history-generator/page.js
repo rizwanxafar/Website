@@ -88,27 +88,27 @@ export default function TravelHistoryGeneratorPage() {
   const removePastTravel = (id) => setState(p => ({ ...p, pastTravels: p.pastTravels.filter(pt => pt.id !== id) }));
   const clearAll = () => { if (confirm('Clear all data?')) setState(initialState); };
 
-  const LABEL_BASE = "block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2";
-  const INPUT_BASE = "w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-colors";
+  const LABEL_BASE = "block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2";
+  const INPUT_BASE = "w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-colors";
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
 
       {/* HEADER */}
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-1.5 -ml-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+            <Link href="/" className="text-slate-400 hover:text-slate-700 transition-colors p-1.5 -ml-1.5 rounded-lg hover:bg-slate-100">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <div className="h-5 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="h-5 w-px bg-slate-200" />
             <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30">
-                <Plane className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
+              <div className="p-1.5 rounded-lg bg-emerald-50">
+                <Plane className="w-4 h-4 text-emerald-600" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-tight">Travel History Generator</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 leading-tight">Clinical Assessment Tool</p>
+                <p className="text-sm font-semibold text-slate-800 leading-tight">Travel History Generator</p>
+                <p className="text-xs text-slate-400 leading-tight">Clinical Assessment Tool</p>
               </div>
             </div>
           </div>
@@ -116,7 +116,7 @@ export default function TravelHistoryGeneratorPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={clearAll}
-              className="px-3 py-2 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors flex items-center gap-1.5"
+              className="px-3 py-2 rounded-lg text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors flex items-center gap-1.5"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Reset</span>
@@ -137,11 +137,11 @@ export default function TravelHistoryGeneratorPage() {
         <div className="max-w-5xl mx-auto space-y-8">
 
           {/* PRIVACY NOTICE */}
-          <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 p-4 flex items-start gap-3">
-            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-0.5">Data Privacy Notice</p>
-              <p className="text-sm text-amber-800 dark:text-amber-300/80">
+              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-0.5">Data Privacy Notice</p>
+              <p className="text-sm text-amber-800">
                 Do not enter patient-identifiable data (PID). This tool processes data locally in your browser.
               </p>
             </div>
@@ -151,7 +151,7 @@ export default function TravelHistoryGeneratorPage() {
           {issues.length > 0 && (
             <div className="space-y-2">
               {issues.map((e, i) => (
-                <div key={i} className="flex items-center gap-3 p-3.5 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 text-sm text-red-700 dark:text-red-400">
+                <div key={i} className="flex items-center gap-3 p-3.5 rounded-lg border border-red-200 bg-red-50 text-sm text-red-700">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
                   {e.msg}
                 </div>
@@ -184,7 +184,7 @@ export default function TravelHistoryGeneratorPage() {
             <button
               type="button"
               onClick={addTrip}
-              className="w-full py-5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:text-brand dark:hover:text-slate-300 hover:border-brand/40 dark:hover:border-slate-600 hover:bg-white dark:hover:bg-slate-800/50 transition-all flex items-center justify-center gap-2.5 group"
+              className="w-full py-5 rounded-xl border-2 border-dashed border-slate-300 text-slate-400 hover:text-brand hover:border-brand/40 hover:bg-white transition-all flex items-center justify-center gap-2.5 group"
             >
               <Plus className="w-5 h-5" />
               <span className="text-sm font-semibold">Add Trip</span>
@@ -192,23 +192,23 @@ export default function TravelHistoryGeneratorPage() {
           </section>
 
           {/* PAST TRAVEL */}
-          <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/30 overflow-hidden shadow-sm">
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 flex items-center gap-3">
+          <section className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+            <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-indigo-500" />
-              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+              <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
                 Significant Past Travel History
               </h2>
             </div>
 
             <div className="p-6 space-y-4">
               {state.pastTravels.length === 0 && (
-                <div className="py-8 text-center border border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
-                  <p className="text-sm text-slate-400 dark:text-slate-500">No historical data recorded.</p>
+                <div className="py-8 text-center border border-dashed border-slate-200 rounded-lg">
+                  <p className="text-sm text-slate-400">No historical data recorded.</p>
                 </div>
               )}
 
               {state.pastTravels.map((pt) => (
-                <div key={pt.id} ref={setItemRef(pt.id)} className="grid gap-4 sm:grid-cols-12 items-start p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+                <div key={pt.id} ref={setItemRef(pt.id)} className="grid gap-4 sm:grid-cols-12 items-start p-4 rounded-lg border border-slate-200 bg-slate-50 hover:border-slate-300 transition-colors">
                   <div className="sm:col-span-4">
                     <label className={LABEL_BASE}>Country</label>
                     <SearchableSelect
@@ -239,7 +239,7 @@ export default function TravelHistoryGeneratorPage() {
                     />
                   </div>
                   <div className="sm:col-span-1 flex justify-end pt-6">
-                    <button type="button" onClick={() => removePastTravel(pt.id)} className="p-2 rounded-lg text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
+                    <button type="button" onClick={() => removePastTravel(pt.id)} className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
                       <Trash className="w-4 h-4" />
                     </button>
                   </div>
@@ -249,7 +249,7 @@ export default function TravelHistoryGeneratorPage() {
               <button
                 type="button"
                 onClick={addPastTravel}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800/50 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-950/40 text-xs font-semibold transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-semibold transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Entry

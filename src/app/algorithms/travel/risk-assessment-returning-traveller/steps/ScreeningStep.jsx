@@ -7,20 +7,20 @@ import { clsx } from "clsx";
 const btnPrimary =
   "inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 " +
   "text-sm font-semibold text-white " +
-  "bg-red-600 hover:bg-red-700 dark:hover:bg-red-500 " +
+  "bg-red-600 hover:bg-red-700 " +
   "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 " +
   "disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
 
 const btnSecondary =
-  "rounded-lg px-4 py-2.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 " +
-  "hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-400 dark:hover:border-slate-600 text-sm font-medium transition-colors";
+  "rounded-lg px-4 py-2.5 border border-slate-300 bg-white text-slate-600 " +
+  "hover:text-slate-900 hover:border-slate-400 text-sm font-medium transition-colors";
 
 const yesNoBtn = (active) =>
   clsx(
     "px-5 py-2.5 text-sm font-semibold rounded-lg border transition-colors",
     active
       ? "bg-red-600 border-red-600 text-white"
-      : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+      : "bg-white border-slate-300 text-slate-600 hover:border-slate-400 hover:text-slate-800"
   );
 
 export default function ScreeningStep({
@@ -38,8 +38,8 @@ export default function ScreeningStep({
   return (
     <div className="space-y-4">
       {/* Q1 */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 p-6">
-        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-4 leading-relaxed">
+      <div className="rounded-xl border border-slate-200 bg-white p-6">
+        <p className="text-sm font-medium text-slate-800 mb-4 leading-relaxed">
           Does the patient have an illness with a history of feverishness?
         </p>
         <div className="flex gap-2">
@@ -54,8 +54,8 @@ export default function ScreeningStep({
 
       {/* Q2 */}
       {q2Available && (
-        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 p-6 animate-in fade-in slide-in-from-top-2 duration-300">
-          <p className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-4 leading-relaxed">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+          <p className="text-sm font-medium text-slate-800 mb-4 leading-relaxed">
             Has the patient cared for / come into contact with body fluids of / handled clinical
             specimens from an individual or laboratory animal known or strongly suspected to have
             VHF within the past 21 days?
@@ -99,7 +99,7 @@ export default function ScreeningStep({
       )}
 
       {/* Controls */}
-      <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
+      <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-200">
         <button type="button" onClick={onContinue} disabled={!canProceed} className={btnPrimary}>
           Continue to Travel Details
         </button>

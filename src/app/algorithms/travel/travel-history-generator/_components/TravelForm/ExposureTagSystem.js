@@ -3,29 +3,29 @@ import { Check } from 'lucide-react';
 import SmoothReveal from '../ui/SmoothReveal';
 import { EXPOSURE_CATEGORIES } from '../../_lib/constants';
 
-const CATEGORY_HEADER = "text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 pb-2 border-b border-slate-200 dark:border-slate-700";
-const TEXTAREA_STYLES = "w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand min-h-[80px] resize-none font-sans placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors";
-const LABEL_STYLES = "block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2";
+const CATEGORY_HEADER = "text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3 pb-2 border-b border-slate-200";
+const TEXTAREA_STYLES = "w-full bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand min-h-[80px] resize-none font-sans placeholder:text-slate-400 transition-colors";
+const LABEL_STYLES = "block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2";
 
 const exposureCardClass = (isYes) => clsx(
   "flex items-center justify-between p-3 rounded-lg border transition-colors",
   isYes
-    ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50"
-    : "bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+    ? "bg-emerald-50 border-emerald-200"
+    : "bg-white border-slate-200 hover:border-slate-300"
 );
 
 const yesBtn = (active) => clsx(
   "px-3 py-1.5 text-xs font-semibold rounded-md border transition-colors",
   active
     ? "bg-emerald-600 border-emerald-600 text-white"
-    : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500"
+    : "bg-white border-slate-300 text-slate-500 hover:border-slate-400"
 );
 
 const noBtn = (active) => clsx(
   "px-3 py-1.5 text-xs font-semibold rounded-md border transition-colors",
   active
-    ? "bg-slate-600 dark:bg-slate-500 border-slate-600 dark:border-slate-500 text-white"
-    : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500"
+    ? "bg-slate-600 border-slate-600 text-white"
+    : "bg-white border-slate-300 text-slate-500 hover:border-slate-400"
 );
 
 export default function ExposureTagSystem({ exposures, onChange }) {
@@ -62,7 +62,7 @@ export default function ExposureTagSystem({ exposures, onChange }) {
                 <div key={item.key} className={exposureCardClass(isYes)}>
                   <span className={clsx(
                     "text-xs font-medium mr-2 truncate",
-                    isYes ? "text-emerald-700 dark:text-emerald-400" : "text-slate-600 dark:text-slate-300"
+                    isYes ? "text-emerald-700" : "text-slate-600"
                   )} title={item.label}>
                     {item.label}
                   </span>
@@ -82,7 +82,7 @@ export default function ExposureTagSystem({ exposures, onChange }) {
         <button
           type="button"
           onClick={markRestAsNo}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-600 hover:border-slate-400 hover:text-slate-800 transition-colors"
         >
           <Check className="w-3.5 h-3.5" />
           Mark Remaining as Negative
@@ -91,7 +91,7 @@ export default function ExposureTagSystem({ exposures, onChange }) {
 
       {/* POSITIVE DETAILS */}
       <SmoothReveal show={hasPositive}>
-        <div className="space-y-3 pt-5 border-t border-slate-200 dark:border-slate-700">
+        <div className="space-y-3 pt-5 border-t border-slate-200">
           <label className={LABEL_STYLES}>Positive Exposure Details</label>
           <textarea
             rows={3}
@@ -104,7 +104,7 @@ export default function ExposureTagSystem({ exposures, onChange }) {
       </SmoothReveal>
 
       {/* OTHER NOTES */}
-      <div className="border-t border-slate-200 dark:border-slate-700 pt-5">
+      <div className="border-t border-slate-200 pt-5">
         <label className={LABEL_STYLES}>Additional Clinical Notes</label>
         <textarea
           rows={2}

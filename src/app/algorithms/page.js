@@ -6,17 +6,17 @@ import NavBar from "@/components/NavBar";
 
 export default function AlgorithmsPage() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-slate-50">
       <NavBar />
       <main className="flex flex-col items-center justify-center px-6 py-24">
         <div className="max-w-md w-full text-center">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm mb-6">
-            <Activity className="w-7 h-7 text-slate-400 dark:text-slate-500" />
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white border border-slate-200 shadow-sm mb-6">
+            <Activity className="w-7 h-7 text-slate-400" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">
             Algorithms
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-8">
+          <p className="text-slate-500 leading-relaxed mb-8">
             The clinical algorithms module is currently under development. Digital pathways are being built and tested.
           </p>
           <Link

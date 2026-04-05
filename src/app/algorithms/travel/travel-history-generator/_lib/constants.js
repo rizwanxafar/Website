@@ -77,25 +77,25 @@ export const EXPOSURE_CATEGORIES = [
 export const BTN_BASE = "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2";
 
 export const BTN_PRIMARY = clsx(BTN_BASE, 
-  "text-white bg-[hsl(var(--brand))] dark:bg-[hsl(var(--accent))] hover:brightness-95 focus:ring-[hsl(var(--brand))]/70 disabled:opacity-50 disabled:cursor-not-allowed"
+  "text-white bg-[hsl(var(--brand))](var(--accent))] hover:brightness-95 focus:ring-[hsl(var(--brand))]/70 disabled:opacity-50 disabled:cursor-not-allowed"
 );
 
 export const BTN_SECONDARY = clsx(BTN_BASE,
-  "border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900 focus:ring-slate-400"
+  "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus:ring-slate-400"
 );
 
 export const LINKISH_SECONDARY =
-  "rounded-lg px-3 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-700 hover:border-[hsl(var(--brand))] dark:hover:border-[hsl(var(--accent))] transition text-slate-600 dark:text-slate-400";
+  "rounded-lg px-3 py-1.5 text-xs font-medium border border-slate-300 hover:border-[hsl(var(--brand))](var(--accent))] transition text-slate-600";
 
 export const INPUT_BASE = 
-  "w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-slate-900 dark:text-slate-100 bg-transparent focus:ring-0";
+  "w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-slate-900 bg-transparent focus:ring-0";
 
 export const CONTAINER_BASE =
-  "relative w-full cursor-default overflow-hidden rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-left focus-within:border-[hsl(var(--brand))] focus-within:ring-1 focus-within:ring-[hsl(var(--brand))] sm:text-sm transition-all";
+  "relative w-full cursor-default overflow-hidden rounded-lg border-2 border-slate-300 bg-white text-left focus-within:border-[hsl(var(--brand))] focus-within:ring-1 focus-within:ring-[hsl(var(--brand))] sm:text-sm transition-all";
 
 export const TEXT_INPUT_CLASS = clsx(CONTAINER_BASE, "flex items-center");
 
 export const TEXTAREA_CLASS = 
-  "w-full rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))] focus:border-[hsl(var(--brand))] transition";
+  "w-full rounded-lg border-2 border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand))] focus:border-[hsl(var(--brand))] transition";
 
-export const SECTION_HEADING = "text-lg font-semibold text-slate-900 dark:text-slate-100";
+export const SECTION_HEADING = "text-lg font-semibold text-slate-900";

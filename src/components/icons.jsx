@@ -1,7 +1,7 @@
 // src/components/icons.jsx
 // Inline SVG icons — React 19 safe, no dependencies.
 // All icons inherit current text color.
-// Usage: <HomeIcon className="w-5 h-5 text-neutral-700 dark:text-neutral-200" />
+// Usage: <HomeIcon className="w-5 h-5 text-neutral-700" />
 
 export function HomeIcon({ className = "w-5 h-5", strokeWidth = 1.5 }) {
   return (

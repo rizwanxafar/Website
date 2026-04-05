@@ -8,9 +8,9 @@ import SearchableSelect from '../ui/SearchableSelect';
 import ResponsiveDatePicker from '../ui/ResponsiveDatePicker';
 import ExposureTagSystem from './ExposureTagSystem';
 
-const LABEL = "block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2";
-const SUB_LABEL = "block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5";
-const INPUT_STYLES = "w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors";
+const LABEL = "block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2";
+const SUB_LABEL = "block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5";
+const INPUT_STYLES = "w-full bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand placeholder:text-slate-400 transition-colors";
 
 export default function StopCard({ stop, index, totalStops, onChange, onRemove, innerRef, highlighted }) {
   const exp = stop.exposures;
@@ -34,25 +34,25 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
   const cardClass = clsx(
     "rounded-xl border p-5 transition-all shadow-sm",
     highlighted
-      ? "border-red-300 dark:border-red-700/50 bg-red-50 dark:bg-red-950/10 ring-1 ring-red-200 dark:ring-red-900/30"
-      : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/30"
+      ? "border-red-300 bg-red-50 ring-1 ring-red-200"
+      : "border-slate-200 bg-white"
   );
 
   return (
     <div ref={innerRef} className={cardClass}>
 
       {/* HEADER */}
-      <div className="flex items-center justify-between mb-5 pb-4 border-b border-slate-200 dark:border-slate-700">
+      <div className="flex items-center justify-between mb-5 pb-4 border-b border-slate-200">
         <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30">
-            <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
+          <div className="p-1.5 rounded-lg bg-emerald-50">
+            <MapPin className="w-4 h-4 text-emerald-600" />
           </div>
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">{headerTitle}</h3>
+          <h3 className="text-sm font-bold text-slate-800">{headerTitle}</h3>
         </div>
         <button
           type="button"
           onClick={onRemove}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
         >
           <Trash className="w-3.5 h-3.5" /> Remove
         </button>
@@ -80,13 +80,13 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
       </div>
 
       {/* CITIES */}
-      <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 mb-5">
+      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 mb-5">
         <label className={clsx(LABEL, "flex items-center gap-2 mb-4")}>
           <Home className="w-3.5 h-3.5" /> Cities Visited
         </label>
         <div className="space-y-4">
           {normalizedCities.map((row, i) => (
-            <div key={i} className="grid sm:grid-cols-3 lg:grid-cols-4 gap-3 items-end pb-4 border-b border-slate-200 dark:border-slate-800 last:border-0 last:pb-0">
+            <div key={i} className="grid sm:grid-cols-3 lg:grid-cols-4 gap-3 items-end pb-4 border-b border-slate-200 last:border-0 last:pb-0">
               <div>
                 <label className={SUB_LABEL}>City Name</label>
                 <SearchableSelect
@@ -108,7 +108,7 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
               <button
                 type="button"
                 onClick={() => removeCity(i)}
-                className="h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 transition-colors flex items-center justify-center"
+                className="h-10 px-3 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-red-600 hover:border-red-200 transition-colors flex items-center justify-center"
               >
                 <Trash className="w-4 h-4" />
               </button>
@@ -117,7 +117,7 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
           <button
             type="button"
             onClick={addCity}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:border-brand/40 dark:hover:border-slate-500 hover:text-brand transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-600 hover:border-brand/40 hover:text-brand transition-colors"
           >
             <Plus className="w-3.5 h-3.5" /> Add City
           </button>
@@ -138,18 +138,18 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
                 className={clsx(
                   "flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors select-none",
                   checked
-                    ? "bg-brand/5 dark:bg-brand/10 border-brand/30 dark:border-brand/40 text-brand dark:text-brandAlt"
-                    : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                    ? "bg-brand/5 border-brand/30 text-brand"
+                    : "bg-white border-slate-200 hover:border-slate-300"
                 )}
               >
                 <input
                   id={id}
                   type="checkbox"
-                  className="appearance-none h-4 w-4 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:bg-brand checked:border-brand focus:ring-0 transition-colors"
+                  className="appearance-none h-4 w-4 rounded border border-slate-300 bg-white checked:bg-brand checked:border-brand focus:ring-0 transition-colors"
                   checked={checked}
                   onChange={() => toggleAccommodation(opt)}
                 />
-                <span className={clsx("text-xs font-medium transition-colors", checked ? "" : "text-slate-600 dark:text-slate-300")}>{opt}</span>
+                <span className={clsx("text-xs font-medium transition-colors", checked ? "" : "text-slate-600")}>{opt}</span>
               </label>
             );
           })}
@@ -168,7 +168,7 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
       </div>
 
       {/* EXPOSURES */}
-      <div className="border-t border-slate-200 dark:border-slate-700 pt-5">
+      <div className="border-t border-slate-200 pt-5">
         <label className={clsx(LABEL, "flex items-center gap-2 mb-4")}>
           <Activity className="w-3.5 h-3.5" /> Risk Exposures &amp; Activities
         </label>
