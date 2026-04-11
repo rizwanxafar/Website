@@ -1,26 +1,22 @@
-// src/app/algorithms/travel/risk-assessment-returning-traveller/steps/ScreeningStep.jsx
 "use client";
 
 import DecisionCard from "@/components/DecisionCard";
 import { clsx } from "clsx";
 
 const btnPrimary =
-  "inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 " +
-  "text-sm font-semibold text-white " +
-  "bg-red-600 hover:bg-red-700 " +
-  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 " +
-  "disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
+  "inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-brand hover:opacity-90 text-white text-sm font-semibold " +
+  "transition-opacity disabled:opacity-40 disabled:cursor-not-allowed";
 
 const btnSecondary =
-  "rounded-lg px-4 py-2.5 border border-slate-300 bg-white text-slate-600 " +
-  "hover:text-slate-900 hover:border-slate-400 text-sm font-medium transition-colors";
+  "px-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-600 " +
+  "hover:border-slate-400 text-sm font-medium transition-colors";
 
 const yesNoBtn = (active) =>
   clsx(
-    "px-5 py-2.5 text-sm font-semibold rounded-lg border transition-colors",
+    "px-5 py-2.5 text-sm font-medium rounded-lg border transition-colors",
     active
-      ? "bg-red-600 border-red-600 text-white"
-      : "bg-white border-slate-300 text-slate-600 hover:border-slate-400 hover:text-slate-800"
+      ? "bg-slate-800 border-slate-800 text-white"
+      : "bg-white border-slate-300 text-slate-600 hover:border-slate-400"
   );
 
 export default function ScreeningStep({
@@ -38,7 +34,7 @@ export default function ScreeningStep({
   return (
     <div className="space-y-4">
       {/* Q1 */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-xl border border-slate-200 bg-white p-5">
         <p className="text-sm font-medium text-slate-800 mb-4 leading-relaxed">
           Does the patient have an illness with a history of feverishness?
         </p>
@@ -54,7 +50,7 @@ export default function ScreeningStep({
 
       {/* Q2 */}
       {q2Available && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 animate-in fade-in slide-in-from-top-2 duration-300">
           <p className="text-sm font-medium text-slate-800 mb-4 leading-relaxed">
             Has the patient cared for / come into contact with body fluids of / handled clinical
             specimens from an individual or laboratory animal known or strongly suspected to have
@@ -90,7 +86,7 @@ export default function ScreeningStep({
             </ul>
           </DecisionCard>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2 pt-2">
             <button type="button" onClick={onEscalateToSummary} className={btnPrimary}>
               Next steps
             </button>

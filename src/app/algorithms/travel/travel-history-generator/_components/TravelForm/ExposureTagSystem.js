@@ -14,17 +14,10 @@ const exposureCardClass = (isYes) => clsx(
     : "bg-white border-slate-200 hover:border-slate-300"
 );
 
-const yesBtn = (active) => clsx(
-  "px-3 py-1.5 text-xs font-semibold rounded-md border transition-colors",
+const toggleBtn = (active) => clsx(
+  "px-3 py-1.5 text-xs font-medium rounded-md border transition-colors",
   active
-    ? "bg-emerald-600 border-emerald-600 text-white"
-    : "bg-white border-slate-300 text-slate-500 hover:border-slate-400"
-);
-
-const noBtn = (active) => clsx(
-  "px-3 py-1.5 text-xs font-semibold rounded-md border transition-colors",
-  active
-    ? "bg-slate-600 border-slate-600 text-white"
+    ? "bg-slate-800 border-slate-800 text-white"
     : "bg-white border-slate-300 text-slate-500 hover:border-slate-400"
 );
 
@@ -67,8 +60,8 @@ export default function ExposureTagSystem({ exposures, onChange }) {
                     {item.label}
                   </span>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <button type="button" onClick={() => setItem(item.key, 'yes')} className={yesBtn(isYes)}>Yes</button>
-                    <button type="button" onClick={() => setItem(item.key, 'no')} className={noBtn(isNo)}>No</button>
+                    <button type="button" onClick={() => setItem(item.key, 'yes')} className={toggleBtn(isYes)}>Yes</button>
+                    <button type="button" onClick={() => setItem(item.key, 'no')} className={toggleBtn(isNo)}>No</button>
                   </div>
                 </div>
               );

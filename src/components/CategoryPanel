@@ -8,7 +8,7 @@ export default function CategoryPanel({ title, items, defaultOpen = false }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 transition hover:shadow-lg">
+    <div className="rounded-xl border border-slate-200 bg-white transition hover:shadow-md">
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
@@ -16,10 +16,10 @@ export default function CategoryPanel({ title, items, defaultOpen = false }) {
         aria-expanded={isOpen}
         aria-controls={`panel-${slugify(title)}`}
       >
-        <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</span>
+        <span className="text-lg font-semibold text-slate-900">{title}</span>
         <span
-          className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 transition
-            ${isOpen ? "bg-violet-600 text-white border-violet-600" : "bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300"}`}
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition
+            ${isOpen ? "bg-brand text-white border-brand" : "bg-white border-slate-300 text-slate-600"}`}
           aria-hidden="true"
         >
           {isOpen ? "–" : "+"}
@@ -37,7 +37,7 @@ export default function CategoryPanel({ title, items, defaultOpen = false }) {
             <li key={item.href}>
               <Link
                 href={item.href}
-                className="block rounded-lg px-4 py-3 text-sm font-medium border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 hover:border-violet-500 dark:hover:border-violet-400 hover:text-violet-700 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition"
+                className="block rounded-lg px-4 py-3 text-sm font-medium border border-slate-200 text-slate-800 hover:border-brand/30 hover:text-brand hover:bg-brand/5 transition-colors"
               >
                 {item.label}
               </Link>
