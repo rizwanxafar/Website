@@ -6,6 +6,18 @@ import { useEffect, useRef, useState } from "react";
 const STORAGE_KEY = "riskFormV1";
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+function getUrlParams() {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const country = params.get("country");
+  if (!country) return null;
+  return {
+    country,
+    arrival: params.get("arrival") || "",
+    leaving: params.get("leaving") || "",
+  };
+}
+
 export default function useSessionForm() {
   // Steps: "screen" | "select" | "review" | "exposures"
   const [step, setStep] = useState("screen");
@@ -33,8 +45,24 @@ export default function useSessionForm() {
   // Per-country exposures keyed by row id: { [rowId]: { lassa, ebola_marburg, cchf } }
   const [exposuresByCountry, setExposuresByCountry] = useState({});
 
-  // Load once
+  // Load once — URL params take priority over session storage
   useEffect(() => {
+    const urlParams = getUrlParams();
+    if (urlParams) {
+      const entry = {
+        id: uid(),
+        name: urlParams.country,
+        arrival: urlParams.arrival,
+        leaving: urlParams.leaving,
+      };
+      setSelected([entry]);
+      setShowInput(false);
+      setStep("screen");
+      // Clean URL without reload
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (!raw) return;

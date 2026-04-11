@@ -12,11 +12,12 @@ import {
   ADHERENCE_OPTIONS
 } from '../../_lib/constants';
 import { getIsoFromCountryName } from '../../_lib/utils';
-import { MapPin, Users, Syringe, Pill, Trash, Plus, Navigation, Briefcase } from 'lucide-react';
+import { MapPin, Users, Syringe, Pill, Trash, Plus, Navigation, Briefcase, Calendar } from 'lucide-react';
 import SearchableSelect from '../ui/SearchableSelect';
 import MultiSelectTags from '../ui/MultiSelectTags';
 import SimpleSelect from '../ui/SimpleSelect';
 import SmoothReveal from '../ui/SmoothReveal';
+import ResponsiveDatePicker from '../ui/ResponsiveDatePicker';
 import StopCard from './StopCard';
 import LayoverCard from './LayoverCard';
 
@@ -76,10 +77,7 @@ export default function TripCard({
           <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-brand/10 text-brand">
             <Navigation className="w-4 h-4" />
           </div>
-          <div>
-            <h2 className="text-sm font-bold text-slate-800">{headerTitle}</h2>
-            <p className="text-xs text-slate-400">Logistics and risk factors</p>
-          </div>
+          <h2 className="text-sm font-bold text-slate-800">{headerTitle}</h2>
         </div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => addStop(trip.id)} className={BTN_ADD}>
@@ -97,12 +95,12 @@ export default function TripCard({
 
       <div className="p-6 space-y-6">
 
-        {/* ORIGIN */}
+        {/* TRAVELLING FROM */}
         <div className={SECTION_CARD}>
           <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
-            <MapPin className="w-3.5 h-3.5" /> Origin Point
+            <MapPin className="w-3.5 h-3.5" /> Travelling From
           </label>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className={SUB_LABEL}>Country</label>
               <SearchableSelect
@@ -120,6 +118,20 @@ export default function TripCard({
                 options={originCityNames}
                 placeholder="Select city..."
                 allowCustom={true}
+              />
+            </div>
+            <div>
+              <label className={SUB_LABEL}>Date of Departure</label>
+              <ResponsiveDatePicker
+                value={trip.departureDate || ''}
+                onChange={(val) => updateTrip(trip.id, { departureDate: val })}
+              />
+            </div>
+            <div>
+              <label className={SUB_LABEL}>Date of Return</label>
+              <ResponsiveDatePicker
+                value={trip.returnDate || ''}
+                onChange={(val) => updateTrip(trip.id, { returnDate: val })}
               />
             </div>
           </div>

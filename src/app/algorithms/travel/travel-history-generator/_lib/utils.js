@@ -151,17 +151,27 @@ export const emptyPastTravel = () => ({
   id: uid(), country: '', year: '', details: '',
 });
 
-export const emptyTrip = () => ({
-  id: uid(),
-  purpose: '',
-  originCountry: 'United Kingdom',
-  originCity: 'Manchester',
-  vaccines: { status: 'unknown', details: [] }, 
-  malaria: { indication: 'Not indicated', drug: 'None', adherence: '' },
-  companions: { group: 'Alone', otherText: '', companionsWell: 'unknown', companionsUnwellDetails: '' },
-  stops: [emptyStop()],
-  layovers: [],
-});
+export const emptyTrip = (templateOverrides = {}) => {
+  const { stopOverrides, ...tripOverrides } = templateOverrides;
+  const stop = emptyStop();
+  if (stopOverrides) {
+    Object.assign(stop, stopOverrides);
+  }
+  return {
+    id: uid(),
+    purpose: '',
+    originCountry: 'United Kingdom',
+    originCity: 'Manchester',
+    departureDate: '',
+    returnDate: '',
+    vaccines: { status: 'unknown', details: [] },
+    malaria: { indication: 'Not indicated', drug: 'None', adherence: '' },
+    companions: { group: 'Alone', otherText: '', companionsWell: 'unknown', companionsUnwellDetails: '' },
+    stops: [stop],
+    layovers: [],
+    ...tripOverrides,
+  };
+};
 
 export const initialState = {
   trips: [emptyTrip()],

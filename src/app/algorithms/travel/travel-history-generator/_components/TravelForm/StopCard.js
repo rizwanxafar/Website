@@ -3,7 +3,8 @@ import { City } from "country-state-city";
 import { clsx } from 'clsx';
 import { getIsoFromCountryName } from '../../_lib/utils';
 import { CSC_COUNTRIES, ACCOMMODATION_OPTIONS } from '../../_lib/constants';
-import { MapPin, Calendar, Home, Activity, Trash, Plus } from 'lucide-react';
+import { MapPin, Calendar, Home, Activity, Trash, Plus, ShieldAlert } from 'lucide-react';
+import Link from 'next/link';
 import SearchableSelect from '../ui/SearchableSelect';
 import ResponsiveDatePicker from '../ui/ResponsiveDatePicker';
 import ExposureTagSystem from './ExposureTagSystem';
@@ -44,8 +45,8 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
       {/* HEADER */}
       <div className="flex items-center justify-between mb-5 pb-4 border-b border-slate-200">
         <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-lg bg-emerald-50">
-            <MapPin className="w-4 h-4 text-emerald-600" />
+          <div className="p-1.5 rounded-lg bg-brand/10">
+            <MapPin className="w-4 h-4 text-brand" />
           </div>
           <h3 className="text-sm font-bold text-slate-800">{headerTitle}</h3>
         </div>
@@ -59,7 +60,7 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
       </div>
 
       {/* COUNTRY & DATES */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <div>
           <label className={LABEL}>Country</label>
           <SearchableSelect
@@ -78,6 +79,18 @@ export default function StopCard({ stop, index, totalStops, onChange, onRemove, 
           <ResponsiveDatePicker value={stop.departure} onChange={(val) => onChange({ departure: val })} />
         </div>
       </div>
+      {stop.country && (
+        <div className="mb-5">
+          <Link
+            href={`/algorithms/travel/risk-assessment-returning-traveller?country=${encodeURIComponent(stop.country)}&arrival=${encodeURIComponent(stop.arrival || '')}&leaving=${encodeURIComponent(stop.departure || '')}`}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-brand transition-colors"
+          >
+            <ShieldAlert className="w-3.5 h-3.5" />
+            Check VHF Risk for {stop.country}
+          </Link>
+        </div>
+      )}
 
       {/* CITIES */}
       <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 mb-5">

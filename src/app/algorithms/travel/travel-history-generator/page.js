@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { clsx } from 'clsx';
-import { CSC_COUNTRIES } from './_lib/constants';
+import { CSC_COUNTRIES, TRIP_TEMPLATES } from './_lib/constants';
 import { parseDate, buildTripEvents, emptyTrip, emptyStop, emptyLayover, emptyPastTravel, initialState } from './_lib/utils';
 import { buildSummaryFromEvents } from './_lib/summary-engine';
-import { Printer, AlertTriangle, Trash, ArrowLeft, Plane, Plus, RefreshCw } from 'lucide-react';
+import { Printer, AlertTriangle, Trash, ArrowLeft, Plane, Plus, RefreshCw, Clipboard, Check } from 'lucide-react';
 import SearchableSelect from './_components/ui/SearchableSelect';
 import TripCard from './_components/TravelForm/TripCard';
 import PrintOverlay from './_components/Print/PrintOverlay';
@@ -17,6 +17,8 @@ export default function TravelHistoryGeneratorPage() {
   const [highlight, setHighlight] = useState({ stopIds: new Set(), layoverIds: new Set() });
   const [pendingScrollId, setPendingScrollId] = useState(null);
   const [printOpen, setPrintOpen] = useState(false);
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const itemRefs = useRef(new Map());
   const setItemRef = (id) => (el) => { if (el) itemRefs.current.set(id, el); };
@@ -74,9 +76,29 @@ export default function TravelHistoryGeneratorPage() {
     [state, mergedEventsAllTrips]
   );
 
-  const updateTrip = (tripId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, ...patch } : t)) }));
+  const updateTrip = (tripId, patch) => setState((p) => ({
+    ...p,
+    trips: p.trips.map((t) => {
+      if (t.id !== tripId) return t;
+      const updated = { ...t, ...patch };
+      // Auto-push departure date to first stop's arrival if the first stop has no arrival or its arrival matched the old departure
+      if (patch.departureDate && updated.stops.length > 0) {
+        const firstStop = updated.stops[0];
+        if (!firstStop.arrival || firstStop.arrival === t.departureDate) {
+          updated.stops = updated.stops.map((s, i) => i === 0 ? { ...s, arrival: patch.departureDate } : s);
+        }
+      }
+      return updated;
+    }),
+  }));
   const updateStop = (tripId, stopId, patch) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, stops: t.stops.map((s) => (s.id === stopId ? { ...s, ...patch } : s)) } : t)) }));
-  const addTrip = () => { const tr = emptyTrip(); setState((p) => ({ ...p, trips: [...p.trips, tr] })); setPendingScrollId(tr.id); };
+  const addTrip = () => setTemplateOpen(true);
+  const addTripFromTemplate = (overrides = {}) => {
+    const tr = emptyTrip(overrides);
+    setState((p) => ({ ...p, trips: [...p.trips, tr] }));
+    setPendingScrollId(tr.id);
+    setTemplateOpen(false);
+  };
   const removeTrip = (tripId) => setState((p) => ({ ...p, trips: p.trips.filter((t) => t.id !== tripId) }));
   const addStop = (tripId) => { const s = emptyStop(); setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, stops: [...t.stops, s] } : t)) })); setPendingScrollId(s.id); };
   const removeStop = (tripId, stopId) => setState((p) => ({ ...p, trips: p.trips.map((t) => (t.id === tripId ? { ...t, stops: t.stops.filter((s) => s.id !== stopId) } : t)) }));
@@ -87,6 +109,11 @@ export default function TravelHistoryGeneratorPage() {
   const updatePastTravel = (id, patch) => setState(p => ({ ...p, pastTravels: p.pastTravels.map(pt => pt.id === id ? { ...pt, ...patch } : pt) }));
   const removePastTravel = (id) => setState(p => ({ ...p, pastTravels: p.pastTravels.filter(pt => pt.id !== id) }));
   const clearAll = () => { if (confirm('Clear all data?')) setState(initialState); };
+  const handleCopy = () => {
+    navigator.clipboard.writeText(summaryTextPlain);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const LABEL_BASE = "block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2";
   const INPUT_BASE = "w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-colors";
@@ -103,13 +130,10 @@ export default function TravelHistoryGeneratorPage() {
             </Link>
             <div className="h-5 w-px bg-slate-200" />
             <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-lg bg-emerald-50">
-                <Plane className="w-4 h-4 text-emerald-600" />
+              <div className="p-1.5 rounded-lg bg-brand/10">
+                <Plane className="w-4 h-4 text-brand" />
               </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-800 leading-tight">Travel History Generator</p>
-                <p className="text-xs text-slate-400 leading-tight">Clinical Assessment Tool</p>
-              </div>
+              <p className="text-sm font-semibold text-slate-800">Travel History Generator</p>
             </div>
           </div>
 
@@ -120,6 +144,13 @@ export default function TravelHistoryGeneratorPage() {
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Reset</span>
+            </button>
+            <button
+              onClick={handleCopy}
+              className="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-600 hover:border-slate-400 transition-colors flex items-center gap-1.5"
+            >
+              {copied ? <Check className="w-3.5 h-3.5" /> : <Clipboard className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
             </button>
             <button
               onClick={() => setPrintOpen(true)}
@@ -181,20 +212,46 @@ export default function TravelHistoryGeneratorPage() {
               />
             ))}
 
-            <button
-              type="button"
-              onClick={addTrip}
-              className="w-full py-5 rounded-xl border-2 border-dashed border-slate-300 text-slate-400 hover:text-brand hover:border-brand/40 hover:bg-white transition-all flex items-center justify-center gap-2.5 group"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="text-sm font-semibold">Add Trip</span>
-            </button>
+            {templateOpen ? (
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-sm font-semibold text-slate-800 mb-3">Choose a template</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {TRIP_TEMPLATES.map((tpl) => (
+                    <button
+                      key={tpl.key}
+                      type="button"
+                      onClick={() => addTripFromTemplate(tpl.overrides)}
+                      className="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-brand/40 hover:bg-white text-left transition-colors"
+                    >
+                      <span className="block text-sm font-semibold text-slate-800">{tpl.label}</span>
+                      <span className="block text-xs text-slate-400 mt-0.5">{tpl.description}</span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTemplateOpen(false)}
+                  className="mt-3 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={addTrip}
+                className="w-full py-5 rounded-xl border-2 border-dashed border-slate-300 text-slate-400 hover:text-brand hover:border-brand/40 hover:bg-white transition-all flex items-center justify-center gap-2.5 group"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="text-sm font-semibold">Add Trip</span>
+              </button>
+            )}
           </section>
 
           {/* PAST TRAVEL */}
           <section className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
             <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center gap-3">
-              <div className="h-2 w-2 rounded-full bg-indigo-500" />
+              <div className="h-2 w-2 rounded-full bg-slate-400" />
               <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
                 Significant Past Travel History
               </h2>
@@ -249,7 +306,7 @@ export default function TravelHistoryGeneratorPage() {
               <button
                 type="button"
                 onClick={addPastTravel}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-semibold transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-600 hover:border-slate-400 text-xs font-semibold transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Entry

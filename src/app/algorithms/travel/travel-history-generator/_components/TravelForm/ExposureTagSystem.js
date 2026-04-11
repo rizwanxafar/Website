@@ -7,12 +7,7 @@ const CATEGORY_HEADER = "text-xs font-semibold text-slate-500 uppercase tracking
 const TEXTAREA_STYLES = "w-full bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand min-h-[80px] resize-none font-sans placeholder:text-slate-400 transition-colors";
 const LABEL_STYLES = "block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2";
 
-const exposureCardClass = (isYes) => clsx(
-  "flex items-center justify-between p-3 rounded-lg border transition-colors",
-  isYes
-    ? "bg-emerald-50 border-emerald-200"
-    : "bg-white border-slate-200 hover:border-slate-300"
-);
+const exposureCardClass = "flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white hover:border-slate-300 transition-colors";
 
 const toggleBtn = (active) => clsx(
   "px-3 py-1.5 text-xs font-medium rounded-md border transition-colors",
@@ -52,11 +47,8 @@ export default function ExposureTagSystem({ exposures, onChange }) {
               const isNo = status === 'no' || status === false;
 
               return (
-                <div key={item.key} className={exposureCardClass(isYes)}>
-                  <span className={clsx(
-                    "text-xs font-medium mr-2 truncate",
-                    isYes ? "text-emerald-700" : "text-slate-600"
-                  )} title={item.label}>
+                <div key={item.key} className={exposureCardClass}>
+                  <span className="text-xs font-medium mr-2 truncate text-slate-600" title={item.label}>
                     {item.label}
                   </span>
                   <div className="flex items-center gap-1.5 shrink-0">

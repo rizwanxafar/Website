@@ -18,6 +18,42 @@ export const MALARIA_STATUS_OPTIONS = ['Not indicated', 'Taken', 'Not taken', 'U
 export const VACCINE_STATUS_OPTIONS = ['Taken', 'Not taken', 'Unsure']; 
 export const ADHERENCE_OPTIONS = ['Good', 'Partial', 'Poor', 'Unknown'];
 
+export const TRIP_TEMPLATES = [
+  {
+    key: 'blank',
+    label: 'Blank',
+    description: 'Start from scratch',
+    overrides: {},
+  },
+  {
+    key: 'vfr',
+    label: 'VFR',
+    description: 'Visiting friends & relatives',
+    overrides: {
+      purpose: 'Visiting friends and relatives (VFR)',
+      stopOverrides: { accommodations: ['Friends/Family home'] },
+    },
+  },
+  {
+    key: 'hajj',
+    label: 'Hajj / Umrah',
+    description: 'Pilgrimage to Saudi Arabia',
+    overrides: {
+      purpose: 'Hajj / Umrah pilgrimage',
+      stopOverrides: { country: 'Saudi Arabia', accommodations: ['Hotel/Resort'] },
+    },
+  },
+  {
+    key: 'business',
+    label: 'Business',
+    description: 'Work or conference travel',
+    overrides: {
+      purpose: 'Business',
+      stopOverrides: { accommodations: ['Hotel/Resort'] },
+    },
+  },
+];
+
 export const COMPANION_GROUPS = ['Alone', 'Family', 'Friends', 'Other'];
 export const COMPANION_WELL_OPTIONS = ['Yes', 'No', 'Unknown'];
 
