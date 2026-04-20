@@ -14,7 +14,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata = {
-  title: "ID-Northwest | Clinical OS",
+  title: "Infectious Diseases North West",
   description: "Infectious Diseases Clinical Operating System",
 };
 

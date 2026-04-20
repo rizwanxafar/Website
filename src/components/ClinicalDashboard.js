@@ -35,11 +35,8 @@ export default function ClinicalDashboard({ intelData, source }) {
         >
           {/* WELCOME */}
           <motion.div variants={fadeInUp} className="max-w-3xl">
-            <p className="text-xs font-semibold text-brand uppercase tracking-widest mb-3">
-              Infectious Diseases · North West
-            </p>
             <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight leading-tight mb-4">
-              Clinical Decision Support
+              Welcome to Infectious Diseases North West
             </h1>
             <p className="text-lg text-slate-600 leading-relaxed">
               Algorithms and tools for Infectious Diseases. Built for clinical use.
@@ -217,13 +214,13 @@ function ToolCard({ href, variant, icon: Icon, title, subtitle }) {
       arrow: "text-red-300 group-hover:text-red-500",
     },
     standard: {
-      border: "border-slate-200",
-      hover: "hover:border-brand/30",
+      border: "border-emerald-200",
+      hover: "hover:border-emerald-300",
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-600",
-      badge: "bg-slate-100 text-slate-500 border-slate-200",
+      badge: "bg-emerald-50 text-emerald-600 border-emerald-200",
       badgeLabel: "Tool",
-      arrow: "text-slate-300 group-hover:text-slate-600",
+      arrow: "text-emerald-300 group-hover:text-emerald-500",
     },
   };
 

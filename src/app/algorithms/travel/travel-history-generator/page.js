@@ -130,8 +130,8 @@ export default function TravelHistoryGeneratorPage() {
             </Link>
             <div className="h-5 w-px bg-slate-200" />
             <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-lg bg-brand/10">
-                <Plane className="w-4 h-4 text-brand" />
+              <div className="p-1.5 rounded-lg bg-emerald-50">
+                <Plane className="w-4 h-4 text-emerald-600" />
               </div>
               <p className="text-sm font-semibold text-slate-800">Travel History Generator</p>
             </div>
