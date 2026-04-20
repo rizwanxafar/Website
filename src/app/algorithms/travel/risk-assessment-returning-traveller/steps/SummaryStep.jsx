@@ -5,7 +5,7 @@ import DecisionCard from "@/components/DecisionCard";
 import { normalizeName } from "@/utils/names";
 
 const yesNoBtn = (active) =>
-  "px-4 py-2 text-sm font-medium rounded-lg border transition-colors " +
+  "px-5 py-2.5 text-sm font-medium rounded-lg border transition-colors " +
   (active
     ? "bg-slate-800 border-slate-800 text-white"
     : "bg-white border-slate-300 text-slate-600 hover:border-slate-400");
@@ -21,8 +21,8 @@ const RX = { lassa: /lassa/i, ebmarb: /(ebola|ebolavirus|ebola\s*virus|e\.?v\.?d
 const hasDisease = (entries = [], rx) => entries.some((e) => rx.test(String(e?.disease || "")));
 
 const QuestionBlock = ({ label, val, setVal }) => (
-  <div className="rounded-xl border border-slate-200 bg-white p-4">
-    <div className="text-sm text-slate-800 mb-3">{label}</div>
+  <div className="rounded-xl border border-slate-200 bg-white p-5">
+    <p className="text-sm font-medium text-slate-800 mb-4 leading-relaxed">{label}</p>
     <div className="flex gap-2">
       <button type="button" className={yesNoBtn(val === "yes")} onClick={() => setVal("yes")}>Yes</button>
       <button type="button" className={yesNoBtn(val === "no")} onClick={() => setVal("no")}>No</button>

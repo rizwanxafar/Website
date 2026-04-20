@@ -5,7 +5,7 @@ import { EXPOSURE_QUESTIONS as Q } from "@/data/diseaseQuestions";
 import { normalizeName } from "@/utils/names";
 
 const yesNoBtn = (active) =>
-  "px-4 py-2 text-sm font-medium rounded-lg border transition-colors " +
+  "px-5 py-2.5 text-sm font-medium rounded-lg border transition-colors " +
   (active
     ? "bg-slate-800 border-slate-800 text-white"
     : "bg-white border-slate-300 text-slate-600 hover:border-slate-400");

@@ -41,14 +41,14 @@ export default function Page() {
       </header>
 
       {/* MAIN CONTENT */}
-      <main className="pt-10 pb-20 px-4 sm:px-6">
+      <main className="pt-8 pb-24 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto space-y-8">
 
           <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 tracking-tight">
               VHF Risk Assessment
             </h1>
-            <p className="text-base text-slate-500 leading-relaxed max-w-2xl">
+            <p className="text-sm text-slate-500 leading-relaxed max-w-2xl">
               Rapid screening and risk stratification for{" "}
               <span className="text-slate-700 font-medium">Viral Haemorrhagic Fevers</span>{" "}
               in returning travellers.
@@ -57,9 +57,7 @@ export default function Page() {
 
           <WarningBox />
 
-          <div className="border-t border-slate-200 pt-8">
-            <CountrySelect />
-          </div>
+          <CountrySelect />
         </div>
       </main>
     </div>
