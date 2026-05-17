@@ -1,248 +1,238 @@
-"use client";
-
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
-  Activity, Plane, FileText, GraduationCap, ArrowUpRight,
-  ShieldAlert, Siren, Link as LinkIcon, Library, Radar, Database
+  ShieldAlert,
+  Plane,
+  ArrowUpRight,
+  Activity,
+  FileText,
+  GraduationCap,
+  Siren,
 } from "lucide-react";
 import NavBar from "./NavBar";
 
-const fadeInUp = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
-  },
-};
+export default function ClinicalDashboard({ intelData }) {
+  const items = Array.isArray(intelData) ? intelData : [];
 
-const staggerContainer = {
-  visible: { transition: { staggerChildren: 0.08 } },
-};
-
-export default function ClinicalDashboard({ intelData, source }) {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#FAF8F4] relative">
+      <PaperGrain />
       <NavBar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={staggerContainer}
-          className="space-y-12"
-        >
-          {/* WELCOME */}
-          <motion.div variants={fadeInUp} className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight leading-tight mb-4">
-              Welcome to Infectious Diseases North West
-            </h1>
-            <p className="text-lg text-slate-600 leading-relaxed">
-              Algorithms and tools for Infectious Diseases. Built for clinical use.
-            </p>
-          </motion.div>
-
-          {/* ACTIVE TOOLS */}
-          <motion.div variants={fadeInUp}>
-            <SectionHeader icon={Activity} label="Clinical Tools" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <ToolCard
-                href="/algorithms/travel/risk-assessment-returning-traveller"
-                variant="critical"
-                icon={ShieldAlert}
-                title="VHF Risk Assessment"
-                subtitle="Rapid screening and risk stratification for returned travellers"
-              />
-              <ToolCard
-                href="/algorithms/travel/travel-history-generator"
-                variant="standard"
-                icon={Plane}
-                title="Travel History Generator"
-                subtitle="Structured travel history for clinical documentation"
-              />
-            </div>
-          </motion.div>
-
-          {/* WHO INTELLIGENCE */}
-          <motion.div variants={fadeInUp}>
-            <SectionHeader icon={Radar} label="WHO Disease Outbreak News" />
-            <div className="mt-4">
-              <LiveIntelCard items={intelData} source={source} />
-            </div>
-          </motion.div>
-
-          {/* IMPORTANT LINKS */}
-          <motion.div variants={fadeInUp}>
-            <SectionHeader icon={LinkIcon} label="Important Links" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-              <CompactCard title="NaTHNaC" icon={Plane} href="https://travelhealthpro.org.uk" description="National travel health advisory" />
-              <CompactCard title="CDC Travel" icon={ShieldAlert} href="https://wwwnc.cdc.gov/travel/notices" description="US CDC travel health notices" />
-              <CompactCard title="ProMED-mail" icon={Siren} href="https://promedmail.org/" description="Global infectious disease monitor" />
-            </div>
-          </motion.div>
-
-          {/* RESOURCES */}
-          <motion.div variants={fadeInUp}>
-            <SectionHeader icon={Library} label="Resources" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-              <CompactCard href="/algorithms" icon={Activity} title="Algorithms" description="Interactive clinical pathways" />
-              <CompactCard href="/guidelines" icon={FileText} title="Guidelines" description="Local reference documents" />
-              <CompactCard href="/teaching" icon={GraduationCap} title="Education" description="Teaching and case studies" />
-            </div>
-          </motion.div>
-
-          {/* FOOTER */}
-          <motion.div
-            variants={fadeInUp}
-            className="pt-8 border-t border-slate-200 flex justify-between items-center text-sm text-slate-400"
+      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24">
+        {/* HERO */}
+        <section className="text-center mb-16">
+          <h1
+            className="text-5xl md:text-7xl font-bold tracking-[-0.04em] text-slate-900 leading-[0.95] mb-6"
+            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
           >
-            <span>ID-Northwest &copy; {new Date().getFullYear()}</span>
-            <a
-              href="mailto:infectionnw@gmail.com"
-              className="hover:text-slate-600 transition-colors"
+            Welcome to
+            <br />
+            Infectious Diseases
+            <br />
+            North West
+          </h1>
+          <p className="text-lg text-slate-600 leading-relaxed max-w-xl mx-auto mb-10">
+            Algorithms and tools for Infectious Diseases. Built for clinical
+            use.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/algorithms/travel/risk-assessment-returning-traveller"
+              className="inline-flex items-center justify-center w-full sm:w-auto sm:min-w-[260px] px-6 py-3.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors"
             >
-              Contact
-            </a>
-          </motion.div>
-        </motion.div>
+              VHF Risk Assessment
+            </Link>
+            <Link
+              href="/algorithms/travel/travel-history-generator"
+              className="inline-flex items-center justify-center w-full sm:w-auto sm:min-w-[260px] px-6 py-3.5 rounded-xl bg-white text-slate-900 text-sm font-semibold border border-slate-900 hover:bg-slate-50 transition-colors"
+            >
+              Travel History Generator
+            </Link>
+          </div>
+        </section>
+
+        {/* WHO Disease Outbreak News — scrollable panel */}
+        <Panel className="mb-8">
+          <PanelHeader
+            title="WHO Disease Outbreak News"
+            cta={{
+              href: "https://www.who.int/emergencies/disease-outbreak-news",
+              label: "View all",
+              external: true,
+            }}
+          />
+          <div className="relative mt-7">
+            <div className="max-h-[640px] overflow-y-auto custom-scrollbar pr-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8 pb-8">
+                {items.length > 0 ? (
+                  items.map((item, i) => (
+                    <a
+                      key={i}
+                      href={item.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group block"
+                    >
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-widest font-semibold text-slate-500 mb-2">
+                        {item.region && (
+                          <>
+                            <span>{item.region}</span>
+                            <span className="text-slate-300">·</span>
+                          </>
+                        )}
+                        <span>{item.date}</span>
+                      </div>
+                      <h3
+                        className="text-xl font-bold tracking-tight text-slate-900 leading-snug mb-2 group-hover:text-brand transition-colors"
+                        style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+                      >
+                        {item.title}
+                      </h3>
+                      {item.description && (
+                        <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">
+                          {item.description}
+                        </p>
+                      )}
+                    </a>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500 col-span-full py-8 text-center">
+                    Feed unavailable.
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="pointer-events-none absolute bottom-0 left-0 right-2 h-16 bg-gradient-to-t from-white to-transparent" />
+          </div>
+        </Panel>
+
+        {/* Reference */}
+        <Panel className="mb-12">
+          <PanelHeader title="Reference" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-7">
+            <RefRow
+              href="/algorithms"
+              icon={Activity}
+              title="Algorithms"
+              body="Interactive clinical pathways"
+            />
+            <RefRow
+              href="/guidelines"
+              icon={FileText}
+              title="Guidelines"
+              body="Local reference documents"
+            />
+            <RefRow
+              href="/teaching"
+              icon={GraduationCap}
+              title="Education"
+              body="Teaching and case studies"
+            />
+            <RefRow
+              external
+              href="https://travelhealthpro.org.uk"
+              icon={Plane}
+              title="NaTHNaC"
+              body="National travel health advisory"
+            />
+            <RefRow
+              external
+              href="https://wwwnc.cdc.gov/travel/notices"
+              icon={ShieldAlert}
+              title="CDC Travel"
+              body="US CDC travel health notices"
+            />
+            <RefRow
+              external
+              href="https://promedmail.org/"
+              icon={Siren}
+              title="ProMED-mail"
+              body="Global infectious disease monitor"
+            />
+          </div>
+        </Panel>
+
+        <footer className="pt-6 flex items-center justify-between text-xs text-slate-500">
+          <span>ID-Northwest © {new Date().getFullYear()}</span>
+          <a
+            href="mailto:infectionnw@gmail.com"
+            className="hover:text-slate-800 transition-colors"
+          >
+            Contact
+          </a>
+        </footer>
       </main>
     </div>
   );
 }
 
-function SectionHeader({ icon: Icon, label }) {
+function Panel({ children, className = "" }) {
   return (
-    <div className="flex items-center gap-3">
-      <Icon className="w-4 h-4 text-slate-400" />
-      <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
-        {label}
-      </span>
-      <div className="h-px flex-1 bg-slate-200" />
+    <section
+      className={`rounded-2xl bg-white ring-1 ring-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_12px_32px_-20px_rgba(15,14,71,0.12)] p-7 md:p-9 ${className}`}
+    >
+      {children}
+    </section>
+  );
+}
+
+function PanelHeader({ title, cta }) {
+  return (
+    <div className="flex items-end justify-between gap-6 pb-4 border-b border-slate-100">
+      <h2
+        className="text-xl md:text-2xl font-bold tracking-tight text-slate-900"
+        style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+      >
+        {title}
+      </h2>
+      {cta && (
+        <Link
+          href={cta.href}
+          target={cta.external ? "_blank" : undefined}
+          rel={cta.external ? "noopener noreferrer" : undefined}
+          className="text-sm font-semibold text-slate-700 hover:text-slate-900 inline-flex items-center gap-1 whitespace-nowrap pb-0.5 transition-colors"
+        >
+          {cta.label}
+          <ArrowUpRight className="w-4 h-4" />
+        </Link>
+      )}
     </div>
   );
 }
 
-function LiveIntelCard({ items, source }) {
-  const hasData = items && items.length > 0;
-  const isLive = source === "LIVE";
-
+function PaperGrain() {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-      <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-          {isLive ? "Live feed" : "Cached data"}
-        </span>
-        <span className={`text-xs font-semibold ${isLive ? "text-emerald-600" : "text-amber-600"}`}>
-          {isLive ? "● Live" : "● Offline"}
-        </span>
-      </div>
-
-      <div className="max-h-[520px] overflow-y-auto custom-scrollbar divide-y divide-slate-100">
-        {hasData ? (
-          items.map((item, i) => (
-            <a
-              key={i}
-              href={item.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex gap-4 p-4 hover:bg-slate-50 transition-colors group"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 group-hover:text-brand leading-snug">
-                  {item.title}
-                </p>
-                {item.description && (
-                  <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                    {item.description}
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-col items-end gap-1 shrink-0 pt-0.5">
-                <span className="text-xs font-medium text-slate-400 whitespace-nowrap">
-                  {item.date}
-                </span>
-                <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-brand transition-colors" />
-              </div>
-            </a>
-          ))
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-            <Database className="w-7 h-7 mb-2 opacity-40" />
-            <p className="text-sm">Feed unavailable</p>
-          </div>
-        )}
-      </div>
-    </div>
+    <svg
+      className="pointer-events-none fixed inset-0 w-full h-full opacity-[0.035] mix-blend-multiply"
+      aria-hidden="true"
+    >
+      <filter id="paper-grain">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" />
+        <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" />
+      </filter>
+      <rect width="100%" height="100%" filter="url(#paper-grain)" />
+    </svg>
   );
 }
 
-function CompactCard({ href, icon: Icon, title, description }) {
-  const isExternal = href.startsWith("http");
+function RefRow({ href, icon: Icon, title, body, external }) {
   return (
     <Link
       href={href}
-      target={isExternal ? "_blank" : undefined}
-      rel={isExternal ? "noopener noreferrer" : undefined}
-      className="group flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white hover:border-brand/40 hover:shadow-sm transition-all"
+      target={external ? "_blank" : undefined}
+      rel={external ? "noopener noreferrer" : undefined}
+      className="group flex items-start gap-3 p-4 rounded-xl bg-[#FAF8F4]/60 border border-slate-200 hover:border-slate-300 hover:bg-white transition-all"
     >
-      <div className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-brand/10 group-hover:text-brand transition-colors">
+      <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center text-slate-500 group-hover:text-slate-900 transition-colors border border-slate-200">
         <Icon className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-slate-800 group-hover:text-brand transition-colors">
+        <p className="text-sm font-semibold text-slate-900 group-hover:text-slate-700 transition-colors">
           {title}
         </p>
-        {description && (
-          <p className="text-xs text-slate-500 truncate mt-0.5">{description}</p>
-        )}
+        <p className="text-xs text-slate-500 mt-0.5">{body}</p>
       </div>
-      <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-brand shrink-0 transition-colors" />
-    </Link>
-  );
-}
-
-function ToolCard({ href, variant, icon: Icon, title, subtitle }) {
-  const styles = {
-    critical: {
-      border: "border-red-200",
-      hover: "hover:border-red-300",
-      iconBg: "bg-red-50",
-      iconColor: "text-red-600",
-      badge: "bg-red-50 text-red-600 border-red-200",
-      badgeLabel: "Critical",
-      arrow: "text-red-300 group-hover:text-red-500",
-    },
-    standard: {
-      border: "border-emerald-200",
-      hover: "hover:border-emerald-300",
-      iconBg: "bg-emerald-50",
-      iconColor: "text-emerald-600",
-      badge: "bg-emerald-50 text-emerald-600 border-emerald-200",
-      badgeLabel: "Tool",
-      arrow: "text-emerald-300 group-hover:text-emerald-500",
-    },
-  };
-
-  const s = styles[variant];
-
-  return (
-    <Link
-      href={href}
-      className={`group flex flex-col p-6 rounded-xl border ${s.border} ${s.hover} bg-white hover:shadow-md transition-all`}
-    >
-      <div className="flex items-start justify-between mb-4">
-        <div className={`p-2.5 rounded-lg ${s.iconBg}`}>
-          <Icon className={`w-5 h-5 ${s.iconColor}`} />
-        </div>
-        <ArrowUpRight className={`w-4 h-4 transition-colors ${s.arrow}`} />
-      </div>
-      <h3 className="text-base font-bold text-slate-900 mb-1 group-hover:text-brand transition-colors">
-        {title}
-      </h3>
-      <p className="text-sm text-slate-500 leading-relaxed">
-        {subtitle}
-      </p>
     </Link>
   );
 }
